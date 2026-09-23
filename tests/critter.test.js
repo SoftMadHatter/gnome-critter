@@ -244,3 +244,40 @@ test("un critter WALL sans CEILING reste accroché en haut du mur sans planter n
   assert.equal(snapshot.state, State.IDLE);
   assert.equal(critter.currentSurface, null);
 });
+
+test('interact() associe chaque geste à sa réaction thématique', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+
+  const cases = [
+    ['doubleClick', 'tickled'],
+    ['rightClick', 'annoyed'],
+    ['hover', 'noticed'],
+    ['click', 'petted'],
+  ];
+
+  for (const [kind, expectedEvent] of cases) {
+    const critter = new Critter({ random: fixedRandom(0.9) }, { x: 10, y: monitor.height });
+    critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+    critter.state = State.IDLE;
+    critter.stateTimer = 10;
+
+    critter.interact(kind);
+    const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+    assert.equal(snapshot.event, expectedEvent, `${kind} devrait poser l'événement ${expectedEvent}`);
+  }
+});
+
+test("interact() avec un geste inconnu ne plante pas et ne pose pas d'événement", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 10, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 10;
+
+  critter.interact('inconnu');
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.event, null);
+  assert.equal(snapshot.state, State.IDLE);
+});

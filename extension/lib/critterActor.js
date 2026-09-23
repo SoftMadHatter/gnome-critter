@@ -8,7 +8,7 @@ import Graphene from 'gi://Graphene';
 
 import { State } from '../core/critter.js';
 
-const DRAG_THRESHOLD_PX = 4;
+const DRAG_BEGIN_THRESHOLD_PX = 4;
 
 export class CritterActor {
   /**
@@ -22,10 +22,6 @@ export class CritterActor {
     this._frameIndex = 0;
     this._frameElapsed = 0;
     this._reaction = null; // {name, elapsed}
-    this._dragging = false;
-    this._dragStart = null;
-    this._motionHandlerId = null;
-    this._releaseHandlerId = null;
     this._grab = null;
 
     this.actor = new Clutter.Actor({
@@ -35,11 +31,67 @@ export class CritterActor {
       pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
     });
 
-    this.actor.connect('button-press-event', (_actor, event) => this._onButtonPress(event));
-    this.actor.connect('destroy', () => this._disconnectStageHandlers());
+    this._setupGestures();
+
+    this.actor.connect('enter-event', () => {
+      this.critter.interact('hover');
+      return Clutter.EVENT_PROPAGATE;
+    });
 
     this._applyFrame('fall', 0);
     this.syncPosition();
+  }
+
+  /**
+   * Clic/double-clic/clic droit/glisser via le framework de gestes Clutter
+   * (mutter-18, GNOME 50) : event.get_click_count() n'existe plus sur
+   * Clutter.Event, et plus aucun widget du Shell ne détecte ça via des
+   * signaux bruts (button-press-event/motion-event/button-release-event) --
+   * y compris le glisser, cf. le slider de ui/popupMenu.js qui utilise
+   * Clutter.PanGesture avec le même global.stage.grab() que ci-dessous.
+   */
+  _setupGestures() {
+    const clickGesture = new Clutter.ClickGesture();
+    clickGesture.connect('recognize', () => this.critter.pet());
+    this.actor.add_action(clickGesture);
+
+    const doubleClickGesture = new Clutter.ClickGesture({ n_clicks_required: 2 });
+    doubleClickGesture.connect('recognize', () => this.critter.interact('doubleClick'));
+    this.actor.add_action(doubleClickGesture);
+
+    // recognize_on_press : action immédiate, pas de glisser possible au
+    // clic droit (même pattern que ui/appDisplay.js pour le menu contextuel
+    // des icônes).
+    const rightClickGesture = new Clutter.ClickGesture({
+      required_button: Clutter.BUTTON_SECONDARY,
+      recognize_on_press: true,
+    });
+    rightClickGesture.connect('recognize', () => this.critter.interact('rightClick'));
+    this.actor.add_action(rightClickGesture);
+
+    const panGesture = new Clutter.PanGesture();
+    panGesture.set_begin_threshold(DRAG_BEGIN_THRESHOLD_PX);
+    panGesture.connect('recognize', () => {
+      // Capture tous les événements pointeur pendant le glisser, même
+      // quand le curseur passe au-dessus d'une vraie fenêtre : sans grab,
+      // Mutter livre sinon les mises à jour directement au client Wayland
+      // de la fenêtre survolée (le drag "se figeait" dès que la souris
+      // quittait le sprite).
+      this._grab = global.stage.grab(this.actor);
+      this.critter.startDrag();
+    });
+    panGesture.connect('pan-update', () => {
+      const coords = panGesture.get_centroid_abs();
+      this.critter.dragTo(coords.x, coords.y);
+    });
+    panGesture.connect('end', () => {
+      if (this._grab) {
+        this._grab.dismiss();
+        this._grab = null;
+      }
+      this.critter.endDrag();
+    });
+    this.actor.add_action(panGesture);
   }
 
   syncPosition() {
@@ -59,7 +111,16 @@ export class CritterActor {
    * @param {{state: string, event: string|null}} snapshot
    */
   updateAnimation(dt, snapshot) {
-    if (snapshot.event && this.pack.reactionFrames[snapshot.event]) {
+    // La garde sur this._reaction?.name évite qu'un événement répété (ex.
+    // 'noticed' au survol, qui peut se redéclencher souvent si le curseur
+    // reste immobile pendant que le critter marche dessous) ne redémarre
+    // sans cesse la même réaction depuis le début ; une réaction DIFFÉRENTE
+    // interrompt toujours l'actuelle normalement.
+    if (
+      snapshot.event &&
+      this.pack.reactionFrames[snapshot.event] &&
+      this._reaction?.name !== snapshot.event
+    ) {
       this._reaction = { name: snapshot.event, elapsed: 0, index: 0 };
     }
 
@@ -107,70 +168,11 @@ export class CritterActor {
     this.actor.content = frames[Math.min(this._frameIndex, frames.length - 1)];
   }
 
-  _onButtonPress(event) {
-    if (event.get_button() !== Clutter.BUTTON_PRIMARY) return Clutter.EVENT_PROPAGATE;
-
-    const [stageX, stageY] = event.get_coords();
-    this._dragStart = { x: stageX, y: stageY, moved: false };
-
-    // Capture tous les événements pointeur sur CET acteur pendant le
-    // glisser, même quand le curseur passe au-dessus d'une vraie fenêtre :
-    // sans grab, Mutter livre alors motion/relâchement directement au
-    // client Wayland de la fenêtre survolée, pas à nos handlers (le drag
-    // "se figeait" dès que la souris quittait le sprite). C'est le même
-    // mécanisme que celui utilisé par le drag & drop natif du Shell
-    // (ui/dnd.js, via Main.pushModal -> global.stage.grab()).
-    this._grab = global.stage.grab(this.actor);
-    this._motionHandlerId = this.actor.connect('motion-event', (_a, ev) => this._onMotion(ev));
-    this._releaseHandlerId = this.actor.connect('button-release-event', (_a, ev) => this._onRelease(ev));
-
-    return Clutter.EVENT_STOP;
-  }
-
-  _onMotion(event) {
-    const [x, y] = event.get_coords();
-    if (!this._dragging) {
-      const dx = x - this._dragStart.x;
-      const dy = y - this._dragStart.y;
-      if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return Clutter.EVENT_PROPAGATE;
-      this._dragging = true;
-      this.critter.startDrag();
-    }
-    this.critter.dragTo(x, y);
-    return Clutter.EVENT_STOP;
-  }
-
-  _onRelease(event) {
-    if (this._dragging) {
-      this.critter.endDrag();
-    } else {
-      // Pas de déplacement notable entre press et release : c'est une
-      // caresse, pas un glisser.
-      this.critter.pet();
-    }
-    this._dragging = false;
-    this._dragStart = null;
-    this._disconnectStageHandlers();
-    return Clutter.EVENT_STOP;
-  }
-
-  _disconnectStageHandlers() {
-    if (this._motionHandlerId) {
-      this.actor.disconnect(this._motionHandlerId);
-      this._motionHandlerId = null;
-    }
-    if (this._releaseHandlerId) {
-      this.actor.disconnect(this._releaseHandlerId);
-      this._releaseHandlerId = null;
-    }
+  destroy() {
     if (this._grab) {
       this._grab.dismiss();
       this._grab = null;
     }
-  }
-
-  destroy() {
-    this._disconnectStageHandlers();
     this.actor.destroy();
   }
 }

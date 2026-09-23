@@ -31,6 +31,16 @@ export const Locomotion = Object.freeze({
   AIR: 'air',
 });
 
+/** Geste brut détecté côté extension -> nom d'événement thématique émis
+ * (et donc nom de réaction dans pack.json). Centralisé ici pour rester
+ * facile à retoucher sans aller fouiller la détection d'événements Clutter. */
+const INTERACTION_REACTIONS = {
+  click: 'petted',
+  doubleClick: 'tickled',
+  rightClick: 'annoyed',
+  hover: 'noticed',
+};
+
 const DEFAULT_CONFIG = {
   speciesId: 'unknown',
   walkSpeed: 40, // px/s
@@ -107,9 +117,19 @@ export class Critter {
   }
 
   pet() {
-    this._pendingEvent = 'petted';
-    // Ne change pas forcément l'état ; c'est à la couche animation de jouer
-    // une réaction courte (ex: petite bulle de cœur) par-dessus l'état courant.
+    this.interact('click');
+  }
+
+  /**
+   * Pose une réaction ponctuelle sans toucher à l'état physique (contraste
+   * avec startDrag/endDrag, qui changent aussi state/vx/vy). `kind` est le
+   * geste brut détecté côté extension (ex. 'doubleClick') ; INTERACTION_REACTIONS
+   * fait le lien vers le nom d'événement thématique correspondant, pour que
+   * ce mapping reste modifiable à un seul endroit.
+   */
+  interact(kind) {
+    const event = INTERACTION_REACTIONS[kind];
+    if (event) this._pendingEvent = event;
   }
 
   // --- Boucle principale ----------------------------------------------------
