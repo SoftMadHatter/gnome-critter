@@ -7,6 +7,7 @@ import {
   findWallNear,
   findCeilingAbove,
   findReachableWall,
+  findReachableShelf,
 } from './surfaceMap.js';
 
 /** États possibles. Volontairement une simple union de chaînes : facile à
@@ -26,6 +27,7 @@ export const State = Object.freeze({
   GREET: 'greet', // marche vers le critter le plus proche, salue en l'atteignant
   SEEK_WALL: 'seekWall', // marche vers un mur atteignable pour grimper délibérément
   SEEK_FOCUS: 'seekFocus', // marche vers la fenêtre qui vient de prendre le focus
+  SEEK_NAP: 'seekNap', // marche vers un rebord de fenêtre proche avant de s'endormir
   CHASE: 'chase', // poursuit une cible précise (référence fixe, pas "le plus proche")
   FLEE: 'flee', // s'éloigne d'un poursuivant
 });
@@ -90,6 +92,9 @@ const DEFAULT_CONFIG = {
   fleeWeight: 50,
   fleeMaxDistance: 600,
   fleeDuration: [2, 4],
+  napSeekMaxDistance: 400, // recherche locale, plus courte que les 600 des autres comportements ("proche" au sens du roadmap)
+  napSeekDuration: [3, 6],
+  napApproachDistance: 6,
   repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
@@ -272,6 +277,9 @@ export class Critter {
       case State.FLEE:
         this._tickFlee(dt, surfaces);
         break;
+      case State.SEEK_NAP:
+        this._tickSeekNap(dt, surfaces);
+        break;
       case State.IDLE:
       case State.SLEEP:
       case State.WASH:
@@ -449,11 +457,29 @@ export class Critter {
     this._lastActivity = choice; // 'walk' ne matche jamais la garde !== 'walk' ci-dessus : équivalent à un reset
 
     switch (choice) {
-      case 'sleep':
+      case 'sleep': {
+        // Sieste ciblée : plutôt que de dormir sur place, cherche d'abord
+        // un rebord de fenêtre proche et atteignable en marchant ; repli
+        // sur place si rien à portée (comportement d'avant ce raffinement).
+        const shelf = this.currentSurface
+          ? findReachableShelf(
+              surfaces.segments,
+              this.x,
+              this.y,
+              this.currentSurface.surfaceId,
+              this.config.napSeekMaxDistance,
+            )
+          : null;
+        if (shelf) {
+          this.state = State.SEEK_NAP;
+          this.stateTimer = randRange(this.config.napSeekDuration, this.config.random);
+          return;
+        }
         this.state = State.SLEEP;
         this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
         this.lastEvent = 'sleep';
         return;
+      }
       case 'wash':
         this.state = State.WASH;
         this.stateTimer = randRange(this.config.washDuration, this.config.random);
@@ -606,6 +632,43 @@ export class Critter {
     if (this.currentSurface) {
       this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
     }
+  }
+
+  _tickSeekNap(dt, surfaces) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    // Recalculé à chaque tick (comme SEEK_WALL) : un rebord peut devenir
+    // injoignable (fenêtre fermée/déplacée) en chemin.
+    const shelf = this.currentSurface
+      ? findReachableShelf(
+          surfaces.segments,
+          this.x,
+          this.y,
+          this.currentSurface.surfaceId,
+          this.config.napSeekMaxDistance,
+        )
+      : null;
+
+    if (this.stateTimer <= 0 || !shelf) {
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    const targetX = clamp(this.x, shelf.x1, shelf.x2); // point le plus proche sur le rebord
+    if (Math.abs(targetX - this.x) < this.config.napApproachDistance) {
+      this.x = targetX;
+      this.y = shelf.y;
+      this.currentSurface = shelf;
+      this.state = State.SLEEP;
+      this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
+      this.lastEvent = 'sleep';
+      return;
+    }
+
+    this._chase(dt, targetX);
   }
 
   _tickSeekWall(dt, surfaces) {

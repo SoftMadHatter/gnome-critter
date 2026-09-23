@@ -61,7 +61,8 @@ packs/<species-id>/
     "seekWall": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "seekFocus": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "chase":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "flee":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
+    "flee":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "seekNap":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
   // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js).

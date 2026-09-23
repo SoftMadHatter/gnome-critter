@@ -232,6 +232,32 @@ export function findReachableWall(walls, x, y, epsilon = 4) {
 }
 
 /**
+ * Cherche le segment de type "shelf" le plus proche horizontalement, à une
+ * distance maximale, dont le `y` correspond (à `epsilon` près) à celui
+ * donné -- un rebord "atteignable" en marchant, par opposition à un rebord
+ * à une autre hauteur qui ne le serait qu'en tombant/grimpant (même
+ * principe que findReachableWall). `excludeSurfaceId` évite de "chercher"
+ * la surface déjà occupée. Utilisé pour une sieste ciblée : au lieu de
+ * dormir sur place, marcher d'abord vers un rebord de fenêtre proche.
+ */
+export function findReachableShelf(segments, x, y, excludeSurfaceId, maxDistance = Infinity, epsilon = 4) {
+  let best = null;
+  let bestDistance = maxDistance;
+
+  for (const seg of segments) {
+    if (seg.type !== 'shelf') continue;
+    if (seg.surfaceId === excludeSurfaceId) continue;
+    if (Math.abs(seg.y - y) > epsilon) continue;
+    const d = x < seg.x1 ? seg.x1 - x : x > seg.x2 ? x - seg.x2 : 0;
+    if (d > bestDistance) continue;
+    bestDistance = d;
+    best = seg;
+  }
+
+  return best;
+}
+
+/**
  * Cherche, parmi les segments praticables au plafond, le plus proche
  * au-dessus d'un point donné, à `maxDistance` près. Utilisé pendant CLIMB :
  * l'animal s'arrête sous la première surface en surplomb qu'il rencontre en

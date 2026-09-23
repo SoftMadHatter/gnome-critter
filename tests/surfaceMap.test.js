@@ -7,6 +7,7 @@ import {
   findWallNear,
   findCeilingAbove,
   findReachableWall,
+  findReachableShelf,
 } from '../core/surfaceMap.js';
 
 test('computeSurfaces génère sol, plafond et murs pour chaque moniteur', () => {
@@ -135,4 +136,26 @@ test('findReachableWall trouve le mur le plus proche dont le bas est au niveau d
 
   // À un niveau où aucun mur n'a son bas : rien de "atteignable".
   assert.equal(findReachableWall(walls, 450, 500), null);
+});
+
+test('findReachableShelf trouve le rebord le plus proche au même niveau, hors la surface exclue', () => {
+  const { segments } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1000, height: 1000 }],
+    windows: [
+      { id: 'near', x: 100, y: 300, width: 100, height: 50 },
+      { id: 'far', x: 800, y: 300, width: 100, height: 50 },
+      { id: 'otherHeight', x: 400, y: 500, width: 100, height: 50 },
+    ],
+  });
+
+  const nearest = findReachableShelf(segments, 250, 300, 'unrelated');
+  assert.ok(nearest);
+  assert.equal(nearest.surfaceId, 'near');
+
+  // La surface déjà occupée ('near') est exclue : le suivant l'emporte.
+  const excludingNear = findReachableShelf(segments, 250, 300, 'near');
+  assert.equal(excludingNear.surfaceId, 'far');
+
+  assert.equal(findReachableShelf(segments, 250, 300, 'unrelated', 10), null, 'trop loin pour maxDistance=10');
+  assert.equal(findReachableShelf(segments, 450, 999, 'unrelated'), null, 'aucun rebord à ce niveau');
 });

@@ -966,3 +966,73 @@ test('FLEE retombe en IDLE si _fleeFrom est absent (timeout)', () => {
 
   assert.equal(snapshot.state, State.IDLE);
 });
+
+test('depuis IDLE, sleepWeight écrasant bascule vers SEEK_NAP si un rebord est à portée', () => {
+  const win = { id: 'w1', x: 600, y: monitor.height, width: 200, height: 100 }; // haut au niveau du sol
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 1000,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 0,
+      seekFocusWeight: 0,
+    },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.SEEK_NAP);
+});
+
+test("SEEK_NAP avance vers le rebord puis bascule en SLEEP (currentSurface = le rebord) en l'atteignant", () => {
+  const win = { id: 'w1', x: 600, y: monitor.height, width: 200, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 300 }, { x: 500, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.SEEK_NAP;
+  critter.stateTimer = 10;
+
+  let snapshot;
+  for (let i = 0; i < 60; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state === State.SLEEP) break;
+  }
+
+  assert.equal(snapshot.state, State.SLEEP);
+  assert.equal(critter.currentSurface.surfaceId, 'w1');
+  assert.equal(critter.currentSurface.type, 'shelf');
+});
+
+test('SEEK_NAP retombe en FALL si sa surface disparaît en chemin', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 450, y: 300 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'shelf' && s.surfaceId === 'w1');
+  critter.state = State.SEEK_NAP;
+  critter.stateTimer = 10;
+
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test("SEEK_NAP retombe en IDLE si aucun rebord n'est à portée", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 500, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.SEEK_NAP;
+  critter.stateTimer = 10;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.IDLE);
+});
