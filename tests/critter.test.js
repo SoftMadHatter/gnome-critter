@@ -692,3 +692,105 @@ test("SEEK_WALL retombe en IDLE si aucun mur atteignable n'est à portée", () =
 
   assert.equal(snapshot.state, State.IDLE);
 });
+
+test('depuis IDLE, un poids seekFocusWeight écrasant fait aller voir la fenêtre focalisée', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 0,
+      seekFocusWeight: 1000,
+    },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    focusedWindow: { x: 800, y: 0, width: 100, height: 100 },
+  });
+
+  assert.equal(snapshot.state, State.SEEK_FOCUS);
+});
+
+test('sans focusedWindow, SEEK_FOCUS ne se déclenche jamais (retombe sur la marche)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.01),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 0,
+      seekFocusWeight: 1000,
+    },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.notEqual(snapshot.state, State.SEEK_FOCUS);
+});
+
+test("SEEK_FOCUS avance vers le centre de la fenêtre focalisée puis s'arrête (IDLE) en l'atteignant", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 300 }, { x: 100, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.SEEK_FOCUS;
+  critter.stateTimer = 10;
+
+  const focusedWindow = { x: 400, y: 300, width: 200, height: 100 }; // centre x = 500
+
+  let snapshot;
+  for (let i = 0; i < 120; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, focusedWindow });
+    if (snapshot.state === State.IDLE) break;
+  }
+
+  assert.equal(snapshot.state, State.IDLE);
+  assert.ok(
+    Math.abs(snapshot.x - 500) < 25,
+    `devrait s'être arrêté près du centre de la fenêtre (500), obtenu ${snapshot.x}`,
+  );
+});
+
+test('SEEK_FOCUS retombe en FALL si sa surface disparaît en chemin', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 450, y: 300 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'shelf');
+  critter.state = State.SEEK_FOCUS;
+  critter.stateTimer = 10;
+
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const snapshot = critter.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    focusedWindow: { x: 400, y: 300, width: 200, height: 100 },
+  });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test("SEEK_FOCUS retombe en IDLE si focusedWindow n'est plus fourni (expiré côté manager, ou timeout)", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 100, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.SEEK_FOCUS;
+  critter.stateTimer = 10;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.IDLE);
+});

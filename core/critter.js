@@ -25,6 +25,7 @@ export const State = Object.freeze({
   FOLLOW: 'follow', // marche vers le curseur, cible recalculée en continu
   GREET: 'greet', // marche vers le critter le plus proche, salue en l'atteignant
   SEEK_WALL: 'seekWall', // marche vers un mur atteignable pour grimper délibérément
+  SEEK_FOCUS: 'seekFocus', // marche vers la fenêtre qui vient de prendre le focus
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -78,6 +79,10 @@ const DEFAULT_CONFIG = {
   climbSeekDuration: [3, 6],
   climbSeekMaxDistance: 600,
   climbApproachDistance: 6, // distance en dessous de laquelle on considère avoir "atteint" le mur
+  seekFocusWeight: 10,
+  seekFocusDuration: [3, 6],
+  seekFocusMaxDistance: 600,
+  seekFocusDistance: 20, // distance en dessous de laquelle on considère avoir "atteint" la fenêtre
   repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
@@ -232,6 +237,9 @@ export class Critter {
       case State.SEEK_WALL:
         this._tickSeekWall(dt, surfaces);
         break;
+      case State.SEEK_FOCUS:
+        this._tickSeekFocus(dt, surfaces, options);
+        break;
       case State.IDLE:
       case State.SLEEP:
       case State.WASH:
@@ -375,6 +383,13 @@ export class Critter {
       }
     }
 
+    if (this.currentSurface && options.focusedWindow) {
+      const targetX = options.focusedWindow.x + options.focusedWindow.width / 2;
+      const distance = Math.abs(targetX - this.x);
+      const proximity = clamp(1 - distance / this.config.seekFocusMaxDistance, 0.15, 1);
+      candidates.push({ value: 'seekFocus', weight: this.config.seekFocusWeight * proximity });
+    }
+
     // Anti-répétition : uniquement sur les activités spéciales. "walk" est
     // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
     // en faveur des autres à chaque cycle qui suit une marche.
@@ -409,6 +424,10 @@ export class Critter {
       case 'climb':
         this.state = State.SEEK_WALL;
         this.stateTimer = randRange(this.config.climbSeekDuration, this.config.random);
+        return;
+      case 'seekFocus':
+        this.state = State.SEEK_FOCUS;
+        this.stateTimer = randRange(this.config.seekFocusDuration, this.config.random);
         return;
       default:
         this._startWalkOnCurrentSurface(surfaces);
@@ -493,6 +512,28 @@ export class Critter {
     }
 
     this._chase(dt, wall.x);
+  }
+
+  _tickSeekFocus(dt, surfaces, options) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    if (this.stateTimer <= 0 || !options.focusedWindow) {
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    const targetX = options.focusedWindow.x + options.focusedWindow.width / 2;
+    if (Math.abs(targetX - this.x) < this.config.seekFocusDistance) {
+      // Arrivé : simple curiosité, pas de nouvelle réaction/son dédiés pour
+      // ce comportement (contrairement à GREET -> 'greeted').
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    this._chase(dt, targetX);
   }
 
   /** Avance vers `targetX` le long de la surface courante (WALK vise un

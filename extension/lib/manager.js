@@ -33,6 +33,14 @@ export class Manager {
     /** @type {Set<number>|null} null tant que le premier tick n'a pas eu
      * lieu, pour ne jamais réagir aux fenêtres déjà ouvertes au démarrage. */
     this._knownWindowIds = null;
+    /** @type {number|undefined} id de la fenêtre focalisée au tick précédent
+     * (undefined tant que le premier tick n'a pas eu lieu, cf. plus haut). */
+    this._lastFocusedWindowId = undefined;
+    /** Fenêtre qui vient de prendre le focus, exposée aux critters tant que
+     * `_focusedWindowExpiryUs` n'est pas dépassé (opportunité passagère,
+     * pas une cible permanente comme le pointeur pour FOLLOW). */
+    this._focusedWindow = null;
+    this._focusedWindowExpiryUs = 0;
   }
 
   spawn(count = 1) {
@@ -122,6 +130,19 @@ export class Manager {
     }
     this._knownWindowIds = currentWindowIds;
 
+    // Fenêtre de fraîcheur limitée après un changement de focus (contraste
+    // avec le pointeur pour FOLLOW, toujours une cible valide) : passé ce
+    // délai sans qu'un critter idle l'ait choisie, l'opportunité expire
+    // silencieusement plutôt que de rester une cible permanente.
+    const focused = windows.find((w) => w.focused) ?? null;
+    if (this._lastFocusedWindowId !== undefined && focused && focused.id !== this._lastFocusedWindowId) {
+      this._focusedWindow = focused;
+      this._focusedWindowExpiryUs = nowUs + 5_000_000; // 5s
+    }
+    this._lastFocusedWindowId = focused?.id;
+    const focusedWindow =
+      this._focusedWindow && nowUs < this._focusedWindowExpiryUs ? this._focusedWindow : undefined;
+
     // Instantané d'avant ce tick (positions non encore mises à jour) pour
     // que l'ordre de traitement des critters ne biaise pas qui "voit" qui ;
     // la référence à l'instance voyage à côté (pas dans le calcul de
@@ -131,7 +152,7 @@ export class Manager {
 
     this._critters.forEach(({ critter, actor }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
-      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters });
+      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters, focusedWindow });
       actor.updateAnimation(dt, snapshot);
     });
   }
