@@ -102,6 +102,17 @@ export function computeSurfaces(environment) {
       x2: win.x + win.width,
       surfaceId: win.id,
     });
+    // Dessous = bas de la fenêtre, praticable seulement par les espèces qui
+    // savent marcher au plafond (même type 'ceiling' que le plafond d'un
+    // moniteur : l'animal s'y accroche tête en bas en grimpant le long
+    // d'un des murs de la fenêtre, cf. Critter._tickClimb).
+    segments.push({
+      type: 'ceiling',
+      y: win.y + win.height,
+      x1: win.x,
+      x2: win.x + win.width,
+      surfaceId: win.id,
+    });
     walls.push({
       side: 'left',
       x: win.x,
@@ -164,4 +175,57 @@ export function findSurfaceBelow(segments, x, y, maxFallDistance, allowedTypes) 
  */
 export function isOnSegment(segment, x, y, epsilon = 2) {
   return x >= segment.x1 && x <= segment.x2 && Math.abs(y - segment.y) <= epsilon;
+}
+
+/**
+ * Retrouve, dans la liste de segments fraîchement recalculée à ce tick, le
+ * segment qui correspond encore à `surfaceId`/`type` (utilisé pour détecter
+ * qu'une fenêtre sous les pieds de l'animal a été fermée/déplacée/redimensionnée
+ * depuis le tick où il s'y est posé : un segment mémorisé peut devenir périmé).
+ */
+export function findSegmentById(segments, surfaceId, type) {
+  return segments.find((s) => s.surfaceId === surfaceId && s.type === type) ?? null;
+}
+
+/** Équivalent de {@link findSegmentById} pour les murs (état CLIMB). */
+export function findWallById(walls, surfaceId, side) {
+  return walls.find((w) => w.surfaceId === surfaceId && w.side === side) ?? null;
+}
+
+/**
+ * Cherche un mur assez proche horizontalement de `x` (à `epsilon` près)
+ * dont la portée verticale [y1, y2] croise l'intervalle [yMin, yMax].
+ * Utilisé pendant FALL pour détecter qu'on passe juste à côté d'un mur
+ * agrippable (bord de fenêtre ou de moniteur).
+ */
+export function findWallNear(walls, x, yMin, yMax, epsilon = 6) {
+  for (const wall of walls) {
+    if (Math.abs(wall.x - x) > epsilon) continue;
+    if (yMax < wall.y1 || yMin > wall.y2) continue;
+    return wall;
+  }
+  return null;
+}
+
+/**
+ * Cherche, parmi les segments praticables au plafond, le plus proche
+ * au-dessus d'un point donné, à `maxDistance` près. Utilisé pendant CLIMB :
+ * l'animal s'arrête sous la première surface en surplomb qu'il rencontre en
+ * grimpant (plafond d'un moniteur, ou dessous d'une fenêtre), plutôt que de
+ * grimper systématiquement jusqu'en haut du mur.
+ */
+export function findCeilingAbove(segments, x, fromY, maxDistance, allowedTypes = new Set(['ceiling'])) {
+  let best = null;
+  let bestDistance = maxDistance;
+
+  for (const seg of segments) {
+    if (!allowedTypes.has(seg.type)) continue;
+    if (x < seg.x1 || x > seg.x2) continue;
+    const d = fromY - seg.y;
+    if (d < 0 || d > bestDistance) continue;
+    bestDistance = d;
+    best = seg;
+  }
+
+  return best;
 }

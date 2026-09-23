@@ -1,5 +1,12 @@
 import { clamp, sign } from './vec2.js';
-import { findSurfaceBelow, isOnSegment } from './surfaceMap.js';
+import {
+  findSurfaceBelow,
+  isOnSegment,
+  findSegmentById,
+  findWallById,
+  findWallNear,
+  findCeilingAbove,
+} from './surfaceMap.js';
 
 /** États possibles. Volontairement une simple union de chaînes : facile à
  * sérialiser, à logger, et à mapper vers un nom d'animation dans un pack. */
@@ -117,6 +124,15 @@ export class Critter {
     this._pendingEvent = null;
     this.stateTimer -= dt;
 
+    // La fenêtre/le rebord sur lequel on s'est posé a pu être fermé,
+    // déplacé ou redimensionné depuis le tick où `currentSurface` a été
+    // mémorisé : on le retrouve dans les surfaces fraîchement recalculées
+    // de CE tick avant d'agir, sinon on continue de raisonner sur des
+    // coordonnées périmées (le critter resterait suspendu dans le vide).
+    if (this.currentSurface && this.currentSurface.surfaceId !== undefined) {
+      this._resyncCurrentSurface(surfaces);
+    }
+
     switch (this.state) {
       case State.DRAG:
         this._tickDrag();
@@ -163,6 +179,24 @@ export class Critter {
 
   // --- Implémentations par état ----------------------------------------------
 
+  /**
+   * Remplace `currentSurface` par sa version à jour dans `surfaces` (mêmes
+   * `surfaceId`/`type`, ou `side` pour un mur), ou fait tomber le critter si
+   * elle n'existe plus (fenêtre fermée entre-temps).
+   */
+  _resyncCurrentSurface(surfaces) {
+    const surface = this.currentSurface;
+    const fresh = surface.side
+      ? findWallById(surfaces.walls, surface.surfaceId, surface.side)
+      : findSegmentById(surfaces.segments, surface.surfaceId, surface.type);
+
+    if (!fresh) {
+      this._enterState(State.FALL);
+      return;
+    }
+    this.currentSurface = fresh;
+  }
+
   _tickDrag() {
     if (!this._dragTarget) return;
     this.x = this._dragTarget.x;
@@ -188,6 +222,19 @@ export class Critter {
       }
       this.lastEvent = 'landed';
       return;
+    }
+
+    if (this.supports(Locomotion.WALL)) {
+      const wall = findWallNear(surfaces.walls, this.x, Math.min(this.y, nextY), Math.max(this.y, nextY));
+      if (wall) {
+        this.x = wall.x; // plaqué contre le mur, pas juste "à epsilon près"
+        this.y = clamp(nextY, wall.y1, wall.y2);
+        this.vy = 0;
+        this.currentSurface = wall;
+        this._enterState(State.CLIMB);
+        this.lastEvent = 'landed';
+        return;
+      }
     }
 
     this.y = nextY;
@@ -273,30 +320,63 @@ export class Critter {
   }
 
   _tickClimb(dt, surfaces) {
-    // Monte le long du mur courant jusqu'à son sommet, puis bascule au
-    // plafond si l'espèce le supporte, sinon repart en chute contrôlée.
+    // Monte le long du mur courant. Si l'espèce sait marcher au plafond,
+    // elle s'arrête et s'accroche dès qu'elle croise, en chemin, une
+    // surface en surplomb (plafond d'un moniteur, dessous d'une fenêtre) ;
+    // sinon elle grimpe jusqu'au sommet du mur et s'y arrête (rien à quoi
+    // se suspendre là-haut).
     const wall = this.currentSurface;
     if (!wall) {
       this._enterState(State.FALL);
       return;
     }
-    this.y -= this.config.climbSpeed * dt;
-    if (this.y <= wall.y1) {
-      this.y = wall.y1;
-      if (this.supports(Locomotion.CEILING)) {
+
+    const prevY = this.y;
+    this.y = Math.max(this.y - this.config.climbSpeed * dt, wall.y1);
+
+    if (this.supports(Locomotion.CEILING)) {
+      const ceiling = findCeilingAbove(surfaces.segments, wall.x, prevY, prevY - this.y);
+      if (ceiling) {
+        this.y = ceiling.y;
+        this.currentSurface = ceiling;
+        // On vient de grimper ce mur : repartir vers le bord opposé plutôt
+        // que de continuer vers l'extérieur, où on retomberait aussitôt.
+        this.facing = wall.side === 'left' ? 1 : -1;
         this._enterState(State.CEILING);
-      } else {
-        this._enterState(State.IDLE);
+        return;
       }
+    }
+
+    if (this.y <= wall.y1) {
+      // Rien à agripper au sommet : on reste accroché là, immobile, plutôt
+      // que de "se tenir debout" sur un mur (qui n'a pas de x1/x2 valides
+      // pour la vérification de surface des états IDLE/WALK).
+      this.currentSurface = null;
+      this._enterState(State.IDLE);
     }
   }
 
   _tickCeiling(dt, surfaces) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
     if (this.stateTimer <= 0) {
       this._enterState(State.FALL);
       return;
     }
+
     this.x += this.facing * this.config.walkSpeed * dt;
+
+    if (this.currentSurface) {
+      const clamped = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
+      if (clamped !== this.x) {
+        // Bout du surplomb atteint : plus rien à quoi se tenir.
+        this.x = clamped;
+        this._enterState(State.FALL);
+      }
+    }
   }
 
   _tickSwim(dt, surfaces) {
@@ -337,6 +417,12 @@ export class Critter {
       case State.FALL:
         this.vy = 0;
         this.currentSurface = null;
+        break;
+      case State.CEILING:
+        // stateTimer hérité de l'état précédent (WALK/CLIMB...) serait déjà
+        // épuisé : sans ce reset, _tickCeiling retomberait dès le tick
+        // suivant, avant même d'avoir pu s'accrocher visiblement.
+        this.stateTimer = randRange(this.config.walkDuration, this.config.random);
         break;
       default:
         break;

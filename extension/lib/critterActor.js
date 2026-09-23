@@ -6,6 +6,8 @@
 import Clutter from 'gi://Clutter';
 import Graphene from 'gi://Graphene';
 
+import { State } from '../core/critter.js';
+
 const DRAG_THRESHOLD_PX = 4;
 
 export class CritterActor {
@@ -24,6 +26,7 @@ export class CritterActor {
     this._dragStart = null;
     this._motionHandlerId = null;
     this._releaseHandlerId = null;
+    this._grab = null;
 
     this.actor = new Clutter.Actor({
       reactive: true,
@@ -41,7 +44,11 @@ export class CritterActor {
 
   syncPosition() {
     const size = this.pack.spriteSize;
-    this.actor.set_position(this.critter.x - size.width / 2, this.critter.y - size.height);
+    // critter.y est le point d'accroche : les pieds pour tout état posé sur
+    // le dessus d'une surface, mais le haut du sprite pour CEILING (accroché
+    // sous un surplomb, donc suspendu SOUS ce point plutôt que dessus).
+    const y = this.critter.state === State.CEILING ? this.critter.y : this.critter.y - size.height;
+    this.actor.set_position(this.critter.x - size.width / 2, y);
     this.actor.scale_x = this.critter.facing < 0 ? -1 : 1;
   }
 
@@ -106,9 +113,16 @@ export class CritterActor {
     const [stageX, stageY] = event.get_coords();
     this._dragStart = { x: stageX, y: stageY, moved: false };
 
-    const stage = this.actor.get_stage();
-    this._motionHandlerId = stage.connect('motion-event', (_s, ev) => this._onMotion(ev));
-    this._releaseHandlerId = stage.connect('button-release-event', (_s, ev) => this._onRelease(ev));
+    // Capture tous les événements pointeur sur CET acteur pendant le
+    // glisser, même quand le curseur passe au-dessus d'une vraie fenêtre :
+    // sans grab, Mutter livre alors motion/relâchement directement au
+    // client Wayland de la fenêtre survolée, pas à nos handlers (le drag
+    // "se figeait" dès que la souris quittait le sprite). C'est le même
+    // mécanisme que celui utilisé par le drag & drop natif du Shell
+    // (ui/dnd.js, via Main.pushModal -> global.stage.grab()).
+    this._grab = global.stage.grab(this.actor);
+    this._motionHandlerId = this.actor.connect('motion-event', (_a, ev) => this._onMotion(ev));
+    this._releaseHandlerId = this.actor.connect('button-release-event', (_a, ev) => this._onRelease(ev));
 
     return Clutter.EVENT_STOP;
   }
@@ -141,11 +155,18 @@ export class CritterActor {
   }
 
   _disconnectStageHandlers() {
-    const stage = this.actor?.get_stage?.();
-    if (stage && this._motionHandlerId) stage.disconnect(this._motionHandlerId);
-    if (stage && this._releaseHandlerId) stage.disconnect(this._releaseHandlerId);
-    this._motionHandlerId = null;
-    this._releaseHandlerId = null;
+    if (this._motionHandlerId) {
+      this.actor.disconnect(this._motionHandlerId);
+      this._motionHandlerId = null;
+    }
+    if (this._releaseHandlerId) {
+      this.actor.disconnect(this._releaseHandlerId);
+      this._releaseHandlerId = null;
+    }
+    if (this._grab) {
+      this._grab.dismiss();
+      this._grab = null;
+    }
   }
 
   destroy() {

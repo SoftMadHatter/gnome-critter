@@ -34,7 +34,12 @@ export class Manager {
 
     for (let i = 0; i < count; i++) {
       const startX = bounds.x + bounds.width * (0.3 + 0.1 * i);
-      const startY = bounds.y;
+      // critter.y est la position des pieds (voir CritterActor.syncPosition,
+      // qui place le sprite en critter.y - height) : partir de bounds.y pile
+      // rendrait le sprite entier hors écran au-dessus du moniteur pendant
+      // la chute initiale. On décale d'une hauteur de sprite pour qu'il soit
+      // visible dès la première frame, tout en haut de l'écran.
+      const startY = bounds.y + this.pack.spriteSize.height;
 
       const critter = new Critter(
         {

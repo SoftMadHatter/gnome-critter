@@ -87,6 +87,47 @@ test("une espèce sans support 'wall' ne grimpe jamais (pas d'état CLIMB attein
   }
 });
 
+test('un critter posé sur un rebord de fenêtre retombe quand la fenêtre est fermée', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 450, y: 0 });
+
+  let snapshot;
+  for (let i = 0; i < 300; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state !== State.FALL) break;
+  }
+  assert.equal(snapshot.state, State.IDLE);
+  assert.equal(snapshot.y, 300);
+
+  // La fenêtre disparaît (fermée) : le rebord mémorisé n'existe plus dans
+  // les surfaces recalculées à ce tick.
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test('un critter posé sur un rebord retombe quand la fenêtre est déplacée sous ses pieds', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 450, y: 0 });
+
+  let snapshot;
+  for (let i = 0; i < 300; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state !== State.FALL) break;
+  }
+  assert.equal(snapshot.state, State.IDLE);
+
+  // La fenêtre glisse loin sur la droite : le rebord (même id) ne passe
+  // plus sous le critter.
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [{ ...win, x: 900 }] });
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
 test('pet() ne casse pas la boucle et se contente de signaler un événement', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   const critter = new Critter({ random: fixedRandom(0.9) }, { x: 10, y: monitor.height });
@@ -99,4 +140,107 @@ test('pet() ne casse pas la boucle et se contente de signaler un événement', (
 
   assert.equal(snapshot.event, 'petted');
   assert.equal(snapshot.state, State.IDLE);
+});
+
+test("une espèce sans support 'wall' tombe le long d'une fenêtre sans s'y accrocher", () => {
+  const win = { id: 'w1', x: 400, y: 200, width: 200, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), supportedSurfaces: new Set([Locomotion.GROUND]) },
+    { x: 400, y: 300 },
+  );
+
+  for (let i = 0; i < 300; i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    assert.notEqual(critter.state, State.CLIMB);
+  }
+});
+
+test("un critter WALL+CEILING lâché contre le bord d'une fenêtre s'accroche et grimpe (CLIMB)", () => {
+  const win = { id: 'w1', x: 400, y: 200, width: 200, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.9),
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]),
+    },
+    { x: 400, y: 250 }, // déjà au niveau du mur gauche de la fenêtre (x1=400, y in [200,300])
+  );
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.CLIMB);
+  assert.equal(critter.currentSurface.side, 'left');
+});
+
+test("un critter WALL+CEILING s'accroche sous le dessous d'une fenêtre (CEILING) en grimpant", () => {
+  const win = { id: 'w1', x: 400, y: 200, width: 200, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.9),
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL, Locomotion.CEILING]),
+    },
+    // Juste sous le bas de la fenêtre (win.y + height = 300) : la chute
+    // franchit ce seuil dès le premier tick et vient s'y accrocher.
+    { x: 400, y: 300 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 60; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state === State.CEILING) break;
+  }
+
+  assert.equal(snapshot.state, State.CEILING);
+  assert.equal(snapshot.y, 300);
+  assert.equal(critter.currentSurface.type, 'ceiling');
+  assert.equal(critter.currentSurface.surfaceId, 'w1');
+  // Repart vers le centre du dessous de fenêtre, pas vers le bord duquel il
+  // vient de grimper (sinon il en retomberait aussitôt).
+  assert.equal(critter.facing, 1);
+});
+
+test('un critter accroché sous une fenêtre retombe si elle est fermée', () => {
+  const win = { id: 'w1', x: 400, y: 200, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.9),
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL, Locomotion.CEILING]),
+    },
+    { x: 400, y: 300 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 60; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state === State.CEILING) break;
+  }
+  assert.equal(snapshot.state, State.CEILING);
+
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test("un critter WALL sans CEILING reste accroché en haut du mur sans planter ni osciller", () => {
+  const win = { id: 'w1', x: 400, y: 200, width: 200, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.9),
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]),
+    },
+    { x: 400, y: 250 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 120; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  }
+
+  assert.equal(snapshot.state, State.IDLE);
+  assert.equal(critter.currentSurface, null);
 });

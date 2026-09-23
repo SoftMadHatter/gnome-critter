@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeSurfaces, findSurfaceBelow, isOnSegment } from '../core/surfaceMap.js';
+import {
+  computeSurfaces,
+  findSurfaceBelow,
+  isOnSegment,
+  findWallNear,
+  findCeilingAbove,
+} from '../core/surfaceMap.js';
 
 test('computeSurfaces génère sol, plafond et murs pour chaque moniteur', () => {
   const { segments, walls } = computeSurfaces({
@@ -56,4 +62,46 @@ test('isOnSegment détecte la sortie du rebord', () => {
   assert.equal(isOnSegment(seg, 50, 50), true);
   assert.equal(isOnSegment(seg, 150, 50), false);
   assert.equal(isOnSegment(seg, 50, 60), false);
+});
+
+test('computeSurfaces ajoute un segment "ceiling" pour le dessous de chaque fenêtre', () => {
+  const { segments } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1920, height: 1080 }],
+    windows: [{ id: 'win-1', x: 100, y: 400, width: 500, height: 300 }],
+  });
+
+  const underside = segments.find((s) => s.type === 'ceiling' && s.surfaceId === 'win-1');
+  assert.ok(underside);
+  assert.equal(underside.y, 700); // 400 + 300
+  assert.equal(underside.x1, 100);
+  assert.equal(underside.x2, 600);
+});
+
+test('findWallNear trouve un mur proche horizontalement dont la portée verticale croise l\'intervalle donné', () => {
+  const { walls } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1000, height: 1000 }],
+    windows: [{ id: 'w', x: 400, y: 200, width: 200, height: 100 }],
+  });
+
+  const near = findWallNear(walls, 402, 250, 260);
+  assert.ok(near);
+  assert.equal(near.x, 400);
+
+  assert.equal(findWallNear(walls, 500, 250, 260), null); // trop loin horizontalement
+  assert.equal(findWallNear(walls, 402, 350, 360), null); // hors de la portée verticale du mur
+});
+
+test('findCeilingAbove trouve le segment ceiling le plus proche au-dessus d\'un point', () => {
+  const { segments } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1000, height: 1000 }],
+    windows: [{ id: 'w', x: 400, y: 200, width: 200, height: 100 }],
+  });
+
+  const found = findCeilingAbove(segments, 450, 300, 5);
+  assert.ok(found);
+  assert.equal(found.y, 300);
+  assert.equal(found.surfaceId, 'w');
+
+  assert.equal(findCeilingAbove(segments, 450, 300, 5), findCeilingAbove(segments, 450, 300, 5));
+  assert.equal(findCeilingAbove(segments, 450, 299, 5), null); // déjà passé au-dessus, hors de portée
 });

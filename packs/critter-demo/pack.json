@@ -3,7 +3,7 @@
   "displayName": "Critter (démo)",
   "version": "0.1.0",
   "author": "toi",
-  "supportedSurfaces": ["ground"],
+  "supportedSurfaces": ["ground", "wall", "ceiling"],
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": {
     "walk": 40,
