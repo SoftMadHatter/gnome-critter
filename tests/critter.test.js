@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Critter, State, Locomotion } from '../core/critter.js';
+import { Critter, State, Locomotion, weightedChoice } from '../core/critter.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 
 /** RNG déterministe pour des tests reproductibles (retourne toujours la même
@@ -282,10 +282,10 @@ test("interact() avec un geste inconnu ne plante pas et ne pose pas d'événemen
   assert.equal(snapshot.state, State.IDLE);
 });
 
-test('depuis IDLE, un tirage dans la plage sleepChance fait toujours basculer vers SLEEP', () => {
+test('depuis IDLE, un poids sleepWeight écrasant fait toujours basculer vers SLEEP', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   const critter = new Critter(
-    { random: fixedRandom(0.01), sleepChance: 1, washChance: 0, followChance: 0 },
+    { random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 1000, washWeight: 0, followWeight: 0 },
     { x: 10, y: monitor.height },
   );
   critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
@@ -298,10 +298,17 @@ test('depuis IDLE, un tirage dans la plage sleepChance fait toujours basculer ve
   assert.equal(snapshot.event, 'sleep');
 });
 
-test('depuis IDLE, un tirage dans la plage washChance fait basculer vers WASH puis revient en IDLE', () => {
+test('depuis IDLE, un poids washWeight écrasant fait basculer vers WASH puis revient en IDLE', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   const critter = new Critter(
-    { random: fixedRandom(0.01), sleepChance: 0, washChance: 1, followChance: 0, washDuration: [0.02, 0.02] },
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 1000,
+      followWeight: 0,
+      washDuration: [0.02, 0.02],
+    },
     { x: 10, y: monitor.height },
   );
   critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
@@ -319,10 +326,17 @@ test('depuis IDLE, un tirage dans la plage washChance fait basculer vers WASH pu
   assert.equal(snapshot.state, State.IDLE);
 });
 
-test('depuis IDLE, un tirage dans la plage followChance fait suivre le curseur', () => {
+test('depuis IDLE, un poids followWeight écrasant fait suivre le curseur', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   const critter = new Critter(
-    { random: fixedRandom(0.01), sleepChance: 0, washChance: 0, followChance: 1, walkSpeed: 40 },
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 1000,
+      walkSpeed: 40,
+    },
     { x: 500, y: monitor.height },
   );
   critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
@@ -337,10 +351,10 @@ test('depuis IDLE, un tirage dans la plage followChance fait suivre le curseur',
   assert.ok(snapshot.x > xAfterEntry, 'devrait se rapprocher du pointeur (800) situé à droite');
 });
 
-test('sans pointeur disponible, followChance ne déclenche pas FOLLOW (retombe sur la marche)', () => {
+test('sans pointeur disponible, followWeight ne déclenche pas FOLLOW (retombe sur la marche)', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   const critter = new Critter(
-    { random: fixedRandom(0.01), sleepChance: 0, washChance: 0, followChance: 1 },
+    { random: fixedRandom(0.01), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 1000 },
     { x: 500, y: monitor.height },
   );
   critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
@@ -372,4 +386,83 @@ test('un critter qui suit le curseur reste dans les bornes de la surface et reto
   snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 5000, y: 0 } });
 
   assert.equal(snapshot.state, State.FALL);
+});
+
+test('weightedChoice répartit selon les poids relatifs', () => {
+  const candidates = [
+    { value: 'a', weight: 1 },
+    { value: 'b', weight: 3 },
+  ];
+  assert.equal(weightedChoice(candidates, fixedRandom(0)), 'a');
+  assert.equal(weightedChoice(candidates, fixedRandom(0.24)), 'a');
+  assert.equal(weightedChoice(candidates, fixedRandom(0.26)), 'b');
+  assert.equal(weightedChoice(candidates, fixedRandom(0.99)), 'b');
+});
+
+test('weightedChoice renvoie null si la somme des poids est nulle ou négative', () => {
+  assert.equal(weightedChoice([{ value: 'a', weight: 0 }], fixedRandom(0.5)), null);
+  assert.equal(weightedChoice([], fixedRandom(0.5)), null);
+});
+
+test('weightedChoice avec un seul candidat le renvoie toujours', () => {
+  const candidates = [{ value: 'only', weight: 5 }];
+  assert.equal(weightedChoice(candidates, fixedRandom(0)), 'only');
+  assert.equal(weightedChoice(candidates, fixedRandom(0.999)), 'only');
+});
+
+test('anti-répétition : la même activité spéciale devient moins probable juste après avoir été choisie', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 5,
+      washWeight: 10,
+      followWeight: 0,
+      repeatPenalty: 0.3,
+      washDuration: [1000, 1000], // ne doit pas expirer pendant le test
+      sleepDuration: [1000, 1000],
+    },
+    { x: 10, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+  let snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(snapshot.state, State.WASH, 'premier tirage : wash a le plus gros poids');
+
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(
+    snapshot.state,
+    State.SLEEP,
+    "même tirage aléatoire, mais wash vient d'être fait : sa pénalité le fait céder la place à sleep",
+  );
+});
+
+test('FOLLOW devient moins probable quand le curseur est loin (suivi sensible à la distance)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const config = {
+    random: fixedRandom(0.3),
+    walkWeight: 2,
+    sleepWeight: 0,
+    washWeight: 0,
+    followWeight: 10,
+  };
+
+  const near = new Critter(config, { x: 500, y: monitor.height });
+  near.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  near.state = State.IDLE;
+  near.stateTimer = 0;
+  const nearSnapshot = near.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 500, y: 0 } });
+  assert.equal(nearSnapshot.state, State.FOLLOW, 'curseur juste au-dessus : suivi favorisé');
+
+  const far = new Critter(config, { x: 500, y: monitor.height });
+  far.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  far.state = State.IDLE;
+  far.stateTimer = 0;
+  const farSnapshot = far.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 5500, y: 0 } });
+  assert.equal(farSnapshot.state, State.WALK, 'même tirage, mais curseur loin : la marche l\'emporte sur le suivi');
 });

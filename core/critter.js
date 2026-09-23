@@ -54,12 +54,19 @@ const DEFAULT_CONFIG = {
   terminalVelocity: 800,
   idleDuration: [1.5, 4], // secondes, [min, max]
   walkDuration: [1, 3],
-  sleepChance: 0.05, // probabilité de s'endormir au lieu de marcher, par cycle idle
+  // Poids relatifs du choix pondéré fait par _tickWaiting entre les
+  // activités idle (voir weightedChoice ci-dessous) : pas besoin de sommer
+  // à 1, seule l'importance relative compte. Valeurs choisies pour garder
+  // le ressenti des anciennes probabilités indépendantes (5%/6%/12%/reste).
+  walkWeight: 77,
+  sleepWeight: 5,
   sleepDuration: [4, 10],
-  washChance: 0.06,
+  washWeight: 6,
   washDuration: [3, 6],
-  followChance: 0.12, // probabilité de suivre le curseur au lieu de marcher
+  followWeight: 12,
   followDuration: [2, 4],
+  followMaxDistance: 600, // au-delà, suivre le curseur devient très improbable (pas impossible)
+  repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
 };
@@ -70,6 +77,25 @@ const DEFAULT_CONFIG = {
  */
 function randRange([min, max], random) {
   return min + random() * (max - min);
+}
+
+/**
+ * Choisit un candidat au hasard, proportionnellement à son poids (les poids
+ * n'ont pas besoin de sommer à 1, seule leur importance relative compte).
+ * @param {{value: *, weight: number}[]} candidates
+ * @param {() => number} random
+ * @returns {*} null si la somme des poids est <= 0 (aucun candidat valable)
+ */
+export function weightedChoice(candidates, random) {
+  const total = candidates.reduce((sum, c) => sum + c.weight, 0);
+  if (total <= 0) return null;
+
+  let r = random() * total;
+  for (const c of candidates) {
+    if (r < c.weight) return c.value;
+    r -= c.weight;
+  }
+  return candidates[candidates.length - 1].value; // filet flottant
 }
 
 export class Critter {
@@ -90,6 +116,9 @@ export class Critter {
     this.walkTargetX = null;
     this.wallSide = null; // 'left' | 'right' pendant CLIMB
     this._dragTarget = null;
+    /** Dernière activité spéciale choisie par _tickWaiting ('sleep'/'wash'/
+     * 'follow', jamais 'walk') : sert de mémoire anti-répétition. */
+    this._lastActivity = null;
     /** Dernier événement notable (pour déclencher un son/une réaction), vidé à chaque tick. */
     this.lastEvent = null;
     /** Événement posé par une méthode publique (pet/startDrag/...) entre deux
@@ -296,31 +325,50 @@ export class Critter {
       return;
     }
 
-    const roll = this.config.random();
-    let threshold = this.config.sleepChance;
-    if (roll < threshold) {
-      this.state = State.SLEEP;
-      this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
-      this.lastEvent = 'sleep';
-      return;
+    const candidates = [
+      { value: 'walk', weight: this.config.walkWeight },
+      { value: 'sleep', weight: this.config.sleepWeight },
+      { value: 'wash', weight: this.config.washWeight },
+    ];
+
+    if (this.currentSurface && options.pointer) {
+      const distance = Math.abs(options.pointer.x - this.x);
+      // Moins tentant de suivre un curseur loin, jamais totalement exclu
+      // (il peut se rapprocher pendant que le critter marche vers lui).
+      const proximity = clamp(1 - distance / this.config.followMaxDistance, 0.15, 1);
+      candidates.push({ value: 'follow', weight: this.config.followWeight * proximity });
     }
 
-    threshold += this.config.washChance;
-    if (roll < threshold) {
-      this.state = State.WASH;
-      this.stateTimer = randRange(this.config.washDuration, this.config.random);
-      this.lastEvent = 'wash';
-      return;
+    // Anti-répétition : uniquement sur les activités spéciales. "walk" est
+    // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
+    // en faveur des autres à chaque cycle qui suit une marche.
+    for (const c of candidates) {
+      if (c.value !== 'walk' && c.value === this._lastActivity) {
+        c.weight *= this.config.repeatPenalty;
+      }
     }
 
-    threshold += this.config.followChance;
-    if (roll < threshold && this.currentSurface && options.pointer) {
-      this.state = State.FOLLOW;
-      this.stateTimer = randRange(this.config.followDuration, this.config.random);
-      return;
-    }
+    const choice = weightedChoice(candidates, this.config.random);
+    this._lastActivity = choice; // 'walk' ne matche jamais la garde !== 'walk' ci-dessus : équivalent à un reset
 
-    this._startWalkOnCurrentSurface(surfaces);
+    switch (choice) {
+      case 'sleep':
+        this.state = State.SLEEP;
+        this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
+        this.lastEvent = 'sleep';
+        return;
+      case 'wash':
+        this.state = State.WASH;
+        this.stateTimer = randRange(this.config.washDuration, this.config.random);
+        this.lastEvent = 'wash';
+        return;
+      case 'follow':
+        this.state = State.FOLLOW;
+        this.stateTimer = randRange(this.config.followDuration, this.config.random);
+        return;
+      default:
+        this._startWalkOnCurrentSurface(surfaces);
+    }
   }
 
   _tickFollow(dt, surfaces, options) {
