@@ -1,0 +1,79 @@
+# Feuille de route
+
+Plan à moyen terme, établi le 2026-09-23. Chaque étape est motivée par ses
+dépendances sur les précédentes (voir la justification sous chaque titre) ;
+l'ordre n'est pas figé si les priorités changent, mais s'écarter des
+dépendances signifie probablement refaire du travail plus tard.
+
+## 1. Interactions & réactions enrichies
+
+Étoffer le vocabulaire d'événements au-delà du simple clic (`petted`) :
+double-clic, clic droit, survol, etc., avec les réactions pack
+correspondantes. C'est la brique la plus rapide et la plus fondatrice — le
+pipeline existe déjà (`pack.reactionFrames`, `Critter.lastEvent`), il ne
+fait que jouer `petted`. Sert de base à quasiment tout le reste (le
+tamagotchi aura besoin d'une interaction "nourrir", le mode IA aura besoin
+de déclencheurs).
+
+## 2. Sons
+
+Effets sonores accrochés aux réactions/animations existantes. Cheap une
+fois qu'il y a du vocabulaire d'événements à habiller (étape 1) — placé ici
+comme quick-win avant d'attaquer l'autonomie.
+
+## 3. Réactions automatiques
+
+Suivre le curseur, réagir à l'ouverture d'une fenêtre/notification, se
+laver en idle, etc. Peu de code nouveau requis : les capteurs (souris,
+fenêtres) existent déjà via `sensors.js`. Consomme le vocabulaire de
+l'étape 1 comme base commune.
+
+## 4. Mode IA basique
+
+Pas une feature séparée : la couche d'orchestration qui choisit entre les
+comportements automatiques de l'étape 3, à la place du tirage aléatoire
+simpliste actuel dans `Critter._tickWaiting`. N'a de sens qu'une fois qu'il
+y a plusieurs comportements à arbitrer.
+
+## 5. Interactions entre critters
+
+Réutilise l'arbitrage de l'étape 4 pour qu'un critter puisse remarquer un
+autre critter (avec `critter-count > 1`). Testé d'abord avec plusieurs
+instances du même pack démo, pour éviter la complexité de règles
+d'interaction inter-espèces avant d'avoir de la variété d'espèces.
+
+## 6. Animaux "faciles"
+
+Chat, insecte rampant, etc. — tout ce qui reste dans les locomotions déjà
+câblées (`ground`/`wall`/`ceiling`). Contenu réutilisant tel quel ce qui
+existe, et sert de test de charge pour les étapes 1-5.
+
+## 7. Mécaniques manquantes + animaux "difficiles"
+
+`State.FLY` est aujourd'hui du code mort (comme `CLIMB` l'était avant
+qu'on le câble) : aucune transition n'y mène. Les zones d'eau
+(`waterZones`) existent dans `core/surfaceMap.js` mais ne sont jamais
+peuplées côté extension/prefs. Une fois ces deux mécaniques branchées,
+poissons et oiseaux deviennent des packs comme les autres.
+
+## 8. Rendu sprites amélioré
+
+Polish visuel (pixel-art plus abouti, animations plus fluides) une fois la
+liste d'états et d'animaux stabilisée par les étapes précédentes — éviter
+de repeindre deux fois si un nouvel état apparaît en cours de route (ex.
+"se laver" à l'étape 3).
+
+## 9. Persistance de l'état
+
+Position, humeur, etc. qui survivent à un redémarrage de GNOME Shell.
+Aujourd'hui tout repart de zéro à chaque activation de l'extension. Prérequis
+technique isolé, dont le seul vrai consommateur est le tamagotchi
+(étape 10) : humeur/croissance qui doivent survivre dans le temps.
+
+## 10. Mode tamagotchi
+
+S'occuper de l'animal, le faire grandir, gérer ses besoins. Le morceau le
+plus gros : capstone qui s'appuie sur les interactions/besoins des étapes
+1-5 et sur la persistance de l'étape 9. Les stades de croissance
+demanderont plusieurs jeux de sprites par animal, d'où sa place après la
+passe graphique de l'étape 8.
