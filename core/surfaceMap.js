@@ -208,6 +208,30 @@ export function findWallNear(walls, x, yMin, yMax, epsilon = 6) {
 }
 
 /**
+ * Cherche le mur le plus proche horizontalement dont le bas (`y2`) est au
+ * niveau donné (à `epsilon` près) : un mur "atteignable" en marchant, par
+ * opposition à un mur de fenêtre flottante dont le bas n'est pas au niveau
+ * du sol où se trouve l'animal. Utilisé pour grimper délibérément plutôt
+ * que d'attendre une chute providentielle qui croise un mur (cf. FALL /
+ * findWallNear).
+ */
+export function findReachableWall(walls, x, y, epsilon = 4) {
+  let best = null;
+  let bestDistance = Infinity;
+
+  for (const wall of walls) {
+    if (Math.abs(wall.y2 - y) > epsilon) continue;
+    const d = Math.abs(wall.x - x);
+    if (d < bestDistance) {
+      bestDistance = d;
+      best = wall;
+    }
+  }
+
+  return best;
+}
+
+/**
  * Cherche, parmi les segments praticables au plafond, le plus proche
  * au-dessus d'un point donné, à `maxDistance` près. Utilisé pendant CLIMB :
  * l'animal s'arrête sous la première surface en surplomb qu'il rencontre en

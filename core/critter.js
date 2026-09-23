@@ -6,6 +6,7 @@ import {
   findWallById,
   findWallNear,
   findCeilingAbove,
+  findReachableWall,
 } from './surfaceMap.js';
 
 /** États possibles. Volontairement une simple union de chaînes : facile à
@@ -23,6 +24,7 @@ export const State = Object.freeze({
   WASH: 'wash', // idle passif minuté, se lave sur place (même mécanisme que SLEEP)
   FOLLOW: 'follow', // marche vers le curseur, cible recalculée en continu
   GREET: 'greet', // marche vers le critter le plus proche, salue en l'atteignant
+  SEEK_WALL: 'seekWall', // marche vers un mur atteignable pour grimper délibérément
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -72,6 +74,10 @@ const DEFAULT_CONFIG = {
   greetDuration: [2, 4],
   greetMaxDistance: 600,
   greetDistance: 20, // distance en dessous de laquelle on considère avoir "atteint" l'autre critter
+  climbSeekWeight: 10,
+  climbSeekDuration: [3, 6],
+  climbSeekMaxDistance: 600,
+  climbApproachDistance: 6, // distance en dessous de laquelle on considère avoir "atteint" le mur
   repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
@@ -223,6 +229,9 @@ export class Critter {
       case State.GREET:
         this._tickGreet(dt, surfaces, options);
         break;
+      case State.SEEK_WALL:
+        this._tickSeekWall(dt, surfaces);
+        break;
       case State.IDLE:
       case State.SLEEP:
       case State.WASH:
@@ -357,6 +366,15 @@ export class Critter {
       candidates.push({ value: 'greet', weight: this.config.greetWeight * proximity });
     }
 
+    if (this.supports(Locomotion.WALL) && this.currentSurface) {
+      const wall = findReachableWall(surfaces.walls, this.x, this.y);
+      if (wall) {
+        const distance = Math.abs(wall.x - this.x);
+        const proximity = clamp(1 - distance / this.config.climbSeekMaxDistance, 0.15, 1);
+        candidates.push({ value: 'climb', weight: this.config.climbSeekWeight * proximity });
+      }
+    }
+
     // Anti-répétition : uniquement sur les activités spéciales. "walk" est
     // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
     // en faveur des autres à chaque cycle qui suit une marche.
@@ -387,6 +405,10 @@ export class Critter {
       case 'greet':
         this.state = State.GREET;
         this.stateTimer = randRange(this.config.greetDuration, this.config.random);
+        return;
+      case 'climb':
+        this.state = State.SEEK_WALL;
+        this.stateTimer = randRange(this.config.climbSeekDuration, this.config.random);
         return;
       default:
         this._startWalkOnCurrentSurface(surfaces);
@@ -445,6 +467,32 @@ export class Critter {
     // contre le bord de sa propre surface et stateTimer finit par expirer
     // normalement, pas de cas particulier à gérer ici.
     this._chase(dt, target.x);
+  }
+
+  _tickSeekWall(dt, surfaces) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    // Recalculé à chaque tick (comme FOLLOW/GREET) : un mur peut devenir
+    // injoignable (fenêtre fermée) ou un autre plus proche apparaître.
+    const wall = findReachableWall(surfaces.walls, this.x, this.y);
+
+    if (this.stateTimer <= 0 || !wall) {
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    if (Math.abs(wall.x - this.x) < this.config.climbApproachDistance) {
+      this.x = wall.x;
+      this.y = clamp(this.y, wall.y1, wall.y2); // no-op ou presque : mur déjà filtré "atteignable" à la sélection
+      this.currentSurface = wall;
+      this._enterState(State.CLIMB);
+      return;
+    }
+
+    this._chase(dt, wall.x);
   }
 
   /** Avance vers `targetX` le long de la surface courante (WALK vise un

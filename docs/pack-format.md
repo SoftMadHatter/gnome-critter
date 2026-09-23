@@ -57,7 +57,8 @@ packs/<species-id>/
     "fly":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1, "loop": true },
     "follow": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "wash":   { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5, "loop": true },
-    "greet":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
+    "greet":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "seekWall": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
   // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js).

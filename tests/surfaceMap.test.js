@@ -6,6 +6,7 @@ import {
   isOnSegment,
   findWallNear,
   findCeilingAbove,
+  findReachableWall,
 } from '../core/surfaceMap.js';
 
 test('computeSurfaces génère sol, plafond et murs pour chaque moniteur', () => {
@@ -104,4 +105,34 @@ test('findCeilingAbove trouve le segment ceiling le plus proche au-dessus d\'un 
 
   assert.equal(findCeilingAbove(segments, 450, 300, 5), findCeilingAbove(segments, 450, 300, 5));
   assert.equal(findCeilingAbove(segments, 450, 299, 5), null); // déjà passé au-dessus, hors de portée
+});
+
+test('findReachableWall trouve le mur le plus proche dont le bas est au niveau donné', () => {
+  const { walls } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1000, height: 1000 }],
+    windows: [
+      { id: 'floating', x: 400, y: 200, width: 200, height: 100 }, // bas à 300
+      { id: 'grounded', x: 100, y: 900, width: 50, height: 100 }, // bas à 1000, au niveau du sol
+    ],
+  });
+
+  // Au niveau du sol (y=1000) : le mur de la fenêtre posée au sol, plus
+  // proche que les murs du moniteur, l'emporte.
+  const near = findReachableWall(walls, 120, 1000);
+  assert.ok(near);
+  assert.equal(near.surfaceId, 'grounded');
+
+  // Loin de cette fenêtre, toujours au sol : un mur du moniteur.
+  const farFromWindow = findReachableWall(walls, 900, 1000);
+  assert.equal(farFromWindow.surfaceId, 'monitor:0');
+  assert.equal(farFromWindow.side, 'right');
+
+  // Au niveau du bas de la fenêtre flottante (y=300) : SON mur, pas ceux
+  // du sol/moniteur qui ne sont pas au niveau ici.
+  const atFloatingWindow = findReachableWall(walls, 450, 300);
+  assert.equal(atFloatingWindow.surfaceId, 'floating');
+  assert.equal(atFloatingWindow.side, 'left');
+
+  // À un niveau où aucun mur n'a son bas : rien de "atteignable".
+  assert.equal(findReachableWall(walls, 450, 500), null);
 });

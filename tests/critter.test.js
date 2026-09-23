@@ -592,3 +592,103 @@ test('GREET devient moins probable quand le critter le plus proche est loin (sen
   });
   assert.equal(farSnapshot.state, State.WALK, 'même tirage, mais autre critter loin : la marche l\'emporte');
 });
+
+test('depuis IDLE, un poids climbSeekWeight écrasant fait chercher un mur pour grimper', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 1000,
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]),
+    },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.SEEK_WALL);
+});
+
+test("sans support 'wall', SEEK_WALL n'est jamais choisi même avec climbSeekWeight écrasant", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.01),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 1000,
+    },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.notEqual(snapshot.state, State.SEEK_WALL);
+});
+
+test('SEEK_WALL avance vers le mur atteignable le plus proche puis grimpe (CLIMB) en l\'atteignant', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), walkSpeed: 300, supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]) },
+    { x: 100, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.SEEK_WALL;
+  critter.stateTimer = 10;
+
+  let snapshot;
+  for (let i = 0; i < 60; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state === State.CLIMB) break;
+  }
+
+  assert.equal(snapshot.state, State.CLIMB);
+  assert.equal(critter.currentSurface.side, 'left');
+  assert.equal(critter.currentSurface.surfaceId, 'monitor:0');
+});
+
+test('SEEK_WALL retombe en FALL si sa surface disparaît en chemin', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]) },
+    { x: 450, y: 300 },
+  );
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'shelf');
+  critter.state = State.SEEK_WALL;
+  critter.stateTimer = 10;
+
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test("SEEK_WALL retombe en IDLE si aucun mur atteignable n'est à portée", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]) },
+    { x: 500, y: 250 }, // y ne correspond au bas d'aucun mur (murs du moniteur : y2=500)
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: 250 };
+  critter.state = State.SEEK_WALL;
+  critter.stateTimer = 10;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.IDLE);
+});

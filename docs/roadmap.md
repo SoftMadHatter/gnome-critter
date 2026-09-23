@@ -1,10 +1,11 @@
 # Feuille de route
 
-Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-23 (avancement
-après l'étape 4). Chaque étape est motivée par ses dépendances sur les
-précédentes (voir la justification sous chaque titre) ; l'ordre n'est pas
-figé si les priorités changent, mais s'écarter des dépendances signifie
-probablement refaire du travail plus tard.
+Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-23 (fusion
+de l'ancienne étape 8 — mécaniques de vol/nage — dans l'étape 6, suite à
+l'élargissement de son scope). Chaque étape est motivée par ses dépendances
+sur les précédentes (voir la justification sous chaque titre) ; l'ordre
+n'est pas figé si les priorités changent, mais s'écarter des dépendances
+signifie probablement refaire du travail plus tard.
 
 ## 1. Interactions & réactions enrichies — ✅ fait
 
@@ -55,54 +56,75 @@ Livré : `weightedChoice()` (choix pondéré générique, fonction pure
 testable) remplace la cascade de seuils indépendants, avec deux effets
 contextuels — anti-répétition et suivi sensible à la distance du curseur.
 
-## 5. Interactions entre critters
+## 5. Interactions entre critters — 🧪 à tester
 
 Réutilise l'arbitrage de l'étape 4 pour qu'un critter puisse remarquer un
 autre critter (avec `critter-count > 1`). Testé d'abord avec plusieurs
 instances du même pack démo, pour éviter la complexité de règles
 d'interaction inter-espèces avant d'avoir de la variété d'espèces.
 
-## 6. Autres comportements automatiques
+Livré : état `GREET` (marche vers le critter le plus proche, `_chase()`
+mutualisé avec `FOLLOW`), réaction `greeted` déclenchée sur l'initiateur
+ET sur la cible (référence à l'instance réelle transportée à côté de
+l'instantané de positions dans `manager.js`, réaction cible délivrée via
+`interact()`/`_pendingEvent`). 39/39 tests verts ; reste à vérifier en
+conditions réelles (`scripts/dev.sh`, `critter-count` ≥ 2).
 
-Étape ouverte, contrairement aux précédentes : au moment de l'attaquer,
-plusieurs idées de comportements seront proposées (pas fixées à l'avance
-dans cette feuille de route) pour choisir ensemble lesquels valent le
-coup. Placée ici plutôt que plus tard : encore dans l'arc "comportement
-solo/multi-critter" des étapes 3-5, avant de passer à du contenu (nouvelles
-espèces) qui bénéficie d'avoir déjà un roster de comportements riche.
+## 6. Autres comportements automatiques — 🚧 en cours
 
-## 7. Animaux "faciles"
+Étape ouverte : plusieurs pistes proposées et retenues ensemble (pas
+fixées à l'avance dans la version initiale de cette feuille de route).
+Englobe désormais ce qui était l'ancienne étape 8 (câblage de
+`State.FLY`, aujourd'hui du code mort, et refonte de la nage) : leur scope
+s'est avéré recouper directement celui-ci une fois discuté.
 
-Chat, insecte rampant, etc. — tout ce qui reste dans les locomotions déjà
-câblées (`ground`/`wall`/`ceiling`). Contenu réutilisant tel quel ce qui
-existe, et sert de test de charge pour les étapes 1-6.
+Comportements retenus :
+- **Grimper activement** — chercher délibérément un mur/une fenêtre
+  proche pour y grimper, au lieu de ne déclencher CLIMB/CEILING que
+  passivement lors d'une chute providentielle (quasi jamais observé en
+  pratique aujourd'hui).
+- **Réagir à la fenêtre active** — se précipiter vers la fenêtre qui
+  vient de prendre le focus (`getWindows()` expose déjà `focused`),
+  distinct de `startled` qui réagit à l'ouverture.
+- **Course-poursuite entre critters** — extension ludique de GREET
+  (étape 5) : après une salutation, poursuite brève entre deux critters.
+  Demande `critter-count > 1`, comme GREET.
+- **Sieste ciblée** — chercher un rebord de fenêtre proche avant de
+  lancer SLEEP, repli sur place si rien à portée.
+- **Voler et nager en roaming libre 2D** — `FLY` récupère une vraie
+  logique d'atterrissage (aujourd'hui absente : une fois entré, il ne
+  s'arrête jamais). `SWIM` est redéfini en roaming libre 2D façon vol
+  (recalcul de cible périodique, mouvement en X et Y), plutôt que limité à
+  une zone d'eau déclarée comme aujourd'hui (`waterZones`, jamais peuplé
+  côté extension/prefs — ce blocage disparaît avec cette refonte).
 
-## 8. Mécaniques manquantes + animaux "difficiles"
+## 7. Nouveaux animaux
 
-`State.FLY` est aujourd'hui du code mort (comme `CLIMB` l'était avant
-qu'on le câble) : aucune transition n'y mène. Les zones d'eau
-(`waterZones`) existent dans `core/surfaceMap.js` mais ne sont jamais
-peuplées côté extension/prefs. Une fois ces deux mécaniques branchées,
-poissons et oiseaux deviennent des packs comme les autres.
+Fusionne les anciennes étapes 7 ("animaux faciles") et 8 (poissons/oiseaux
+"difficiles") : une fois l'étape 6 terminée, toutes les locomotions
+(`ground`/`wall`/`ceiling`/`air`/`water`) sont câblées, donc plus de
+distinction facile/difficile — juste des packs à créer (chat, insecte
+rampant, poisson, oiseau...), qui servent aussi de test de charge pour les
+étapes 1-6.
 
-## 9. Rendu sprites amélioré
+## 8. Rendu sprites amélioré
 
 Polish visuel (pixel-art plus abouti, animations plus fluides) une fois la
 liste d'états et d'animaux stabilisée par les étapes précédentes — éviter
 de repeindre deux fois si un nouvel état apparaît en cours de route (ex.
 "se laver" à l'étape 3).
 
-## 10. Persistance de l'état
+## 9. Persistance de l'état
 
 Position, humeur, etc. qui survivent à un redémarrage de GNOME Shell.
 Aujourd'hui tout repart de zéro à chaque activation de l'extension. Prérequis
 technique isolé, dont le seul vrai consommateur est le tamagotchi
-(étape 11) : humeur/croissance qui doivent survivre dans le temps.
+(étape 10) : humeur/croissance qui doivent survivre dans le temps.
 
-## 11. Mode tamagotchi
+## 10. Mode tamagotchi
 
 S'occuper de l'animal, le faire grandir, gérer ses besoins. Le morceau le
 plus gros : capstone qui s'appuie sur les interactions/besoins des étapes
-1-6 et sur la persistance de l'étape 10. Les stades de croissance
+1-6 et sur la persistance de l'étape 9. Les stades de croissance
 demanderont plusieurs jeux de sprites par animal, d'où sa place après la
-passe graphique de l'étape 9.
+passe graphique de l'étape 8.
