@@ -11,5 +11,9 @@
       <default>1</default>
       <summary>Nombre d'animaux affichés</summary>
     </key>
+    <key name="sounds-enabled" type="b">
+      <default>true</default>
+      <summary>Active les effets sonores des réactions</summary>
+    </key>
   </schema>
 </schemalist>

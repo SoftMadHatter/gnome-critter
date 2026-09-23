@@ -58,9 +58,18 @@ packs/<species-id>/
   },
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
-  // les événements du cœur (voir Critter#lastEvent : "petted", "grabbed", ...).
+  // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
+  // "annoyed", "noticed", "grabbed", "released", "landed", "sleep", ...).
+  // "sound" est optionnel : chemin relatif au pack vers un .wav/.ogg joué
+  // une fois au déclenchement (rien ne se passe si absent ou si l'utilisateur
+  // a désactivé les sons dans les préférences de l'extension).
   "reactions": {
-    "petted": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 }
+    "petted": {
+      "file": "sprites/idle.png",
+      "frames": 1,
+      "frameDuration": 0.6,
+      "sound": "sounds/petted.wav"
+    }
   }
 }
 ```

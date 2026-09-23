@@ -22,6 +22,10 @@ export default class ScamperPreferences extends ExtensionPreferences {
     settings.bind('critter-count', countRow, 'value', 0);
     group.add(countRow);
 
+    const soundsRow = new Adw.SwitchRow({ title: 'Sons activés' });
+    settings.bind('sounds-enabled', soundsRow, 'active', 0);
+    group.add(soundsRow);
+
     const noteRow = new Adw.ActionRow({
       title: 'Le changement de pack ou de nombre demande de désactiver/réactiver l\'extension.',
     });

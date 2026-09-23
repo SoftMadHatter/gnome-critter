@@ -81,6 +81,7 @@ function loadFrames(baseDir, relativePath, count) {
  *   animationTiming: Record<string, {frameDuration:number, loop:boolean}>,
  *   reactionFrames: Record<string, St.ImageContent[]>,
  *   reactionTiming: Record<string, {frameDuration:number, loop:boolean}>,
+ *   reactionSounds: Record<string, Gio.File>,
  * }}
  */
 export function loadPack(packDirPath) {
@@ -98,9 +99,13 @@ export function loadPack(packDirPath) {
 
   const reactionFrames = {};
   const reactionTiming = {};
+  const reactionSounds = {};
   for (const [name, def] of Object.entries(meta.reactions ?? {})) {
     reactionFrames[name] = loadFrames(dir, def.file, def.frames);
     reactionTiming[name] = { frameDuration: def.frameDuration, loop: def.loop === true };
+    // Optionnel : un pack peut ne fournir aucun son, ou seulement pour
+    // certaines réactions (rétrocompatible avec les packs sans "sound").
+    if (def.sound) reactionSounds[name] = dir.get_child(def.sound);
   }
 
   return {
@@ -112,6 +117,7 @@ export function loadPack(packDirPath) {
     animationTiming,
     reactionFrames,
     reactionTiming,
+    reactionSounds,
   };
 }
 

@@ -19,9 +19,13 @@ import { CritterActor } from './critterActor.js';
 const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
 
 export class Manager {
-  /** @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack */
-  constructor(pack) {
+  /**
+   * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
+   * @param {Gio.Settings} settings
+   */
+  constructor(pack, settings) {
     this.pack = pack;
+    this.settings = settings;
     /** @type {{critter: Critter, actor: CritterActor}[]} */
     this._critters = [];
     this._timeoutId = null;
@@ -55,7 +59,7 @@ export class Manager {
         { x: startX, y: startY },
       );
 
-      const actor = new CritterActor(critter, this.pack);
+      const actor = new CritterActor(critter, this.pack, this.settings);
       // GNOME 50 (layout.js) : addChrome() inclut automatiquement l'acteur
       // dans la région d'input selon sa taille/position/visibilité ; le
       // paramètre affectsInputRegion n'existe plus (Params.parse rejette

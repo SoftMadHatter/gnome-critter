@@ -23,9 +23,9 @@
     "fly":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true }
   },
   "reactions": {
-    "petted":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 },
-    "tickled": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 },
-    "annoyed": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 },
-    "noticed": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 }
+    "petted":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/petted.wav" },
+    "tickled": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/tickled.wav" },
+    "annoyed": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/annoyed.wav" },
+    "noticed": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/noticed.wav" }
   }
 }

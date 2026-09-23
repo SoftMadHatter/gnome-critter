@@ -14,10 +14,12 @@ export class CritterActor {
   /**
    * @param {import('../../core/critter.js').Critter} critter
    * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
+   * @param {Gio.Settings} settings
    */
-  constructor(critter, pack) {
+  constructor(critter, pack, settings) {
     this.critter = critter;
     this.pack = pack;
+    this._settings = settings;
     this._animState = null; // état d'animation en cours (peut différer de critter.state pour les réactions)
     this._frameIndex = 0;
     this._frameElapsed = 0;
@@ -122,6 +124,7 @@ export class CritterActor {
       this._reaction?.name !== snapshot.event
     ) {
       this._reaction = { name: snapshot.event, elapsed: 0, index: 0 };
+      this._playReactionSound(snapshot.event);
     }
 
     if (this._reaction) {
@@ -144,6 +147,12 @@ export class CritterActor {
 
     this._applyFrame(snapshot.state, dt);
     this.syncPosition();
+  }
+
+  _playReactionSound(name) {
+    const file = this.pack.reactionSounds?.[name];
+    if (!file || !this._settings.get_boolean('sounds-enabled')) return;
+    global.display.get_sound_player().play_from_file(file, `Critter: ${name}`, null);
   }
 
   _applyFrame(state, dt) {

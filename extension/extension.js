@@ -22,7 +22,7 @@ export default class ScamperExtension extends Extension {
       return;
     }
 
-    this._manager = new Manager(pack);
+    this._manager = new Manager(pack, this._settings);
     this._manager.spawn(count);
     this._manager.start();
   }
