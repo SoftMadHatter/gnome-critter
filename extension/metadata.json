@@ -1,0 +1,9 @@
+{
+  "uuid": "desktop-critter@beedi.xyz",
+  "name": "Critter",
+  "description": "Un petit animal pixel-art qui se promène sur le bureau : sol, rebords de fenêtres, murs et plafond selon l'espèce.",
+  "shell-version": ["48", "49", "50"],
+  "url": "https://example.invalid/scamper",
+  "version-name": "0.1.0",
+  "settings-schema": "org.gnome.shell.extensions.scamper"
+}

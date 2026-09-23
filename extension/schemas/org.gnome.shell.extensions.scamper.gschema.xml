@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="scamper">
+  <schema id="org.gnome.shell.extensions.scamper" path="/org/gnome/shell/extensions/scamper/">
+    <key name="pack-id" type="s">
+      <default>'critter-demo'</default>
+      <summary>Identifiant du pack d'animal actif</summary>
+      <description>Nom du dossier sous packs/ à charger (ex: "critter-demo").</description>
+    </key>
+    <key name="critter-count" type="i">
+      <range min="1" max="10"/>
+      <default>1</default>
+      <summary>Nombre d'animaux affichés</summary>
+    </key>
+  </schema>
+</schemalist>

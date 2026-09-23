@@ -1,0 +1,88 @@
+# Format d'un pack d'animal (pixel-art)
+
+Un pack décrit une espèce : ses sprites, ses animations, ce qu'elle sait
+faire (marcher au sol, grimper aux murs, marcher au plafond, nager, voler)
+et quelques paramètres de comportement. Objectif : ajouter un nouvel animal
+sans toucher au code, en ne fournissant qu'un dossier.
+
+## Arborescence d'un pack
+
+```
+packs/<species-id>/
+  pack.json
+  sprites/
+    walk.png       # spritesheet, une ligne de frames par animation
+    idle.png
+    fall.png
+    sleep.png
+    ...
+```
+
+## `pack.json`
+
+```jsonc
+{
+  "id": "critter-demo",
+  "displayName": "Critter (démo)",
+  "version": "0.1.0",
+  "author": "toi",
+
+  // Ce que l'espèce sait utiliser comme surfaces. Valeurs possibles :
+  // "ground" (sol + rebords de fenêtres), "wall", "ceiling", "water", "air".
+  "supportedSurfaces": ["ground"],
+
+  // Taille d'affichage à l'écran, en pixels logiques (avant mise à l'échelle HiDPI).
+  "spriteSize": { "width": 32, "height": 32 },
+
+  // Vitesses en px/s, reprises telles quelles par core/critter.js.
+  "speeds": {
+    "walk": 40,
+    "climb": 30,
+    "swim": 25,
+    "fly": 60
+  },
+
+  // Une entrée par état du cœur (voir core/critter.js State). "frameDuration"
+  // est en secondes. "loop" indique si l'animation boucle ou se fige sur la
+  // dernière frame (utile pour une transition courte).
+  "animations": {
+    "idle":   { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.5, "loop": true },
+    "walk":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "fall":   { "file": "sprites/fall.png",  "frames": 2, "frameDuration": 0.15, "loop": true },
+    "drag":   { "file": "sprites/fall.png",  "frames": 1, "frameDuration": 1,   "loop": false },
+    "sleep":  { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.8, "loop": true },
+    "climb":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "ceiling":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "swim":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.2, "loop": true },
+    "fly":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1, "loop": true }
+  },
+
+  // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
+  // les événements du cœur (voir Critter#lastEvent : "petted", "grabbed", ...).
+  "reactions": {
+    "petted": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 }
+  }
+}
+```
+
+## Règle du spritesheet
+
+Chaque fichier PNG référencé est une seule ligne de `frames` images carrées
+de `spriteSize`, sans marge entre les frames. C'est le format le plus simple
+à découper côté extension (un `Clutter.Image` par frame, généré une fois au
+chargement du pack puis mis en cache).
+
+Le sprite est dessiné face à droite par défaut ; quand `facing === -1`, la
+couche de rendu retourne l'image horizontalement plutôt que de dupliquer les
+frames.
+
+## Ajouter une nouvelle espèce
+
+1. Copier `packs/critter-demo/` sous un nouveau `<species-id>`.
+2. Remplacer les spritesheets par les tiens (même convention de découpage).
+3. Ajuster `supportedSurfaces` et `speeds` selon ce que l'animal doit savoir
+   faire (un poisson : `["water"]` avec un `waterZones` déclaré dans les
+   réglages de l'extension ; un oiseau : `["ground", "air"]`, etc.).
+4. Aucun changement de code n'est nécessaire pour un comportement standard.
+   Un comportement vraiment nouveau (ex: une espèce qui suit le curseur en
+   continu) reste un ajout dans `core/critter.js`.

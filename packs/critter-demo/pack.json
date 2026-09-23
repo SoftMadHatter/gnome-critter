@@ -1,0 +1,28 @@
+{
+  "id": "critter-demo",
+  "displayName": "Critter (démo)",
+  "version": "0.1.0",
+  "author": "toi",
+  "supportedSurfaces": ["ground"],
+  "spriteSize": { "width": 32, "height": 32 },
+  "speeds": {
+    "walk": 40,
+    "climb": 30,
+    "swim": 25,
+    "fly": 60
+  },
+  "animations": {
+    "idle":    { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.5,  "loop": true },
+    "walk":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "fall":    { "file": "sprites/fall.png",  "frames": 2, "frameDuration": 0.15, "loop": true },
+    "drag":    { "file": "sprites/fall.png",  "frames": 1, "frameDuration": 1,    "loop": false },
+    "sleep":   { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.8,  "loop": true },
+    "climb":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "ceiling": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "swim":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.2,  "loop": true },
+    "fly":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true }
+  },
+  "reactions": {
+    "petted": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6 }
+  }
+}
