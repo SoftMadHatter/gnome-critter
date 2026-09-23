@@ -95,6 +95,13 @@ const DEFAULT_CONFIG = {
   napSeekMaxDistance: 400, // recherche locale, plus courte que les 600 des autres comportements ("proche" au sens du roadmap)
   napSeekDuration: [3, 6],
   napApproachDistance: 6,
+  flyWeight: 8,
+  flyDuration: [4, 8],
+  swimWeight: 8,
+  swimDuration: [4, 8],
+  roamRetargetDuration: [1, 3], // cadence de reciblage pendant une session FLY/SWIM
+  swimWaveFrequency: 4, // rad/s, cadence du battement de nage
+  swimWaveAmplitude: 0.6, // fraction de la composante perpendiculaire à la trajectoire directe (< 1 : reste orienté vers la cible)
   repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
@@ -157,6 +164,12 @@ export class Critter {
      * pour le choix pondéré de _tickWaiting, pas un ordre -- peut être
      * ignorée si un autre candidat l'emporte au tirage. */
     this._chaseInvitation = null;
+    /** Compte à rebours avant le prochain reciblage pendant FLY/SWIM
+     * (undefined tant qu'aucune session n'a démarré : _tickRoam s'en
+     * accommode, cf. sa garde). */
+    this._roamTimer = undefined;
+    /** Phase de l'ondulation de nage (State.SWIM), continue d'une session à l'autre. */
+    this._swimPhase = undefined;
     /** Dernier événement notable (pour déclencher un son/une réaction), vidé à chaque tick. */
     this.lastEvent = null;
     /** Événement posé par une méthode publique (pet/startDrag/...) entre deux
@@ -254,7 +267,7 @@ export class Critter {
         this._tickCeiling(dt, surfaces);
         break;
       case State.SWIM:
-        this._tickSwim(dt, surfaces);
+        this._tickSwim(dt, options);
         break;
       case State.FLY:
         this._tickFly(dt, options);
@@ -342,7 +355,12 @@ export class Critter {
       this.vy = 0;
       this.currentSurface = landing;
       if (landing.type === 'water' && this.supports(Locomotion.WATER)) {
-        this._enterState(State.SWIM);
+        // Pas _enterState() : SWIM (comme FLY) a besoin de stateTimer et
+        // _roamTimer initialisés dès la première frame, sinon _tickRoam
+        // verrait stateTimer déjà <= 0 et repartirait aussitôt en FALL.
+        this.state = State.SWIM;
+        this.stateTimer = randRange(this.config.swimDuration, this.config.random);
+        this._roamTimer = 0;
       } else {
         this._enterState(State.IDLE);
       }
@@ -430,6 +448,15 @@ export class Critter {
       candidates.push({ value: 'seekFocus', weight: this.config.seekFocusWeight * proximity });
     }
 
+    // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
+    // pour un décollage, contrairement aux comportements ci-dessus).
+    if (this.supports(Locomotion.AIR)) {
+      candidates.push({ value: 'fly', weight: this.config.flyWeight });
+    }
+    if (this.supports(Locomotion.WATER)) {
+      candidates.push({ value: 'swim', weight: this.config.swimWeight });
+    }
+
     // Invitation posée par proposeChase() (voir _tickGreet/_tickChase) :
     // consommée en une seule fois ici, acceptée ou pas -- pas de relance si
     // elle perd le tirage, c'est ça qui porte le "peut l'ignorer". Poids
@@ -505,6 +532,16 @@ export class Critter {
         this.state = State.FLEE;
         this._fleeFrom = chaseInvitation;
         this.stateTimer = randRange(this.config.fleeDuration, this.config.random);
+        return;
+      case 'fly':
+        this.state = State.FLY;
+        this.stateTimer = randRange(this.config.flyDuration, this.config.random);
+        this._roamTimer = 0; // force un premier ciblage dès le premier tick
+        return;
+      case 'swim':
+        this.state = State.SWIM;
+        this.stateTimer = randRange(this.config.swimDuration, this.config.random);
+        this._roamTimer = 0;
         return;
       default:
         this._startWalkOnCurrentSurface(surfaces);
@@ -835,33 +872,67 @@ export class Critter {
     }
   }
 
-  _tickSwim(dt, surfaces) {
-    const zone = this.currentSurface;
-    if (!zone) {
+  /**
+   * Mécanique partagée par FLY et SWIM : cible 2D recalculée
+   * périodiquement (contrairement à WALK, qui vise un point fixe une fois
+   * pour toutes). "Atterrir" ne demande aucune logique dédiée : une fois
+   * stateTimer écoulé, on repasse en FALL et la détection d'atterrissage
+   * déjà en place (findSurfaceBelow) s'occupe du reste.
+   * @param {boolean} wavy si vrai, ondule perpendiculairement à la
+   * trajectoire directe vers la cible (nage) plutôt que d'y aller tout
+   * droit (vol).
+   */
+  _tickRoam(dt, options, speed, yRangeFactors, wavy = false) {
+    if (this.stateTimer <= 0) {
       this._enterState(State.FALL);
       return;
     }
-    if (this.stateTimer <= 0) {
-      this.walkTargetX = randRange([zone.x1 + 4, zone.x2 - 4], this.config.random);
-      this.stateTimer = randRange(this.config.walkDuration, this.config.random);
-      this.facing = sign(this.walkTargetX - this.x) || this.facing;
+
+    if (this._roamTimer === undefined || this._roamTimer <= 0) {
+      const bounds = options.worldBounds ?? { x: 0, y: 0, width: 1920, height: 1080 };
+      const [yMinFactor, yMaxFactor] = yRangeFactors;
+      this.walkTargetX = randRange([bounds.x, bounds.x + bounds.width], this.config.random);
+      this._flyTargetY = randRange(
+        [bounds.y + bounds.height * yMinFactor, bounds.y + bounds.height * yMaxFactor],
+        this.config.random,
+      );
+      this._roamTimer = randRange(this.config.roamRetargetDuration, this.config.random);
     }
-    this.x += this.facing * this.config.swimSpeed * dt;
-    this.x = clamp(this.x, zone.x1, zone.x2);
+    this._roamTimer -= dt;
+
+    const toX = this.walkTargetX - this.x;
+    const toY = this._flyTargetY - this.y;
+    const distance = Math.hypot(toX, toY) || 1;
+    let dirX = toX / distance;
+    let dirY = toY / distance;
+
+    if (wavy) {
+      // Onde perpendiculaire à la trajectoire directe, façon nage
+      // ondulante (queue de poisson) plutôt qu'une ligne droite. Amplitude
+      // < 1 : la composante "vers la cible" reste toujours dominante, donc
+      // la cible finit toujours par être atteinte (ou re-tirée avant).
+      this._swimPhase = (this._swimPhase ?? 0) + dt * this.config.swimWaveFrequency;
+      const wobble = Math.sin(this._swimPhase) * this.config.swimWaveAmplitude;
+      const perpX = -dirY;
+      const perpY = dirX;
+      dirX += perpX * wobble;
+      dirY += perpY * wobble;
+      const norm = Math.hypot(dirX, dirY) || 1;
+      dirX /= norm;
+      dirY /= norm;
+    }
+
+    this.facing = sign(dirX) || this.facing;
+    this.x += dirX * speed * dt;
+    this.y += dirY * speed * dt;
   }
 
   _tickFly(dt, options) {
-    if (this.stateTimer <= 0) {
-      const bounds = options.worldBounds ?? { x: 0, y: 0, width: 1920, height: 1080 };
-      this.walkTargetX = randRange([bounds.x, bounds.x + bounds.width], this.config.random);
-      this._flyTargetY = randRange([bounds.y, bounds.y + bounds.height / 2], this.config.random);
-      this.stateTimer = randRange(this.config.walkDuration, this.config.random);
-    }
-    const dx = sign(this.walkTargetX - this.x);
-    const dy = sign(this._flyTargetY - this.y);
-    this.facing = dx || this.facing;
-    this.x += dx * this.config.flySpeed * dt;
-    this.y += dy * this.config.flySpeed * dt;
+    this._tickRoam(dt, options, this.config.flySpeed, [0, 0.5], false); // moitié haute, ligne directe
+  }
+
+  _tickSwim(dt, options) {
+    this._tickRoam(dt, options, this.config.swimSpeed, [0, 1], true); // tout l'écran, ondulant
   }
 
   _enterState(state) {

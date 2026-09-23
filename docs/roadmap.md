@@ -70,7 +70,7 @@ l'instantané de positions dans `manager.js`, réaction cible délivrée via
 `interact()`/`_pendingEvent`). 39/39 tests verts ; reste à vérifier en
 conditions réelles (`scripts/dev.sh`, `critter-count` ≥ 2).
 
-## 6. Autres comportements automatiques — 🚧 en cours
+## 6. Autres comportements automatiques — 🧪 à tester
 
 Étape ouverte : plusieurs pistes proposées et retenues ensemble (pas
 fixées à l'avance dans la version initiale de cette feuille de route).
@@ -97,6 +97,15 @@ Comportements retenus :
   (recalcul de cible périodique, mouvement en X et Y), plutôt que limité à
   une zone d'eau déclarée comme aujourd'hui (`waterZones`, jamais peuplé
   côté extension/prefs — ce blocage disparaît avec cette refonte).
+
+Livré : états `SEEK_WALL`, `SEEK_FOCUS`, `CHASE`/`FLEE`, `SEEK_NAP`, et
+`FLY`/`SWIM` réécrits autour d'un `_tickRoam()` commun (sortie par `FALL`,
+donc atterrissage via la détection existante ; nage ondulante
+perpendiculairement à la trajectoire). La fuite est une invitation que la
+cible peut ignorer, pondérée par la distance au poursuivant. Le pack démo
+supporte désormais toutes les locomotions. 68/68 tests verts ; reste à
+vérifier en conditions réelles (`scripts/dev.sh`, `critter-count` ≥ 2 pour
+la poursuite).
 
 ## 7. Nouveaux animaux
 

@@ -1036,3 +1036,138 @@ test("SEEK_NAP retombe en IDLE si aucun rebord n'est à portée", () => {
 
   assert.equal(snapshot.state, State.IDLE);
 });
+
+test('FLY atterrit (repasse en FALL) une fois stateTimer écoulé, au lieu de voler indéfiniment', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), flySpeed: 60 }, { x: 500, y: 100 });
+  critter.state = State.FLY;
+  critter.stateTimer = 0.05; // expire après quelques ticks
+
+  let snapshot;
+  for (let i = 0; i < 10; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  }
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test('SWIM ondule perpendiculairement à sa trajectoire, contrairement à FLY qui va en ligne droite', () => {
+  const shared = { random: fixedRandom(0.999), roamRetargetDuration: [1000, 1000] };
+
+  const swimmer = new Critter(
+    { ...shared, swimSpeed: 100, swimWaveAmplitude: 1, swimWaveFrequency: 100 },
+    { x: 500, y: 500 },
+  );
+  swimmer.state = State.SWIM;
+  swimmer.stateTimer = 10;
+  swimmer.walkTargetX = 900;
+  swimmer._flyTargetY = 500; // même hauteur : sans ondulation, y resterait à 500
+  swimmer._roamTimer = 1000; // pas de reciblage pendant le test
+
+  const swimSnapshot = swimmer.tick(1 / 60, {}, { worldBounds: monitor });
+  assert.notEqual(swimSnapshot.y, 500, 'devrait dévier verticalement malgré une cible à la même hauteur');
+
+  const flyer = new Critter({ ...shared, flySpeed: 100 }, { x: 500, y: 500 });
+  flyer.state = State.FLY;
+  flyer.stateTimer = 10;
+  flyer.walkTargetX = 900;
+  flyer._flyTargetY = 500;
+  flyer._roamTimer = 1000;
+
+  const flySnapshot = flyer.tick(1 / 60, {}, { worldBounds: monitor });
+  assert.equal(flySnapshot.y, 500, 'FLY va en ligne droite : pas de déviation verticale ici');
+});
+
+test('depuis IDLE, flyWeight/swimWeight écrasants font décoller/plonger une espèce qui les supporte', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const baseWeights = {
+    walkWeight: 0,
+    sleepWeight: 0,
+    washWeight: 0,
+    followWeight: 0,
+    greetWeight: 0,
+    climbSeekWeight: 0,
+    seekFocusWeight: 0,
+  };
+
+  const flyer = new Critter(
+    {
+      random: fixedRandom(0.5),
+      ...baseWeights,
+      flyWeight: 1000,
+      swimWeight: 0,
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.AIR]),
+    },
+    { x: 500, y: monitor.height },
+  );
+  flyer.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  flyer.state = State.IDLE;
+  flyer.stateTimer = 0;
+  assert.equal(flyer.tick(1 / 60, surfaces, { worldBounds: monitor }).state, State.FLY);
+
+  const swimmer = new Critter(
+    {
+      random: fixedRandom(0.5),
+      ...baseWeights,
+      flyWeight: 0,
+      swimWeight: 1000,
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WATER]),
+    },
+    { x: 500, y: monitor.height },
+  );
+  swimmer.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  swimmer.state = State.IDLE;
+  swimmer.stateTimer = 0;
+  assert.equal(swimmer.tick(1 / 60, surfaces, { worldBounds: monitor }).state, State.SWIM);
+});
+
+test("sans support 'air'/'water', FLY/SWIM ne sont jamais choisis même avec des poids écrasants", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.01),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 0,
+      seekFocusWeight: 0,
+      flyWeight: 1000,
+      swimWeight: 1000,
+    },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.notEqual(snapshot.state, State.FLY);
+  assert.notEqual(snapshot.state, State.SWIM);
+});
+
+test("atterrir dans une zone d'eau initialise correctement SWIM (ne retombe pas instantanément)", () => {
+  const surfaces = computeSurfaces({
+    monitors: [monitor],
+    windows: [],
+    waterZones: [{ x: 0, y: 300, width: 1000, height: 50 }],
+  });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WATER]) },
+    { x: 500, y: 0 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 300; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state !== State.FALL) break;
+  }
+  assert.equal(snapshot.state, State.SWIM);
+
+  // Un tick de plus : ne doit PAS retomber immédiatement en FALL (bug visé
+  // par le correctif : stateTimer/_roamTimer bien initialisés à l'entrée).
+  const nextSnapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(nextSnapshot.state, State.SWIM);
+});
