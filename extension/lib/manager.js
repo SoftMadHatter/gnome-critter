@@ -122,9 +122,17 @@ export class Manager {
     }
     this._knownWindowIds = currentWindowIds;
 
-    for (const { critter, actor } of this._critters) {
-      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer });
+    // Instantané d'avant ce tick (positions non encore mises à jour) pour
+    // que l'ordre de traitement des critters ne biaise pas qui "voit" qui ;
+    // la référence à l'instance voyage à côté (pas dans le calcul de
+    // ciblage, seulement pour que GREET puisse déclencher une réaction sur
+    // la cible une fois atteinte -- voir Critter._tickGreet).
+    const others = this._critters.map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
+
+    this._critters.forEach(({ critter, actor }, i) => {
+      const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
+      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters });
       actor.updateAnimation(dt, snapshot);
-    }
+    });
   }
 }

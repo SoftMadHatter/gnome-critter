@@ -22,6 +22,7 @@ export const State = Object.freeze({
   SLEEP: 'sleep',
   WASH: 'wash', // idle passif minuté, se lave sur place (même mécanisme que SLEEP)
   FOLLOW: 'follow', // marche vers le curseur, cible recalculée en continu
+  GREET: 'greet', // marche vers le critter le plus proche, salue en l'atteignant
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -42,6 +43,7 @@ const INTERACTION_REACTIONS = {
   rightClick: 'annoyed',
   hover: 'noticed',
   windowOpened: 'startled',
+  meetCritter: 'greeted', // posé sur LA CIBLE d'un GREET (voir _tickGreet) : arrive entre deux de ses propres ticks, donc via interact()/_pendingEvent comme les autres événements externes -- contrairement à l'initiateur, qui pose this.lastEvent directement puisque ça se passe DANS son propre tick.
 };
 
 const DEFAULT_CONFIG = {
@@ -66,6 +68,10 @@ const DEFAULT_CONFIG = {
   followWeight: 12,
   followDuration: [2, 4],
   followMaxDistance: 600, // au-delà, suivre le curseur devient très improbable (pas impossible)
+  greetWeight: 10,
+  greetDuration: [2, 4],
+  greetMaxDistance: 600,
+  greetDistance: 20, // distance en dessous de laquelle on considère avoir "atteint" l'autre critter
   repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
@@ -173,7 +179,7 @@ export class Critter {
   /**
    * @param {number} dt secondes écoulées depuis le tick précédent
    * @param {{segments: import('./surfaceMap.js').Segment[], walls: import('./surfaceMap.js').Wall[]}} surfaces
-   * @param {{worldBounds: {x:number,y:number,width:number,height:number}, pointer: {x:number,y:number}}} options bornes globales (union des moniteurs, utilisées par FLY/sécurité) et position du curseur (utilisée par FOLLOW)
+   * @param {{worldBounds: {x:number,y:number,width:number,height:number}, pointer: {x:number,y:number}, otherCritters: {x:number,y:number,critter?:Critter}[]}} options bornes globales (union des moniteurs, utilisées par FLY/sécurité), position du curseur (utilisée par FOLLOW) et positions des autres critters, avec référence optionnelle à l'instance (utilisées par GREET pour cibler et, en arrivant, déclencher une réaction sur elle)
    */
   tick(dt, surfaces, options = {}) {
     this.lastEvent = this._pendingEvent;
@@ -213,6 +219,9 @@ export class Critter {
         break;
       case State.FOLLOW:
         this._tickFollow(dt, surfaces, options);
+        break;
+      case State.GREET:
+        this._tickGreet(dt, surfaces, options);
         break;
       case State.IDLE:
       case State.SLEEP:
@@ -339,6 +348,15 @@ export class Critter {
       candidates.push({ value: 'follow', weight: this.config.followWeight * proximity });
     }
 
+    if (options.otherCritters?.length) {
+      const nearest = options.otherCritters.reduce((a, b) =>
+        Math.abs(b.x - this.x) < Math.abs(a.x - this.x) ? b : a,
+      );
+      const distance = Math.abs(nearest.x - this.x);
+      const proximity = clamp(1 - distance / this.config.greetMaxDistance, 0.15, 1);
+      candidates.push({ value: 'greet', weight: this.config.greetWeight * proximity });
+    }
+
     // Anti-répétition : uniquement sur les activités spéciales. "walk" est
     // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
     // en faveur des autres à chaque cycle qui suit une marche.
@@ -366,6 +384,10 @@ export class Critter {
         this.state = State.FOLLOW;
         this.stateTimer = randRange(this.config.followDuration, this.config.random);
         return;
+      case 'greet':
+        this.state = State.GREET;
+        this.stateTimer = randRange(this.config.greetDuration, this.config.random);
+        return;
       default:
         this._startWalkOnCurrentSurface(surfaces);
     }
@@ -384,7 +406,52 @@ export class Critter {
 
     // Cible recalculée à chaque tick (contrairement à WALK, qui vise un
     // point fixe) : le critter suit un curseur qui continue de bouger.
-    const dir = sign(options.pointer.x - this.x);
+    this._chase(dt, options.pointer.x);
+  }
+
+  _tickGreet(dt, surfaces, options) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    // Recalculé à chaque tick, comme le pointeur pour FOLLOW : pas de suivi
+    // d'identité par id, si un autre critter devient plus proche entre-temps
+    // la cible peut changer en cours de route.
+    const target = options.otherCritters?.length
+      ? options.otherCritters.reduce((a, b) => (Math.abs(b.x - this.x) < Math.abs(a.x - this.x) ? b : a))
+      : null;
+
+    if (this.stateTimer <= 0 || !target) {
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    if (Math.abs(target.x - this.x) < this.config.greetDistance) {
+      // this.lastEvent directement pour SOI-MÊME (pas interact()) : déclenché
+      // DANS ce tick, après que tick() a déjà copié _pendingEvent vers
+      // lastEvent en entrée -- passer par interact() ici décalerait
+      // l'événement au tick suivant. Même pattern que 'landed'/'sleep'/'wash'
+      // ailleurs. Pour LA CIBLE en revanche, la salutation arrive bien entre
+      // deux de ses propres ticks : interact() (donc _pendingEvent) est le
+      // mécanisme approprié, comme pour un événement externe (windowOpened).
+      this.lastEvent = 'greeted';
+      target.critter?.interact('meetCritter');
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    // Pas atteignable (autre niveau, mur au milieu...) : le critter bute
+    // contre le bord de sa propre surface et stateTimer finit par expirer
+    // normalement, pas de cas particulier à gérer ici.
+    this._chase(dt, target.x);
+  }
+
+  /** Avance vers `targetX` le long de la surface courante (WALK vise un
+   * point fixe une fois pour toutes ; FOLLOW/GREET rappellent ceci chaque
+   * tick avec une cible qui peut avoir bougé). */
+  _chase(dt, targetX) {
+    const dir = sign(targetX - this.x);
     this.facing = dir || this.facing;
     this.x += dir * this.config.walkSpeed * dt;
 

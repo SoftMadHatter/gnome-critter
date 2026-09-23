@@ -82,6 +82,8 @@ SOUNDS = {
     "noticed.wav": lambda: tone(700, 0.1, amplitude=0.3),
     # Chirp montant bref et aigu : sursaut (nouvelle fenêtre).
     "startled.wav": lambda: chirp(700, 1400, 0.1, amplitude=0.45),
+    # Deux notes amicales, la seconde plus haute : salutation entre critters.
+    "greeted.wav": lambda: concat(tone(600, 0.08, amplitude=0.35), tone(800, 0.1, amplitude=0.35)),
 }
 
 

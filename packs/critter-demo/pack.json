@@ -22,13 +22,15 @@
     "swim":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.2,  "loop": true },
     "fly":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
     "follow":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "wash":    { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5,  "loop": true }
+    "wash":    { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5,  "loop": true },
+    "greet":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
   },
   "reactions": {
     "petted":   { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/petted.wav" },
     "tickled":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/tickled.wav" },
     "annoyed":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/annoyed.wav" },
     "noticed":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/noticed.wav" },
-    "startled": { "file": "sprites/fall.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/startled.wav" }
+    "startled": { "file": "sprites/fall.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/startled.wav" },
+    "greeted":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/greeted.wav" }
   }
 }

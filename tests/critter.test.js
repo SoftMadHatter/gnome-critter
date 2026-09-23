@@ -466,3 +466,129 @@ test('FOLLOW devient moins probable quand le curseur est loin (suivi sensible à
   const farSnapshot = far.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 5500, y: 0 } });
   assert.equal(farSnapshot.state, State.WALK, 'même tirage, mais curseur loin : la marche l\'emporte sur le suivi');
 });
+
+test('depuis IDLE, un poids greetWeight écrasant fait saluer le critter le plus proche', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, greetWeight: 1000 },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    otherCritters: [{ x: 800, y: monitor.height }],
+  });
+
+  assert.equal(snapshot.state, State.GREET);
+});
+
+test('GREET avance vers le critter le plus proche parmi plusieurs, clampé à la surface', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 40 }, { x: 500, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.GREET;
+  critter.stateTimer = 10;
+
+  const others = [
+    { x: 900, y: monitor.height }, // loin
+    { x: 550, y: monitor.height }, // le plus proche : cible attendue
+  ];
+
+  const snapshot1 = critter.tick(1 / 60, surfaces, { worldBounds: monitor, otherCritters: others });
+  assert.equal(snapshot1.state, State.GREET);
+  assert.ok(snapshot1.x > 500 && snapshot1.x < 550, "avance vers le plus proche (550), pas vers le plus loin (900)");
+});
+
+test('en dessous de greetDistance, GREET déclenche "greeted" et repasse en IDLE', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), greetDistance: 20 },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.GREET;
+  critter.stateTimer = 10;
+
+  const snapshot = critter.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    otherCritters: [{ x: 510, y: monitor.height }], // distance 10 < greetDistance 20
+  });
+
+  assert.equal(snapshot.event, 'greeted');
+  assert.equal(snapshot.state, State.IDLE);
+});
+
+test('GREET déclenche aussi "greeted" sur la cible, pas seulement sur l\'initiateur', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+
+  const initiator = new Critter({ random: fixedRandom(0.9), greetDistance: 20 }, { x: 500, y: monitor.height });
+  initiator.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  initiator.state = State.GREET;
+  initiator.stateTimer = 10;
+
+  const target = new Critter({ random: fixedRandom(0.9) }, { x: 510, y: monitor.height });
+  target.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  target.state = State.IDLE;
+  target.stateTimer = 10; // ne doit pas retomber sur un nouveau tirage pendant le test
+
+  const initiatorSnapshot = initiator.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    otherCritters: [{ x: target.x, y: target.y, critter: target }], // distance 10 < greetDistance 20
+  });
+  assert.equal(initiatorSnapshot.event, 'greeted', "l'initiateur réagit immédiatement, dans son propre tick");
+
+  // interact() diffère via _pendingEvent : il faut un tick de la CIBLE pour
+  // voir l'événement apparaître dans son propre snapshot.
+  const targetSnapshot = target.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(targetSnapshot.event, 'greeted', 'la cible réagit aussi, à son tick suivant');
+});
+
+test('sans otherCritters, GREET ne se déclenche jamais (retombe sur la marche)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.01), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, greetWeight: 1000 },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.notEqual(snapshot.state, State.GREET);
+});
+
+test('GREET devient moins probable quand le critter le plus proche est loin (sensible à la distance)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const config = {
+    random: fixedRandom(0.3),
+    walkWeight: 2,
+    sleepWeight: 0,
+    washWeight: 0,
+    followWeight: 0,
+    greetWeight: 10,
+  };
+
+  const near = new Critter(config, { x: 500, y: monitor.height });
+  near.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  near.state = State.IDLE;
+  near.stateTimer = 0;
+  const nearSnapshot = near.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    otherCritters: [{ x: 500, y: monitor.height }],
+  });
+  assert.equal(nearSnapshot.state, State.GREET, 'autre critter juste à côté : salutation favorisée');
+
+  const far = new Critter(config, { x: 500, y: monitor.height });
+  far.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  far.state = State.IDLE;
+  far.stateTimer = 0;
+  const farSnapshot = far.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    otherCritters: [{ x: 5500, y: monitor.height }],
+  });
+  assert.equal(farSnapshot.state, State.WALK, 'même tirage, mais autre critter loin : la marche l\'emporte');
+});

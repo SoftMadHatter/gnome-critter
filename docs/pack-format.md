@@ -56,15 +56,17 @@ packs/<species-id>/
     "swim":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.2, "loop": true },
     "fly":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1, "loop": true },
     "follow": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "wash":   { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5, "loop": true }
+    "wash":   { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5, "loop": true },
+    "greet":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
   // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js).
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
   // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
-  // "annoyed", "noticed", "startled" (nouvelle fenêtre), "grabbed",
-  // "released", "landed", "sleep", "wash", ...).
+  // "annoyed", "noticed", "startled" (nouvelle fenêtre), "greeted" (a
+  // atteint un autre critter en état GREET), "grabbed", "released",
+  // "landed", "sleep", "wash", ...).
   // "sound" est optionnel : chemin relatif au pack vers un .wav/.ogg joué
   // une fois au déclenchement (rien ne se passe si absent ou si l'utilisateur
   // a désactivé les sons dans les préférences de l'extension).
