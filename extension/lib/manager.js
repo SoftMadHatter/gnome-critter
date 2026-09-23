@@ -13,7 +13,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // `scripts/build.sh --link`, qui reconstruit dist/<uuid>/ à chaque appel.
 import { Critter, Locomotion } from '../core/critter.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
-import { getMonitors, getWindows, computeWorldBounds } from './sensors.js';
+import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
 
 const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
@@ -30,6 +30,9 @@ export class Manager {
     this._critters = [];
     this._timeoutId = null;
     this._lastTickUs = null;
+    /** @type {Set<number>|null} null tant que le premier tick n'a pas eu
+     * lieu, pour ne jamais réagir aux fenêtres déjà ouvertes au démarrage. */
+    this._knownWindowIds = null;
   }
 
   spawn(count = 1) {
@@ -104,9 +107,23 @@ export class Manager {
     const windows = getWindows();
     const surfaces = computeSurfaces({ monitors, windows });
     const worldBounds = computeWorldBounds(monitors);
+    const pointer = getPointer();
+
+    // Une fenêtre qui apparaît entre deux ticks (pas de nouveau capteur :
+    // getWindows() est déjà appelé chaque frame) fait sursauter les
+    // critters. this._knownWindowIds reste null au tout premier tick pour
+    // ne pas réagir aux fenêtres déjà là au démarrage de l'extension.
+    const currentWindowIds = new Set(windows.map((w) => w.id));
+    if (this._knownWindowIds) {
+      const hasNewWindow = [...currentWindowIds].some((id) => !this._knownWindowIds.has(id));
+      if (hasNewWindow) {
+        for (const { critter } of this._critters) critter.interact('windowOpened');
+      }
+    }
+    this._knownWindowIds = currentWindowIds;
 
     for (const { critter, actor } of this._critters) {
-      const snapshot = critter.tick(dt, surfaces, { worldBounds });
+      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer });
       actor.updateAnimation(dt, snapshot);
     }
   }

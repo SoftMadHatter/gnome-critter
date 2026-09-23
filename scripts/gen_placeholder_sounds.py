@@ -80,6 +80,8 @@ SOUNDS = {
     "annoyed.wav": lambda: chirp(300, 150, 0.25, wave_fn=sawtooth, amplitude=0.3),
     # Bip court et doux : remarqué.
     "noticed.wav": lambda: tone(700, 0.1, amplitude=0.3),
+    # Chirp montant bref et aigu : sursaut (nouvelle fenêtre).
+    "startled.wav": lambda: chirp(700, 1400, 0.1, amplitude=0.45),
 }
 
 

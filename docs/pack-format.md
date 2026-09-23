@@ -54,12 +54,17 @@ packs/<species-id>/
     "climb":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "ceiling":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "swim":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.2, "loop": true },
-    "fly":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1, "loop": true }
+    "fly":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1, "loop": true },
+    "follow": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "wash":   { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5, "loop": true }
   },
+  // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
+  // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js).
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
   // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
-  // "annoyed", "noticed", "grabbed", "released", "landed", "sleep", ...).
+  // "annoyed", "noticed", "startled" (nouvelle fenêtre), "grabbed",
+  // "released", "landed", "sleep", "wash", ...).
   // "sound" est optionnel : chemin relatif au pack vers un .wav/.ogg joué
   // une fois au déclenchement (rien ne se passe si absent ou si l'utilisateur
   // a désactivé les sons dans les préférences de l'extension).
@@ -92,6 +97,9 @@ frames.
 3. Ajuster `supportedSurfaces` et `speeds` selon ce que l'animal doit savoir
    faire (un poisson : `["water"]` avec un `waterZones` déclaré dans les
    réglages de l'extension ; un oiseau : `["ground", "air"]`, etc.).
-4. Aucun changement de code n'est nécessaire pour un comportement standard.
-   Un comportement vraiment nouveau (ex: une espèce qui suit le curseur en
-   continu) reste un ajout dans `core/critter.js`.
+4. Aucun changement de code n'est nécessaire pour un comportement standard,
+   y compris les activités idle automatiques déjà câblées (suivre le
+   curseur, se laver, sursauter à l'ouverture d'une fenêtre) : elles
+   marchent pour toute espèce, avec ou sans animation dédiée dans le pack.
+   Un comportement vraiment nouveau (ex: une espèce qui vole en formation
+   avec d'autres critters) reste un ajout dans `core/critter.js`.

@@ -281,3 +281,95 @@ test("interact() avec un geste inconnu ne plante pas et ne pose pas d'événemen
   assert.equal(snapshot.event, null);
   assert.equal(snapshot.state, State.IDLE);
 });
+
+test('depuis IDLE, un tirage dans la plage sleepChance fait toujours basculer vers SLEEP', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.01), sleepChance: 1, washChance: 0, followChance: 0 },
+    { x: 10, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.SLEEP);
+  assert.equal(snapshot.event, 'sleep');
+});
+
+test('depuis IDLE, un tirage dans la plage washChance fait basculer vers WASH puis revient en IDLE', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.01), sleepChance: 0, washChance: 1, followChance: 0, washDuration: [0.02, 0.02] },
+    { x: 10, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  let snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(snapshot.state, State.WASH);
+  assert.equal(snapshot.event, 'wash');
+
+  for (let i = 0; i < 5; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state !== State.WASH) break;
+  }
+  assert.equal(snapshot.state, State.IDLE);
+});
+
+test('depuis IDLE, un tirage dans la plage followChance fait suivre le curseur', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.01), sleepChance: 0, washChance: 0, followChance: 1, walkSpeed: 40 },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  let snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 800, y: 0 } });
+  assert.equal(snapshot.state, State.FOLLOW);
+
+  const xAfterEntry = snapshot.x;
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 800, y: 0 } });
+  assert.ok(snapshot.x > xAfterEntry, 'devrait se rapprocher du pointeur (800) situé à droite');
+});
+
+test('sans pointeur disponible, followChance ne déclenche pas FOLLOW (retombe sur la marche)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.01), sleepChance: 0, washChance: 0, followChance: 1 },
+    { x: 500, y: monitor.height },
+  );
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.notEqual(snapshot.state, State.FOLLOW);
+});
+
+test('un critter qui suit le curseur reste dans les bornes de la surface et retombe si elle disparaît', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 200 }, { x: 450, y: 300 });
+
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'shelf');
+  critter.state = State.FOLLOW;
+  critter.stateTimer = 10;
+
+  let snapshot;
+  for (let i = 0; i < 100; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 5000, y: 0 } });
+  }
+  assert.equal(snapshot.state, State.FOLLOW);
+  assert.equal(snapshot.x, 600, 'clampé au bord droit du rebord (x2=600), pas au-delà');
+
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, pointer: { x: 5000, y: 0 } });
+
+  assert.equal(snapshot.state, State.FALL);
+});

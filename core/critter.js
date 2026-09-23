@@ -20,6 +20,8 @@ export const State = Object.freeze({
   SWIM: 'swim',
   FLY: 'fly',
   SLEEP: 'sleep',
+  WASH: 'wash', // idle passif minuté, se lave sur place (même mécanisme que SLEEP)
+  FOLLOW: 'follow', // marche vers le curseur, cible recalculée en continu
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -39,6 +41,7 @@ const INTERACTION_REACTIONS = {
   doubleClick: 'tickled',
   rightClick: 'annoyed',
   hover: 'noticed',
+  windowOpened: 'startled',
 };
 
 const DEFAULT_CONFIG = {
@@ -53,6 +56,10 @@ const DEFAULT_CONFIG = {
   walkDuration: [1, 3],
   sleepChance: 0.05, // probabilité de s'endormir au lieu de marcher, par cycle idle
   sleepDuration: [4, 10],
+  washChance: 0.06,
+  washDuration: [3, 6],
+  followChance: 0.12, // probabilité de suivre le curseur au lieu de marcher
+  followDuration: [2, 4],
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
 };
@@ -137,7 +144,7 @@ export class Critter {
   /**
    * @param {number} dt secondes écoulées depuis le tick précédent
    * @param {{segments: import('./surfaceMap.js').Segment[], walls: import('./surfaceMap.js').Wall[]}} surfaces
-   * @param {{worldBounds: {x:number,y:number,width:number,height:number}}} options bornes globales (union des moniteurs), utilisées par FLY/sécurité
+   * @param {{worldBounds: {x:number,y:number,width:number,height:number}, pointer: {x:number,y:number}}} options bornes globales (union des moniteurs, utilisées par FLY/sécurité) et position du curseur (utilisée par FOLLOW)
    */
   tick(dt, surfaces, options = {}) {
     this.lastEvent = this._pendingEvent;
@@ -175,9 +182,13 @@ export class Critter {
       case State.FLY:
         this._tickFly(dt, options);
         break;
+      case State.FOLLOW:
+        this._tickFollow(dt, surfaces, options);
+        break;
       case State.IDLE:
       case State.SLEEP:
-        this._tickWaiting(dt, surfaces);
+      case State.WASH:
+        this._tickWaiting(dt, surfaces, options);
         break;
       default:
         this.state = State.IDLE;
@@ -270,7 +281,7 @@ export class Critter {
     }
   }
 
-  _tickWaiting(dt, surfaces) {
+  _tickWaiting(dt, surfaces, options = {}) {
     // Vérifie qu'on n'est pas resté « en l'air » suite à une fenêtre fermée
     // ou déplacée sous nos pieds.
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
@@ -280,20 +291,58 @@ export class Critter {
 
     if (this.stateTimer > 0) return;
 
-    if (this.state === State.SLEEP) {
+    if (this.state === State.SLEEP || this.state === State.WASH) {
       this._enterState(State.IDLE);
       return;
     }
 
     const roll = this.config.random();
-    if (roll < this.config.sleepChance) {
+    let threshold = this.config.sleepChance;
+    if (roll < threshold) {
       this.state = State.SLEEP;
       this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
       this.lastEvent = 'sleep';
       return;
     }
 
+    threshold += this.config.washChance;
+    if (roll < threshold) {
+      this.state = State.WASH;
+      this.stateTimer = randRange(this.config.washDuration, this.config.random);
+      this.lastEvent = 'wash';
+      return;
+    }
+
+    threshold += this.config.followChance;
+    if (roll < threshold && this.currentSurface && options.pointer) {
+      this.state = State.FOLLOW;
+      this.stateTimer = randRange(this.config.followDuration, this.config.random);
+      return;
+    }
+
     this._startWalkOnCurrentSurface(surfaces);
+  }
+
+  _tickFollow(dt, surfaces, options) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    if (this.stateTimer <= 0 || !options.pointer) {
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    // Cible recalculée à chaque tick (contrairement à WALK, qui vise un
+    // point fixe) : le critter suit un curseur qui continue de bouger.
+    const dir = sign(options.pointer.x - this.x);
+    this.facing = dir || this.facing;
+    this.x += dir * this.config.walkSpeed * dt;
+
+    if (this.currentSurface) {
+      this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
+    }
   }
 
   _startWalkOnCurrentSurface(surfaces) {
