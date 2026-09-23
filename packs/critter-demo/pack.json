@@ -25,7 +25,9 @@
     "wash":    { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5,  "loop": true },
     "greet":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "seekWall":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "seekFocus":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
+    "seekFocus":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "chase":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "flee":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
   },
   "reactions": {
     "petted":   { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/petted.wav" },

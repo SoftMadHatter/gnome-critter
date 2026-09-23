@@ -794,3 +794,175 @@ test("SEEK_FOCUS retombe en IDLE si focusedWindow n'est plus fourni (expiré cô
 
   assert.equal(snapshot.state, State.IDLE);
 });
+
+test('un GREET réussi peut enchaîner sur CHASE et propose une fuite à la cible', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+
+  const initiator = new Critter(
+    { random: fixedRandom(0.9), greetDistance: 20, chaseChance: 1 },
+    { x: 500, y: monitor.height },
+  );
+  initiator.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  initiator.state = State.GREET;
+  initiator.stateTimer = 10;
+
+  const target = new Critter({ random: fixedRandom(0.9) }, { x: 510, y: monitor.height });
+  target.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  target.state = State.IDLE;
+  target.stateTimer = 10;
+
+  const snapshot = initiator.tick(1 / 60, surfaces, {
+    worldBounds: monitor,
+    otherCritters: [{ x: target.x, y: target.y, critter: target }],
+  });
+
+  assert.equal(snapshot.state, State.CHASE);
+  assert.equal(target._chaseInvitation, initiator);
+});
+
+test("la cible accepte de fuir si fleeWeight l'emporte et le poursuivant est proche", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const chaser = new Critter({}, { x: 505, y: monitor.height });
+
+  const target = new Critter(
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 0,
+      seekFocusWeight: 0,
+      fleeWeight: 1000,
+    },
+    { x: 500, y: monitor.height },
+  );
+  target.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  target.state = State.IDLE;
+  target.stateTimer = 0;
+  target.proposeChase(chaser);
+
+  const snapshot = target.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FLEE);
+});
+
+test('la cible ignore la fuite si le poursuivant est loin et un autre candidat domine', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const chaser = new Critter({}, { x: 5000, y: monitor.height }); // très loin
+
+  const target = new Critter(
+    {
+      random: fixedRandom(0.99),
+      walkWeight: 1000,
+      sleepWeight: 0,
+      washWeight: 0,
+      followWeight: 0,
+      greetWeight: 0,
+      climbSeekWeight: 0,
+      seekFocusWeight: 0,
+      fleeWeight: 50,
+      fleeMaxDistance: 600,
+    },
+    { x: 500, y: monitor.height },
+  );
+  target.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  target.state = State.IDLE;
+  target.stateTimer = 0;
+  target.proposeChase(chaser);
+
+  const snapshot = target.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.notEqual(snapshot.state, State.FLEE);
+});
+
+test('FLEE éloigne le critter de _fleeFrom, clampé à la surface', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const chaser = new Critter({}, { x: 10, y: monitor.height }); // à gauche
+
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 300 }, { x: 20, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.FLEE;
+  critter.stateTimer = 10;
+  critter._fleeFrom = chaser;
+
+  let snapshot;
+  for (let i = 0; i < 5; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  }
+
+  assert.ok(snapshot.x > 20, 'devrait fuir vers la droite (loin du poursuivant à x=10)');
+});
+
+test('CHASE suit _chaseTarget (référence live) et, une fois rattrapée, pose greeted des deux côtés', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+
+  const target = new Critter({ random: fixedRandom(0.9) }, { x: 600, y: monitor.height });
+  target.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  target.state = State.IDLE;
+  target.stateTimer = 10; // reste immobile pendant toute la boucle du poursuivant
+
+  const chaser = new Critter(
+    { random: fixedRandom(0.9), walkSpeed: 300, greetDistance: 20 },
+    { x: 100, y: monitor.height },
+  );
+  chaser.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  chaser.state = State.CHASE;
+  chaser.stateTimer = 10;
+  chaser._chaseTarget = target;
+
+  let chaserSnapshot;
+  for (let i = 0; i < 120; i++) {
+    chaserSnapshot = chaser.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (chaserSnapshot.state === State.IDLE) break;
+  }
+
+  assert.equal(chaserSnapshot.state, State.IDLE);
+  assert.equal(chaserSnapshot.event, 'greeted');
+
+  // La cible reçoit l'événement à SON prochain tick (interact()/_pendingEvent).
+  const targetSnapshot = target.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(targetSnapshot.event, 'greeted');
+});
+
+test('CHASE retombe en FALL si sa surface disparaît en chemin', () => {
+  const win = { id: 'w1', x: 400, y: 300, width: 200, height: 100 };
+  let surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const target = new Critter({}, { x: 900, y: 300 });
+
+  const chaser = new Critter({ random: fixedRandom(0.9) }, { x: 450, y: 300 });
+  chaser.currentSurface = surfaces.segments.find((s) => s.type === 'shelf');
+  chaser.state = State.CHASE;
+  chaser.stateTimer = 10;
+  chaser._chaseTarget = target;
+
+  surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const snapshot = chaser.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
+});
+
+test('CHASE retombe en IDLE si _chaseTarget est absent (timeout)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 500, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.CHASE;
+  critter.stateTimer = 10;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.IDLE);
+});
+
+test('FLEE retombe en IDLE si _fleeFrom est absent (timeout)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9) }, { x: 500, y: monitor.height });
+  critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
+  critter.state = State.FLEE;
+  critter.stateTimer = 10;
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.IDLE);
+});

@@ -26,6 +26,8 @@ export const State = Object.freeze({
   GREET: 'greet', // marche vers le critter le plus proche, salue en l'atteignant
   SEEK_WALL: 'seekWall', // marche vers un mur atteignable pour grimper délibérément
   SEEK_FOCUS: 'seekFocus', // marche vers la fenêtre qui vient de prendre le focus
+  CHASE: 'chase', // poursuit une cible précise (référence fixe, pas "le plus proche")
+  FLEE: 'flee', // s'éloigne d'un poursuivant
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -83,6 +85,11 @@ const DEFAULT_CONFIG = {
   seekFocusDuration: [3, 6],
   seekFocusMaxDistance: 600,
   seekFocusDistance: 20, // distance en dessous de laquelle on considère avoir "atteint" la fenêtre
+  chaseChance: 0.4, // probabilité d'enchaîner sur une poursuite après un GREET réussi
+  chaseDuration: [2, 4],
+  fleeWeight: 50,
+  fleeMaxDistance: 600,
+  fleeDuration: [2, 4],
   repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
@@ -136,6 +143,15 @@ export class Critter {
     /** Dernière activité spéciale choisie par _tickWaiting ('sleep'/'wash'/
      * 'follow', jamais 'walk') : sert de mémoire anti-répétition. */
     this._lastActivity = null;
+    /** Référence Critter précise poursuivie pendant CHASE (pas recalculée
+     * par proximité, contrairement à FOLLOW/GREET/SEEK_WALL/SEEK_FOCUS). */
+    this._chaseTarget = null;
+    /** Référence Critter dont on s'éloigne pendant FLEE. */
+    this._fleeFrom = null;
+    /** Invitation posée par proposeChase() : simple opportunité de plus
+     * pour le choix pondéré de _tickWaiting, pas un ordre -- peut être
+     * ignorée si un autre candidat l'emporte au tirage. */
+    this._chaseInvitation = null;
     /** Dernier événement notable (pour déclencher un son/une réaction), vidé à chaque tick. */
     this.lastEvent = null;
     /** Événement posé par une méthode publique (pet/startDrag/...) entre deux
@@ -183,6 +199,16 @@ export class Critter {
   interact(kind) {
     const event = INTERACTION_REACTIONS[kind];
     if (event) this._pendingEvent = event;
+  }
+
+  /**
+   * Propose une fuite (utilisé par CHASE, cf. _tickGreet) : ne force rien,
+   * juste une opportunité de plus pour le choix pondéré de _tickWaiting
+   * -- la cible pourra l'accepter ou l'ignorer à sa prochaine décision
+   * idle, au même titre que sleep/wash/follow/etc.
+   */
+  proposeChase(chaser) {
+    this._chaseInvitation = chaser;
   }
 
   // --- Boucle principale ----------------------------------------------------
@@ -239,6 +265,12 @@ export class Critter {
         break;
       case State.SEEK_FOCUS:
         this._tickSeekFocus(dt, surfaces, options);
+        break;
+      case State.CHASE:
+        this._tickChase(dt, surfaces);
+        break;
+      case State.FLEE:
+        this._tickFlee(dt, surfaces);
         break;
       case State.IDLE:
       case State.SLEEP:
@@ -390,6 +422,20 @@ export class Critter {
       candidates.push({ value: 'seekFocus', weight: this.config.seekFocusWeight * proximity });
     }
 
+    // Invitation posée par proposeChase() (voir _tickGreet/_tickChase) :
+    // consommée en une seule fois ici, acceptée ou pas -- pas de relance si
+    // elle perd le tirage, c'est ça qui porte le "peut l'ignorer". Poids
+    // relatif à la distance au poursuivant AU MOMENT de la décision
+    // (référence live : il a pu se rapprocher ou s'éloigner entre-temps),
+    // même schéma que les autres comportements de proximité.
+    const chaseInvitation = this._chaseInvitation;
+    this._chaseInvitation = null;
+    if (chaseInvitation) {
+      const distance = Math.abs(chaseInvitation.x - this.x);
+      const proximity = clamp(1 - distance / this.config.fleeMaxDistance, 0.15, 1);
+      candidates.push({ value: 'flee', weight: this.config.fleeWeight * proximity });
+    }
+
     // Anti-répétition : uniquement sur les activités spéciales. "walk" est
     // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
     // en faveur des autres à chaque cycle qui suit une marche.
@@ -428,6 +474,11 @@ export class Critter {
       case 'seekFocus':
         this.state = State.SEEK_FOCUS;
         this.stateTimer = randRange(this.config.seekFocusDuration, this.config.random);
+        return;
+      case 'flee':
+        this.state = State.FLEE;
+        this._fleeFrom = chaseInvitation;
+        this.stateTimer = randRange(this.config.fleeDuration, this.config.random);
         return;
       default:
         this._startWalkOnCurrentSurface(surfaces);
@@ -478,6 +529,18 @@ export class Critter {
       // mécanisme approprié, comme pour un événement externe (windowOpened).
       this.lastEvent = 'greeted';
       target.critter?.interact('meetCritter');
+
+      // Enchaîne parfois sur une poursuite au lieu de repasser directement
+      // en IDLE : propose (pas n'impose pas, cf. proposeChase) à la cible
+      // de fuir, et se lance à sa poursuite.
+      if (target.critter && this.config.random() < this.config.chaseChance) {
+        target.critter.proposeChase(this);
+        this.state = State.CHASE;
+        this._chaseTarget = target.critter;
+        this.stateTimer = randRange(this.config.chaseDuration, this.config.random);
+        return;
+      }
+
       this._enterState(State.IDLE);
       return;
     }
@@ -486,6 +549,63 @@ export class Critter {
     // contre le bord de sa propre surface et stateTimer finit par expirer
     // normalement, pas de cas particulier à gérer ici.
     this._chase(dt, target.x);
+  }
+
+  /**
+   * Contrairement à GREET/FOLLOW/SEEK_WALL/SEEK_FOCUS, la cible est une
+   * référence FIXE (`_chaseTarget`, posée par _tickGreet) plutôt que
+   * recalculée par proximité à chaque tick : une vraie poursuite suit une
+   * cible précise, pas "qui que ce soit de plus proche".
+   */
+  _tickChase(dt, surfaces) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    if (this.stateTimer <= 0 || !this._chaseTarget) {
+      this._chaseTarget = null;
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    if (Math.abs(this._chaseTarget.x - this.x) < this.config.greetDistance) {
+      // Rattrapé : réutilise 'greeted' (départ ET arrivée d'une poursuite
+      // restent la même émotion) plutôt que d'ajouter un nouvel événement
+      // et ses assets rien que pour ça.
+      this.lastEvent = 'greeted';
+      this._chaseTarget.interact('meetCritter'); // la cible réagit aussi en se faisant rattraper
+      this._chaseTarget = null;
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    // Référence live : suit la cible où qu'elle se soit rendue, pas une
+    // position figée au moment où la poursuite a commencé.
+    this._chase(dt, this._chaseTarget.x);
+  }
+
+  _tickFlee(dt, surfaces) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+
+    if (this.stateTimer <= 0 || !this._fleeFrom) {
+      this._fleeFrom = null;
+      this._enterState(State.IDLE);
+      return;
+    }
+
+    // Symétrique de _chase, mais en s'éloignant de la cible plutôt qu'en
+    // s'en approchant.
+    const dir = sign(this.x - this._fleeFrom.x) || this.facing || 1;
+    this.facing = dir;
+    this.x += dir * this.config.walkSpeed * dt;
+
+    if (this.currentSurface) {
+      this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
+    }
   }
 
   _tickSeekWall(dt, surfaces) {
