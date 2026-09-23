@@ -11,7 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // dossier frère de extension/). L'extension ne s'exécute jamais depuis
 // l'arborescence source telle quelle : on développe toujours via
 // `scripts/build.sh --link`, qui reconstruit dist/<uuid>/ à chaque appel.
-import { Critter, Locomotion } from '../core/critter.js';
+import { Critter, Locomotion, behaviorOverrides } from '../core/critter.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
@@ -47,6 +47,13 @@ export class Manager {
     const monitors = getMonitors();
     const bounds = computeWorldBounds(monitors);
 
+    const behavior = behaviorOverrides(this.pack.behavior);
+    if (behavior.ignored.length > 0) {
+      console.warn(
+        `Scamper: pack "${this.pack.meta.id}", clés "behavior" ignorées : ${behavior.ignored.join(', ')}`,
+      );
+    }
+
     for (let i = 0; i < count; i++) {
       const startX = bounds.x + bounds.width * (0.3 + 0.1 * i);
       // critter.y est la position des pieds (voir CritterActor.syncPosition,
@@ -58,6 +65,9 @@ export class Manager {
 
       const critter = new Critter(
         {
+          // En premier : les `speeds` et locomotions du pack, posés ensuite,
+          // gardent la priorité sur d'éventuelles clés équivalentes.
+          ...behavior.config,
           speciesId: this.pack.meta.id,
           walkSpeed: this.pack.speeds.walk ?? 40,
           climbSpeed: this.pack.speeds.climb ?? 30,

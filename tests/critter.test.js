@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Critter, State, Locomotion, weightedChoice } from '../core/critter.js';
+import { Critter, State, Locomotion, weightedChoice, behaviorOverrides } from '../core/critter.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 
 /** RNG déterministe pour des tests reproductibles (retourne toujours la même
@@ -1170,4 +1170,88 @@ test("atterrir dans une zone d'eau initialise correctement SWIM (ne retombe pas 
   // par le correctif : stateTimer/_roamTimer bien initialisés à l'entrée).
   const nextSnapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
   assert.equal(nextSnapshot.state, State.SWIM);
+});
+
+test('behaviorOverrides garde les nombres et intervalles connus, écarte le reste', () => {
+  const { config, ignored } = behaviorOverrides({
+    sleepWeight: 15,
+    idleDuration: [0.5, 1.5],
+    inconnue: 3, // clé absente de DEFAULT_CONFIG
+    washWeight: 'beaucoup', // mauvais type
+    walkDuration: [1, 2, 3], // intervalle mal formé
+    random: 0.5, // fonction côté cœur : jamais surchargeable depuis un JSON
+    supportedSurfaces: ['air'], // Set côté cœur : idem
+  });
+
+  assert.deepEqual(config, { sleepWeight: 15, idleDuration: [0.5, 1.5] });
+  assert.deepEqual(
+    ignored.sort(),
+    ['inconnue', 'random', 'supportedSurfaces', 'walkDuration', 'washWeight'].sort(),
+  );
+});
+
+test('behaviorOverrides sans section behavior renvoie une config vide', () => {
+  assert.deepEqual(behaviorOverrides(undefined), { config: {}, ignored: [] });
+});
+
+test("une espèce aquatique pure enchaîne les nages au lieu de retomber en fin de session", () => {
+  const critter = new Critter(
+    { random: fixedRandom(0.5), supportedSurfaces: new Set([Locomotion.WATER]) },
+    { x: 500, y: 200 },
+  );
+  critter.state = State.SWIM;
+  critter.stateTimer = 0.01; // expire dès le premier tick
+
+  const snapshot = critter.tick(1 / 60, {}, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.SWIM);
+  assert.ok(critter.stateTimer > 0, 'une nouvelle session doit avoir démarré');
+});
+
+test("une espèce aquatique pure qui touche le sol repart nager au lieu de s'y poser", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.5), supportedSurfaces: new Set([Locomotion.WATER]) },
+    { x: 500, y: 100 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 300; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state !== State.FALL) break;
+  }
+
+  assert.equal(snapshot.state, State.SWIM);
+});
+
+test("une espèce purement aérienne enchaîne les vols et ne se pose pas", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.5), supportedSurfaces: new Set([Locomotion.AIR]) },
+    { x: 500, y: 100 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 300; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (snapshot.state !== State.FALL) break;
+  }
+  assert.equal(snapshot.state, State.FLY, 'touche le sol puis repart en vol');
+
+  critter.stateTimer = 0.01;
+  snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(snapshot.state, State.FLY, 'fin de session : nouvelle session, pas de chute');
+});
+
+test('une espèce sol + eau retombe normalement en fin de nage (non-régression)', () => {
+  const critter = new Critter(
+    { random: fixedRandom(0.5), supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WATER]) },
+    { x: 500, y: 200 },
+  );
+  critter.state = State.SWIM;
+  critter.stateTimer = 0.01;
+
+  const snapshot = critter.tick(1 / 60, {}, { worldBounds: monitor });
+
+  assert.equal(snapshot.state, State.FALL);
 });

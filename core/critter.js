@@ -134,6 +134,31 @@ export function weightedChoice(candidates, random) {
   return candidates[candidates.length - 1].value; // filet flottant
 }
 
+/**
+ * Filtre la section `behavior` d'un pack.json avant de l'appliquer : seules
+ * les clés existantes de DEFAULT_CONFIG de type nombre ou intervalle
+ * [min, max] passent. random (fonction), supportedSurfaces (Set) et les
+ * clés inconnues sont écartées : un JSON ne doit pas pouvoir casser le cœur.
+ * @param {object} [raw]
+ * @returns {{config: object, ignored: string[]}}
+ */
+export function behaviorOverrides(raw = {}) {
+  const config = {};
+  const ignored = [];
+  for (const [key, value] of Object.entries(raw)) {
+    const def = DEFAULT_CONFIG[key];
+    const isNumber = typeof def === 'number' && typeof value === 'number' && Number.isFinite(value);
+    const isRange =
+      Array.isArray(def) &&
+      Array.isArray(value) &&
+      value.length === 2 &&
+      value.every((v) => typeof v === 'number' && Number.isFinite(v));
+    if (isNumber || isRange) config[key] = value;
+    else ignored.push(key);
+  }
+  return { config, ignored };
+}
+
 export class Critter {
   /**
    * @param {Partial<typeof DEFAULT_CONFIG>} config
@@ -354,13 +379,13 @@ export class Critter {
       this.y = landing.y;
       this.vy = 0;
       this.currentSurface = landing;
+      const groundless = this._groundlessRoamState();
       if (landing.type === 'water' && this.supports(Locomotion.WATER)) {
-        // Pas _enterState() : SWIM (comme FLY) a besoin de stateTimer et
-        // _roamTimer initialisés dès la première frame, sinon _tickRoam
-        // verrait stateTimer déjà <= 0 et repartirait aussitôt en FALL.
-        this.state = State.SWIM;
-        this.stateTimer = randRange(this.config.swimDuration, this.config.random);
-        this._roamTimer = 0;
+        this._startRoam(State.SWIM);
+      } else if (groundless) {
+        // Espèce sans sol (poisson, créature purement aérienne) : ne se pose
+        // jamais, repart directement dans son roaming (spawn, fin de glisser).
+        this._startRoam(groundless);
       } else {
         this._enterState(State.IDLE);
       }
@@ -534,14 +559,10 @@ export class Critter {
         this.stateTimer = randRange(this.config.fleeDuration, this.config.random);
         return;
       case 'fly':
-        this.state = State.FLY;
-        this.stateTimer = randRange(this.config.flyDuration, this.config.random);
-        this._roamTimer = 0; // force un premier ciblage dès le premier tick
+        this._startRoam(State.FLY);
         return;
       case 'swim':
-        this.state = State.SWIM;
-        this.stateTimer = randRange(this.config.swimDuration, this.config.random);
-        this._roamTimer = 0;
+        this._startRoam(State.SWIM);
         return;
       default:
         this._startWalkOnCurrentSurface(surfaces);
@@ -882,9 +903,31 @@ export class Critter {
    * trajectoire directe vers la cible (nage) plutôt que d'y aller tout
    * droit (vol).
    */
+  /** Locomotion de roaming d'une espèce qui ne supporte pas le sol :
+   * SWIM (eau) en priorité, sinon FLY (air), sinon null. */
+  _groundlessRoamState() {
+    if (this.supports(Locomotion.GROUND)) return null;
+    if (this.supports(Locomotion.WATER)) return State.SWIM;
+    if (this.supports(Locomotion.AIR)) return State.FLY;
+    return null;
+  }
+
+  /** Démarre une session FLY/SWIM. Pas _enterState() : stateTimer et
+   * _roamTimer doivent être posés dès la première frame, sinon _tickRoam
+   * verrait stateTimer déjà <= 0 et terminerait aussitôt la session. */
+  _startRoam(state) {
+    this.state = state;
+    const duration = state === State.SWIM ? this.config.swimDuration : this.config.flyDuration;
+    this.stateTimer = randRange(duration, this.config.random);
+    this._roamTimer = 0; // force un premier ciblage dès le premier tick
+  }
+
   _tickRoam(dt, options, speed, yRangeFactors, wavy = false) {
     if (this.stateTimer <= 0) {
-      this._enterState(State.FALL);
+      // Une espèce sans sol enchaîne une nouvelle session plutôt que de
+      // retomber : elle n'aurait nulle part où se poser.
+      if (this._groundlessRoamState() === this.state) this._startRoam(this.state);
+      else this._enterState(State.FALL);
       return;
     }
 
