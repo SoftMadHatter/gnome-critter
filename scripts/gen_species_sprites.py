@@ -117,7 +117,7 @@ def eye(d, x, y, kind):
 def pose(**kw):
     base = dict(
         bob=0, tail=0, phase=None, stride=3, lift=2, eyes="open", mark=None,
-        squash=0, rot=0, ears="up", kind=None, wing="folded", fin=0, mouth=False,
+        squash=0, rot=0, ears="up", kind=None, wing="folded", fin=0, mouth=False, pivot=None,
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -360,6 +360,7 @@ def fish_sheets():
     s["flee"] = [pose(tail=t * 2 // 1 if abs(t) < 2 else t, bob=0, eyes="wide", fin=1, mark="!" if i == 0 else None)
                  for i, t in enumerate([-1, 1, -1, 1, -1, 1])]
     s["greet"] = [pose(tail=t, eyes="happy", mark=m) for t, m in [(-1, "bubble"), (1, None), (-1, None), (1, "bubble")]]
+    s["swimFast"] = [pose(tail=t, fin=f) for t, f in [(-2, 0), (0, 1), (2, 0), (0, 1), (-2, 0), (0, 1)]]
     s["fall"] = [pose(tail=t, rot=r, eyes="wide") for t, r in [(-1, -14), (1, 14)]]
     return s
 
@@ -426,6 +427,7 @@ def bird_sheets():
                 [(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")]]
     s["flee"] = [pose(bob=b, kind="flee", wing=w, tail=2, eyes="wide", mark="!" if i == 0 else None)
                  for i, (b, w) in enumerate([(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")])]
+    s["dive"] = [pose(kind="fly", wing="folded", rot=-55, pivot=16, eyes="wide", tail=b) for b in (1, 2)]
     s["sleep"] = [pose(kind="sleep", bob=1, eyes="closed"), pose(kind="sleep", bob=1, eyes="closed", mark="z")]
     s["wash"] = [pose(kind="preen", bob=b, eyes="closed") for b in (0, 1, 0, 1)]
     s["react_startled"] = [pose(eyes="wide", bob=-4, kind="fly", wing=w, mark=m) for w, m in (("up", "!"), ("mid", None))]
@@ -446,6 +448,7 @@ SPECIES = {
             "sleep": ("sleep", 0.8), "wash": ("wash", 0.25), "climb": ("climb", 0.12), "ceiling": ("ceiling", 0.1),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekWall": ("walk", 0.09),
             "seekFocus": ("walk", 0.08), "seekNap": ("walk", 0.1), "chase": ("chase", 0.07), "flee": ("flee", 0.06),
+            "run": ("chase", 0.06),
         },
     ),
     "bug": dict(
@@ -456,7 +459,7 @@ SPECIES = {
             "idle": ("idle", 0.4), "walk": ("walk", 0.07), "fall": ("fall", 0.1), "drag": ("fall", 0.1),
             "climb": ("climb", 0.08), "ceiling": ("ceiling", 0.07), "follow": ("walk", 0.06),
             "greet": ("greet", 0.15), "seekWall": ("walk", 0.06), "seekFocus": ("walk", 0.06),
-            "chase": ("walk", 0.05), "flee": ("flee", 0.05),
+            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04),
         },
     ),
     "fish": dict(
@@ -464,7 +467,7 @@ SPECIES = {
         draw=draw_fish, flip={},
         states={
             "idle": ("idle", 0.4), "swim": ("swim", 0.12), "fall": ("fall", 0.12), "drag": ("fall", 0.12),
-            "greet": ("greet", 0.2), "flee": ("flee", 0.07),
+            "greet": ("greet", 0.2), "flee": ("flee", 0.07), "swimFast": ("swimFast", 0.07),
         },
     ),
     "bird": dict(
@@ -475,6 +478,7 @@ SPECIES = {
             "fly": ("fly", 0.07), "sleep": ("sleep", 0.8), "wash": ("wash", 0.22),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekFocus": ("walk", 0.09),
             "seekNap": ("walk", 0.1), "chase": ("walk", 0.06), "flee": ("flee", 0.06),
+            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1),
         },
     ),
 }
@@ -490,7 +494,7 @@ def render(spec, p):
     img, d = new_canvas()
     spec["draw"](img, d, p)
     if p.rot:
-        img = img.rotate(p.rot, resample=Image.NEAREST, center=(G / 2, G - 2))
+        img = img.rotate(p.rot, resample=Image.NEAREST, center=(G / 2, G - 2 if p.pivot is None else p.pivot))
     outline(img, spec["out"])
     return img
 

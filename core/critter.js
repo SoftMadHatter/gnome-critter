@@ -21,6 +21,10 @@ export const State = Object.freeze({
   CEILING: 'ceiling', // marche au plafond, tête en bas
   SWIM: 'swim',
   FLY: 'fly',
+  RUN: 'run', // marche rapide (même mécanique que WALK)
+  SWIM_FAST: 'swimFast', // nage rapide (mêmes sessions que SWIM)
+  FLY_FAST: 'flyFast', // vol rapide (mêmes sessions que FLY, se pose aussi)
+  DIVE: 'dive', // piqué en fin de vol vers la surface visée
   SLEEP: 'sleep',
   WASH: 'wash', // idle passif minuté, se lave sur place (même mécanisme que SLEEP)
   FOLLOW: 'follow', // marche vers le curseur, cible recalculée en continu
@@ -53,6 +57,9 @@ const INTERACTION_REACTIONS = {
   meetCritter: 'greeted', // posé sur LA CIBLE d'un GREET (voir _tickGreet) : arrive entre deux de ses propres ticks, donc via interact()/_pendingEvent comme les autres événements externes -- contrairement à l'initiateur, qui pose this.lastEvent directement puisque ça se passe DANS son propre tick.
 };
 
+/** Gestes qui réveillent un animal endormi. */
+const WAKING_GESTURES = new Set(['click', 'doubleClick', 'rightClick']);
+
 const DEFAULT_CONFIG = {
   speciesId: 'unknown',
   walkSpeed: 40, // px/s
@@ -69,7 +76,7 @@ const DEFAULT_CONFIG = {
   // le ressenti des anciennes probabilités indépendantes (5%/6%/12%/reste).
   walkWeight: 77,
   sleepWeight: 5,
-  sleepDuration: [4, 10],
+  sleepDuration: [20, 90], // secondes ; chaque espèce règle la sienne (le chat va jusqu'à 15 minutes)
   washWeight: 6,
   washDuration: [3, 6],
   followWeight: 12,
@@ -95,6 +102,19 @@ const DEFAULT_CONFIG = {
   napSeekMaxDistance: 400, // recherche locale, plus courte que les 600 des autres comportements ("proche" au sens du roadmap)
   napSeekDuration: [3, 6],
   napApproachDistance: 6,
+  runWeight: 10,
+  runSpeedFactor: 2.2, // multiplicateur de walkSpeed
+  swimFastWeight: 4,
+  swimFastFactor: 2.2,
+  flyFastWeight: 4,
+  flyFastFactor: 2.2,
+  fastChance: 0.2, // espèce sans sol : probabilité qu'une nouvelle session enchaînée soit rapide
+  diveChance: 0.25, // probabilité PAR SECONDE de piquer quand la cible est assez basse et l'angle raide
+  diveMinHeight: 120, // dénivelé minimal (px) vers la cible pour piquer
+  diveSpeedFactor: 3.5,
+  flyCruiseChance: 0.6, // probabilité de monter d'abord vers une altitude de croisière au décollage
+  swimRetargetDuration: [5, 10], // cadence de reciblage de la nage (le vol libre garde roamRetargetDuration)
+  swimTurnMax: 60, // degrés : virage maximal à chaque reciblage de nage
   flyWeight: 8,
   flyDuration: [4, 8],
   swimWeight: 8,
@@ -258,6 +278,10 @@ export class Critter {
   interact(kind) {
     const event = INTERACTION_REACTIONS[kind];
     if (event) this._pendingEvent = event;
+    // Seul un clic réveille : ni le survol, ni une fenêtre qui s'ouvre. Une
+    // surface qui bouge ou disparaît sous l'animal le réveille par la chute
+    // (cf. _tickWaiting/_resyncCurrentSurface).
+    if (this.state === State.SLEEP && WAKING_GESTURES.has(kind)) this._enterState(State.IDLE);
   }
 
   /**
@@ -301,6 +325,9 @@ export class Critter {
       case State.WALK:
         this._tickWalk(dt);
         break;
+      case State.RUN:
+        this._tickWalk(dt, this.config.walkSpeed * this.config.runSpeedFactor);
+        break;
       case State.CLIMB:
         this._tickClimb(dt, surfaces);
         break;
@@ -308,9 +335,12 @@ export class Critter {
         this._tickCeiling(dt);
         break;
       case State.SWIM:
+      case State.SWIM_FAST:
         this._tickSwim(dt, options);
         break;
       case State.FLY:
+      case State.FLY_FAST:
+      case State.DIVE:
         this._tickFly(dt, surfaces, options);
         break;
       case State.FOLLOW:
@@ -491,11 +521,16 @@ export class Critter {
 
     // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
     // pour un décollage, contrairement aux comportements ci-dessus).
+    if (this.supports(Locomotion.GROUND)) {
+      candidates.push({ value: 'run', weight: this.config.runWeight });
+    }
     if (this.supports(Locomotion.AIR)) {
       candidates.push({ value: 'fly', weight: this.config.flyWeight });
+      candidates.push({ value: 'flyFast', weight: this.config.flyFastWeight });
     }
     if (this.supports(Locomotion.WATER)) {
       candidates.push({ value: 'swim', weight: this.config.swimWeight });
+      candidates.push({ value: 'swimFast', weight: this.config.swimFastWeight });
     }
 
     // Invitation posée par proposeChase() (voir _tickGreet/_tickChase) :
@@ -579,6 +614,15 @@ export class Critter {
         return;
       case 'swim':
         this._startRoam(State.SWIM);
+        return;
+      case 'flyFast':
+        this._startRoam(State.FLY_FAST);
+        return;
+      case 'swimFast':
+        this._startRoam(State.SWIM_FAST);
+        return;
+      case 'run':
+        this._startWalkOnCurrentSurface(State.RUN);
         return;
       default:
         this._startWalkOnCurrentSurface();
@@ -806,7 +850,7 @@ export class Critter {
     }
   }
 
-  _startWalkOnCurrentSurface() {
+  _startWalkOnCurrentSurface(state = State.WALK) {
     const surface = this.currentSurface;
     if (!surface) {
       this._enterState(State.IDLE);
@@ -821,11 +865,11 @@ export class Critter {
     }
     this.walkTargetX = randRange([min, max], this.config.random);
     this.facing = sign(this.walkTargetX - this.x) || this.facing;
-    this.state = State.WALK;
+    this.state = state;
     this.stateTimer = randRange(this.config.walkDuration, this.config.random);
   }
 
-  _tickWalk(dt) {
+  _tickWalk(dt, speed = this.config.walkSpeed) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -838,7 +882,7 @@ export class Critter {
     }
 
     this.facing = dir;
-    this.x += dir * this.config.walkSpeed * dt;
+    this.x += dir * speed * dt;
 
     if (this.currentSurface) {
       this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
@@ -928,15 +972,32 @@ export class Critter {
     return null;
   }
 
+  /** État de base d'une variante : SWIM_FAST -> SWIM ; FLY_FAST/DIVE -> FLY. */
+  _roamBase(state) {
+    if (state === State.SWIM_FAST) return State.SWIM;
+    if (state === State.FLY_FAST || state === State.DIVE) return State.FLY;
+    return state;
+  }
+
+  /** Session enchaînée d'une espèce sans sol : rapide avec `fastChance`. */
+  _roamVariant(base) {
+    const fast = this.config.random() < this.config.fastChance;
+    if (!fast) return base;
+    return base === State.SWIM ? State.SWIM_FAST : State.FLY_FAST;
+  }
+
   /** Démarre une session FLY/SWIM. Pas _enterState() : stateTimer et
    * _roamTimer doivent être posés dès la première frame, sinon _tickRoam
    * verrait stateTimer déjà <= 0 et terminerait aussitôt la session. */
   _startRoam(state) {
+    if (this._roamBase(this.state) !== State.SWIM) this._roamHasTarget = false;
     this.state = state;
-    const duration = state === State.SWIM ? this.config.swimDuration : this.config.flyDuration;
+    const swimming = this._roamBase(state) === State.SWIM;
+    const duration = swimming ? this.config.swimDuration : this.config.flyDuration;
     this.stateTimer = randRange(duration, this.config.random);
     this._roamTimer = 0; // force un premier ciblage dès le premier tick
     this._flyTarget = null; // cible d'atterrissage, choisie au premier tick de vol
+    this._flyWaypoint = null;
     // En vol on n'est plus attaché à la surface de départ : si sa fenêtre se
     // ferme, tick() ne doit pas nous faire tomber (cf. _resyncCurrentSurface).
     this._flyOriginId = this.currentSurface?.surfaceId;
@@ -947,20 +1008,45 @@ export class Critter {
     if (this.stateTimer <= 0) {
       // Une espèce sans sol enchaîne une nouvelle session plutôt que de
       // retomber : elle n'aurait nulle part où se poser.
-      if (this._groundlessRoamState() === this.state) this._startRoam(this.state);
+      const base = this._roamBase(this.state);
+      if (this._groundlessRoamState() === base) this._startRoam(this._roamVariant(base));
       else this._enterState(State.FALL);
       return;
     }
 
-    if (this._roamTimer === undefined || this._roamTimer <= 0) {
+    const arrived =
+      this.walkTargetX != null &&
+      this._flyTargetY != null &&
+      Math.hypot(this.walkTargetX - this.x, this._flyTargetY - this.y) < 24;
+    if (this._roamTimer === undefined || this._roamTimer <= 0 || (arrived && this._roamHasTarget)) {
       const bounds = options.worldBounds ?? { x: 0, y: 0, width: 1920, height: 1080 };
       const [yMinFactor, yMaxFactor] = yRangeFactors;
-      this.walkTargetX = randRange([bounds.x, bounds.x + bounds.width], this.config.random);
-      this._flyTargetY = randRange(
-        [bounds.y + bounds.height * yMinFactor, bounds.y + bounds.height * yMaxFactor],
+      const yMin = bounds.y + bounds.height * yMinFactor;
+      const yMax = bounds.y + bounds.height * yMaxFactor;
+      if (wavy && this._roamHasTarget) {
+        // Nage : nouveau cap proche du précédent (virage limité), pas un
+        // point tiré n'importe où, pour éviter les changements de direction
+        // brusques et fréquents.
+        const heading = Math.atan2(this._flyTargetY - this.y, this.walkTargetX - this.x);
+        const turn = (this.config.swimTurnMax * Math.PI) / 180;
+        const angle = heading + randRange([-turn, turn], this.config.random);
+        const dist = randRange([0.3, 0.7], this.config.random) * bounds.width;
+        let cos = Math.cos(angle);
+        let sin = Math.sin(angle);
+        // Trop près d'un bord : on repart dans l'autre sens sur cet axe.
+        if (this.x + cos * dist < bounds.x || this.x + cos * dist > bounds.x + bounds.width) cos = -cos;
+        if (this.y + sin * dist < yMin || this.y + sin * dist > yMax) sin = -sin;
+        this.walkTargetX = clamp(this.x + cos * dist, bounds.x, bounds.x + bounds.width);
+        this._flyTargetY = clamp(this.y + sin * dist, yMin, yMax);
+      } else {
+        this.walkTargetX = randRange([bounds.x, bounds.x + bounds.width], this.config.random);
+        this._flyTargetY = randRange([yMin, yMax], this.config.random);
+      }
+      this._roamHasTarget = true;
+      this._roamTimer = randRange(
+        wavy ? this.config.swimRetargetDuration : this.config.roamRetargetDuration,
         this.config.random,
       );
-      this._roamTimer = randRange(this.config.roamRetargetDuration, this.config.random);
     }
     this._roamTimer -= dt;
 
@@ -1000,8 +1086,15 @@ export class Critter {
    * poser : elle garde le roaming libre de _tickRoam.
    */
   _tickFly(dt, surfaces, options) {
+    const factor =
+      this.state === State.DIVE
+        ? this.config.diveSpeedFactor
+        : this.state === State.FLY_FAST
+          ? this.config.flyFastFactor
+          : 1;
+
     if (this._groundlessRoamState() === State.FLY) {
-      this._tickRoam(dt, options, this.config.flySpeed, [0, 0.5], false);
+      this._tickRoam(dt, options, this.config.flySpeed * factor, [0, 0.5], false);
       return;
     }
 
@@ -1011,16 +1104,42 @@ export class Critter {
       const fresh = findSegmentById(surfaces.segments ?? [], seg.surfaceId, seg.type);
       if (!fresh || fresh.y !== seg.y || fresh.x1 !== seg.x1 || fresh.x2 !== seg.x2) target = null;
     }
-    if (target && this.config.random() < this.config.flyRetargetChance * dt) target = null;
-    if (!target) target = this._flyTarget = this._pickFlyTarget(surfaces, options);
+    if (target && this.state !== State.DIVE && this.config.random() < this.config.flyRetargetChance * dt) {
+      target = null;
+    }
+    if (!target) {
+      target = this._flyTarget = this._pickFlyTarget(surfaces, options);
+      this._flyWaypoint = this._pickCruise(target, options);
+      if (this.state === State.DIVE) this.state = State.FLY; // cible perdue : on reprend un vol normal
+    }
 
-    const toX = target.x - this.x;
-    const toY = target.y - this.y;
+    // Piqué : seulement vers une cible nettement plus basse et raide, et
+    // jamais pendant la montée vers l'altitude de croisière.
+    if (this.state !== State.DIVE && !this._flyWaypoint && target.segment) {
+      const dy = target.y - this.y;
+      const dx = Math.abs(target.x - this.x);
+      if (
+        dy >= this.config.diveMinHeight &&
+        dx <= 1.5 * dy &&
+        this.config.random() < this.config.diveChance * dt
+      ) {
+        this.state = State.DIVE;
+      }
+    }
+
+    const goal = this._flyWaypoint ?? target;
+    const speed = this.config.flySpeed * (this.state === State.DIVE ? this.config.diveSpeedFactor : factor);
+    const toX = goal.x - this.x;
+    const toY = goal.y - this.y;
     const distance = Math.hypot(toX, toY);
-    const step = this.config.flySpeed * dt;
+    const step = speed * dt;
     if (distance <= step + 1) {
-      this.x = target.x;
-      this.y = target.y;
+      this.x = goal.x;
+      this.y = goal.y;
+      if (this._flyWaypoint) {
+        this._flyWaypoint = null;
+        return;
+      }
       this._flyTarget = null;
       if (target.segment) {
         this.currentSurface = target.segment;
@@ -1035,6 +1154,24 @@ export class Critter {
     this.facing = sign(toX) || this.facing;
     this.x += (toX / distance) * step;
     this.y += (toY / distance) * step;
+  }
+
+  /** Point de croisière optionnel : haut dans l'écran et au-dessus de la
+   * cible, pour que la descente qui suit puisse être un piqué. */
+  _pickCruise(target, options) {
+    if (!target.segment || this.config.random() >= this.config.flyCruiseChance) return null;
+    const bounds = options.worldBounds ?? { x: 0, y: 0, width: 1920, height: 1080 };
+    const top = bounds.y + bounds.height * 0.08;
+    const bottom = Math.min(target.y - this.config.diveMinHeight, bounds.y + bounds.height * 0.5);
+    if (bottom <= top) return null;
+    const y = randRange([top, bottom], this.config.random);
+    const spread = (target.y - y) * 0.5;
+    const x = clamp(
+      target.x + randRange([-spread, spread], this.config.random),
+      bounds.x,
+      bounds.x + bounds.width,
+    );
+    return { x, y };
   }
 
   /** Surface d'atterrissage (sol ou rebord, autre que celle qu'on quitte si
@@ -1064,7 +1201,8 @@ export class Critter {
   }
 
   _tickSwim(dt, options) {
-    this._tickRoam(dt, options, this.config.swimSpeed, [0, 1], true); // tout l'écran, ondulant
+    const factor = this.state === State.SWIM_FAST ? this.config.swimFastFactor : 1;
+    this._tickRoam(dt, options, this.config.swimSpeed * factor, [0, 1], true); // tout l'écran, ondulant
   }
 
   _enterState(state) {

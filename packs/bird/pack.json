@@ -9,7 +9,7 @@
   ],
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "walk": 30, "fly": 110 },
-  "behavior": { "flyWeight": 35, "flyDuration": [3, 7], "napSeekMaxDistance": 800 },
+  "behavior": { "flyWeight": 35, "flyFastWeight": 12, "sleepDuration": [30, 180], "flyDuration": [3, 7], "napSeekMaxDistance": 800 },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },
@@ -23,7 +23,10 @@
     "seekFocus": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.09, "loop": true },
     "seekNap": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },
     "chase": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.06, "loop": true },
-    "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.06, "loop": true }
+    "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.06, "loop": true },
+    "run": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.05, "loop": true },
+    "flyFast": { "file": "sprites/fly.png", "frames": 6, "frameDuration": 0.045, "loop": true },
+    "dive": { "file": "sprites/dive.png", "frames": 2, "frameDuration": 0.1, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },

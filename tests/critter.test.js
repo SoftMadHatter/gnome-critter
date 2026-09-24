@@ -416,6 +416,7 @@ test('anti-répétition : la même activité spéciale devient moins probable ju
     {
       random: fixedRandom(0.5),
       walkWeight: 0,
+      runWeight: 0,
       sleepWeight: 5,
       washWeight: 10,
       followWeight: 0,
@@ -447,6 +448,7 @@ test('FOLLOW devient moins probable quand le curseur est loin (suivi sensible à
   const config = {
     random: fixedRandom(0.3),
     walkWeight: 2,
+    runWeight: 0,
     sleepWeight: 0,
     washWeight: 0,
     followWeight: 10,
@@ -566,6 +568,7 @@ test('GREET devient moins probable quand le critter le plus proche est loin (sen
   const config = {
     random: fixedRandom(0.3),
     walkWeight: 2,
+    runWeight: 0,
     sleepWeight: 0,
     washWeight: 0,
     followWeight: 0,
@@ -1320,4 +1323,212 @@ test("fermer la fenêtre de départ pendant un vol ne fait pas tomber l'animal",
   critter.tick(1 / 60, without, { worldBounds: monitor });
 
   assert.equal(critter.state, State.FLY);
+});
+
+// --- Allures rapides, piqué et nage moins nerveuse ---------------------------
+
+const groundSeg = computeSurfaces({ monitors: [monitor], windows: [] }).segments.find((s) => s.type === 'ground');
+
+function flyingCritter(config, x, y) {
+  const critter = new Critter(
+    { random: fixedRandom(0.9), flyCruiseChance: 0, flyRetargetChance: 0, ...config },
+    { x, y },
+  );
+  critter.state = State.FLY;
+  critter._flyTarget = null;
+  return critter;
+}
+
+test('RUN avance plus vite que WALK', () => {
+  const step = (state) => {
+    const c = new Critter({ random: fixedRandom(0.9), walkSpeed: 40 }, { x: 100, y: monitor.height });
+    c.currentSurface = groundSeg;
+    c.state = state;
+    c.stateTimer = 10;
+    c.walkTargetX = 900;
+    c.tick(0.5, computeSurfaces({ monitors: [monitor], windows: [] }), { worldBounds: monitor });
+    return c.x - 100;
+  };
+  assert.ok(step(State.RUN) > step(State.WALK) * 2);
+});
+
+test('runWeight écrasant déclenche RUN, poids 0 ne le déclenche jamais', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const make = (runWeight) => {
+    const c = new Critter(
+      { random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, runWeight },
+      { x: 100, y: monitor.height },
+    );
+    c.currentSurface = groundSeg;
+    c.state = State.IDLE;
+    c.stateTimer = 0;
+    return c.tick(1 / 60, surfaces, { worldBounds: monitor }).state;
+  };
+  assert.equal(make(100), State.RUN);
+  assert.notEqual(make(0), State.RUN);
+});
+
+test('SWIM_FAST et FLY_FAST vont plus vite que SWIM et FLY', () => {
+  const swimDist = (state) => {
+    const c = new Critter({ random: fixedRandom(0.5), swimSpeed: 50, swimWaveAmplitude: 0 }, { x: 100, y: 250 });
+    c.state = state;
+    c.stateTimer = 10;
+    c.walkTargetX = 900;
+    c._flyTargetY = 250;
+    c._roamTimer = 1000;
+    c._roamHasTarget = true;
+    c.tick(0.5, {}, { worldBounds: monitor });
+    return c.x - 100;
+  };
+  assert.ok(swimDist(State.SWIM_FAST) > swimDist(State.SWIM) * 2);
+
+  const flyDist = (state) => {
+    const c = flyingCritter({ flySpeed: 50 }, 100, 100);
+    c.state = state;
+    c._flyTarget = { segment: groundSeg, x: 900, y: monitor.height };
+    const before = Math.hypot(c.x, c.y);
+    c.tick(0.5, { segments: [groundSeg], walls: [] }, { worldBounds: monitor });
+    return Math.hypot(c.x, c.y) - before;
+  };
+  assert.ok(flyDist(State.FLY_FAST) > flyDist(State.FLY) * 2);
+});
+
+test('FLY_FAST se pose sur une surface, sans FALL', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = flyingCritter({ flySpeed: 100 }, 500, 100);
+  c.state = State.FLY_FAST;
+  const seen = new Set();
+  for (let i = 0; i < 600 && c.state !== State.IDLE; i++) {
+    seen.add(c.tick(1 / 60, surfaces, { worldBounds: monitor }).state);
+  }
+  assert.equal(c.state, State.IDLE);
+  assert.ok(!seen.has(State.FALL));
+});
+
+test('DIVE : démarre vers une cible basse et raide, atterrit sans FALL', () => {
+  const surfaces = { segments: [groundSeg], walls: [] };
+  const c = flyingCritter({ random: () => 0, diveChance: 1, flySpeed: 100 }, 500, 50);
+  c._flyTarget = { segment: groundSeg, x: 520, y: monitor.height };
+  const seen = new Set();
+  for (let i = 0; i < 600 && c.state !== State.IDLE; i++) {
+    seen.add(c.tick(1 / 60, surfaces, { worldBounds: monitor }).state);
+  }
+  assert.ok(seen.has(State.DIVE));
+  assert.ok(!seen.has(State.FALL));
+  assert.equal(c.state, State.IDLE);
+  assert.equal(c.y, monitor.height);
+  assert.equal(c.lastEvent, 'landed');
+});
+
+test("DIVE : pas de piqué si la cible est trop proche en hauteur ou l'angle trop plat", () => {
+  const surfaces = { segments: [groundSeg], walls: [] };
+  const near = flyingCritter({ random: () => 0, diveChance: 1 }, 500, monitor.height - 50);
+  near._flyTarget = { segment: groundSeg, x: 510, y: monitor.height };
+  near.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(near.state, State.FLY);
+
+  const flat = flyingCritter({ random: () => 0, diveChance: 1 }, 50, 300);
+  flat._flyTarget = { segment: groundSeg, x: 950, y: monitor.height };
+  flat.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(flat.state, State.FLY);
+});
+
+test('DIVE : repasse en FLY, sans tomber, si la surface visée disparaît', () => {
+  const win = { id: 'w1', x: 200, y: 300, width: 300, height: 100 };
+  const withWin = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const without = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = flyingCritter({ random: () => 0, diveChance: 0 }, 300, 50);
+  c._flyTarget = { segment: withWin.segments.find((s) => s.type === 'shelf'), x: 300, y: 300 };
+  c.state = State.DIVE;
+  c.tick(1 / 60, without, { worldBounds: monitor });
+  assert.equal(c.state, State.FLY);
+});
+
+test('croisière : monte d\'abord haut au-dessus de la cible avant de la rejoindre', () => {
+  const surfaces = { segments: [groundSeg], walls: [] };
+  const c = flyingCritter({ random: fixedRandom(0.5), flyCruiseChance: 1, diveChance: 0 }, 500, monitor.height);
+  c.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.ok(c._flyWaypoint, 'un point de croisière est posé');
+  assert.ok(c._flyWaypoint.y <= monitor.height / 2);
+  assert.ok(c._flyWaypoint.y <= monitor.height - c.config.diveMinHeight);
+});
+
+test('nage : chaque reciblage tourne de 60 degrés au plus et reste dans les bornes', () => {
+  const world = { x: 0, y: 0, width: 1000, height: 2000 };
+  for (let i = 0; i < 300; i++) {
+    const c = new Critter({ swimSpeed: 0.001, swimWaveAmplitude: 0 }, { x: 100, y: 1000 });
+    c.state = State.SWIM;
+    c.stateTimer = 10;
+    c.walkTargetX = 600;
+    c._flyTargetY = 1000;
+    c._roamHasTarget = true;
+    c._roamTimer = 0;
+    c.tick(1 / 60, {}, { worldBounds: world });
+
+    const angle = Math.atan2(c._flyTargetY - 1000, c.walkTargetX - 100) * (180 / Math.PI);
+    assert.ok(Math.abs(angle) <= 60.5, `virage de ${angle} degrés`);
+    assert.ok(c.walkTargetX >= 0 && c.walkTargetX <= 1000 && c._flyTargetY >= 0 && c._flyTargetY <= 2000);
+    assert.ok(c._roamTimer >= 5 - 1 / 60 && c._roamTimer <= 10, `délai de reciblage ${c._roamTimer}`);
+  }
+});
+
+// --- Réveil ----------------------------------------------------------------
+
+function sleepingCritter() {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter({ random: fixedRandom(0.9) }, { x: 100, y: monitor.height });
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.SLEEP;
+  c.stateTimer = 500;
+  return { c, surfaces };
+}
+
+test('un clic (simple, double ou droit) réveille un animal endormi', () => {
+  for (const gesture of ['click', 'doubleClick', 'rightClick']) {
+    const { c } = sleepingCritter();
+    c.interact(gesture);
+    assert.equal(c.state, State.IDLE, gesture);
+  }
+  const { c } = sleepingCritter();
+  c.pet();
+  assert.equal(c.state, State.IDLE);
+});
+
+test("le survol et l'ouverture d'une fenêtre ne réveillent pas", () => {
+  for (const gesture of ['hover', 'windowOpened', 'meetCritter']) {
+    const { c, surfaces } = sleepingCritter();
+    c.interact(gesture);
+    c.tick(1 / 60, surfaces, { worldBounds: monitor });
+    assert.equal(c.state, State.SLEEP, gesture);
+  }
+});
+
+test('une fenêtre qui bouge ailleurs ne réveille pas, mais sa disparition sous les pieds oui', () => {
+  const win = { id: 'w1', x: 200, y: 200, width: 300, height: 100 };
+  const other = { id: 'w2', x: 700, y: 300, width: 100, height: 50 };
+  const before = computeSurfaces({ monitors: [monitor], windows: [win, other] });
+  const c = new Critter({ random: fixedRandom(0.9) }, { x: 300, y: 200 });
+  c.currentSurface = before.segments.find((s) => s.type === 'shelf' && s.surfaceId === 'w1');
+  c.state = State.SLEEP;
+  c.stateTimer = 500;
+
+  const otherMoved = computeSurfaces({ monitors: [monitor], windows: [win, { ...other, x: 750 }] });
+  c.tick(1 / 60, otherMoved, { worldBounds: monitor });
+  assert.equal(c.state, State.SLEEP, "une autre fenêtre bouge : l'animal continue de dormir");
+
+  const closed = computeSurfaces({ monitors: [monitor], windows: [other] });
+  c.tick(1 / 60, closed, { worldBounds: monitor });
+  assert.equal(c.state, State.FALL, 'son rebord disparaît : il tombe');
+});
+
+test('une fenêtre déplacée sous les pieds réveille (chute)', () => {
+  const win = { id: 'w1', x: 200, y: 200, width: 300, height: 100 };
+  const before = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const c = new Critter({ random: fixedRandom(0.9) }, { x: 300, y: 200 });
+  c.currentSurface = before.segments.find((s) => s.type === 'shelf');
+  c.state = State.SLEEP;
+  c.stateTimer = 500;
+  const moved = computeSurfaces({ monitors: [monitor], windows: [{ ...win, y: 260 }] });
+  c.tick(1 / 60, moved, { worldBounds: monitor });
+  assert.notEqual(c.state, State.SLEEP);
 });

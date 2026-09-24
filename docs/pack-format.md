@@ -76,10 +76,16 @@ packs/<species-id>/
     "seekFocus": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "chase":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
     "flee":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "seekNap":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
+    "seekNap":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
+    "run":      { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "swimFast": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
+    "flyFast":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.05, "loop": true },
+    "dive":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
-  // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js).
+  // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js),
+  // sauf les allures rapides qui retombent d'abord sur leur allure normale :
+  // "run" -> "walk", "swimFast" -> "swim", "flyFast" et "dive" -> "fly".
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
   // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
@@ -122,6 +128,23 @@ droite et s'y pose : elle ne retombe jamais en chute libre. Elle ne change de
 cible que très rarement (`flyRetargetChance`, probabilité par seconde) ou si
 sa surface cible disparaît ou bouge. `flyDuration` ne s'applique donc qu'aux
 espèces purement aériennes (voir ci-dessous).
+
+Deux comportements en plus : le **vol rapide** (`flyFastWeight`,
+`flyFastFactor`) et le **piqué** : au décollage, avec la probabilité
+`flyCruiseChance`, l'animal monte d'abord à une altitude de croisière, puis
+en descendant vers sa cible il peut piquer (`diveChance` par seconde, cible
+au moins `diveMinHeight` plus bas et angle raide, vitesse `diveSpeedFactor`).
+Le piqué finit toujours par l'atterrissage sur la cible.
+
+## Allures rapides et nage
+
+`run` (`runWeight`, `runSpeedFactor`), `swimFast` (`swimFastWeight`,
+`swimFastFactor`) et `flyFast` sont les versions rapides de la marche, de la
+nage et du vol. Une espèce sans sol enchaîne ses sessions en tirant une
+session rapide avec la probabilité `fastChance`. La nage retire sa cible
+toutes les `swimRetargetDuration` secondes (5 à 10 par défaut), avec un
+virage d'au plus `swimTurnMax` degrés à chaque fois ; le vol libre des
+espèces aériennes garde `roamRetargetDuration`.
 
 ## Espèces sans sol
 

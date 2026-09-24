@@ -10,6 +10,10 @@ import { State } from '../core/critter.js';
 
 const DRAG_BEGIN_THRESHOLD_PX = 4;
 
+// Animation de repli d'un état que le pack ne décrit pas, avant le repli
+// final sur "idle" : une allure rapide ressemble à son allure normale.
+const ANIMATION_FALLBACKS = { run: 'walk', swimFast: 'swim', flyFast: 'fly', dive: 'fly' };
+
 export class CritterActor {
   /**
    * @param {import('../../core/critter.js').Critter} critter
@@ -162,8 +166,13 @@ export class CritterActor {
   }
 
   _applyFrame(state, dt) {
-    const frames = this.pack.animationFrames[state] ?? this.pack.animationFrames.idle;
-    const timing = this.pack.animationTiming[state] ?? { frameDuration: 0.2, loop: true };
+    const key = this.pack.animationFrames[state]
+      ? state
+      : this.pack.animationFrames[ANIMATION_FALLBACKS[state]]
+        ? ANIMATION_FALLBACKS[state]
+        : 'idle';
+    const frames = this.pack.animationFrames[key] ?? this.pack.animationFrames.idle;
+    const timing = this.pack.animationTiming[key] ?? { frameDuration: 0.2, loop: true };
 
     if (state !== this._animState) {
       this._animState = state;
