@@ -13,7 +13,8 @@
   "behavior": { "sleepWeight": 15, "sleepDuration": [120, 900], "washWeight": 15, "followWeight": 20, "climbSeekWeight": 8, "playWeight": 45 },
   "needs": {
     "decayPerHour": { "energy": 3, "cleanliness": 2 },
-    "diet": { "fish": 60, "meat": 45, "kibble": 30 }
+    "diet": { "fish": 60, "meat": 45, "kibble": 30, "grass": 8 },
+    "prey": { "mouse": 40 }
   },
   "appearance": { "colorizeGrays": true, "graySaturation": 0.4 },
   "achievements": [
@@ -54,6 +55,20 @@
       "description": "Vivre 30 jours",
       "condition": { "stat": "daysAlive", "atLeast": 30 },
       "coins": 25
+    },
+    {
+      "id": "mouser",
+      "name": "Chasseur de souris",
+      "description": "Attraper 20 proies",
+      "condition": { "stat": "hunts", "atLeast": 20 },
+      "coins": 15
+    },
+    {
+      "id": "salad",
+      "name": "Amateur de verdure",
+      "description": "Grignoter 15 fois de l'herbe",
+      "condition": { "stat": "grazes", "atLeast": 15 },
+      "coins": 10
     }
   ],
   "anchors": {
@@ -63,7 +78,24 @@
     "sit",
     "roll"
   ],
-  "names": ["Minou", "Moka", "Câline", "Pixel", "Nougat", "Ronron", "Tigrou", "Luna", "Félix", "Mimine", "Grisou", "Perle", "Miel", "Chaussette", "Filou", "Cléo"],
+  "names": [
+    "Minou",
+    "Moka",
+    "Câline",
+    "Pixel",
+    "Nougat",
+    "Ronron",
+    "Tigrou",
+    "Luna",
+    "Félix",
+    "Mimine",
+    "Grisou",
+    "Perle",
+    "Miel",
+    "Chaussette",
+    "Filou",
+    "Cléo"
+  ],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },
@@ -81,6 +113,7 @@
     "chase": { "file": "sprites/chase.png", "frames": 6, "frameDuration": 0.07, "loop": true },
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.06, "loop": true },
     "run": { "file": "sprites/chase.png", "frames": 6, "frameDuration": 0.06, "loop": true },
+    "hunt": { "file": "sprites/chase.png", "frames": 6, "frameDuration": 0.06, "loop": true },
     "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.18, "loop": true },
     "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true },
     "trick_sit": { "file": "sprites/trick_sit.png", "frames": 2, "frameDuration": 0.3, "loop": true },

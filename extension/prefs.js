@@ -110,6 +110,35 @@ export default class ScamperPreferences extends ExtensionPreferences {
     settings.bind('show-indicator', indicatorRow, 'active', 0);
     group.add(indicatorRow);
 
+    const autonomies = [
+      ['auto', 'Auto (suit la croissance)'],
+      ['off', 'Désactivée'],
+      ['partial', 'Partielle'],
+      ['full', 'Totale'],
+    ];
+    const autonomyRow = new Adw.ComboRow({
+      title: 'Autonomie',
+      subtitle: 'Les animaux autonomes chassent, grignotent et voient leurs besoins baisser plus lentement.',
+      model: Gtk.StringList.new(autonomies.map(([, label]) => label)),
+    });
+    autonomyRow.selected = Math.max(0, autonomies.findIndex(([id]) => id === settings.get_string('autonomy')));
+    autonomyRow.connect('notify::selected', () => settings.set_string('autonomy', autonomies[autonomyRow.selected][0]));
+    lifeGroup.add(autonomyRow);
+
+    const preyRow = new Adw.SwitchRow({
+      title: 'Proies automatiques',
+      subtitle: 'Des proies apparaissent de temps en temps pour les animaux autonomes.',
+    });
+    settings.bind('prey-spawn', preyRow, 'active', 0);
+    lifeGroup.add(preyRow);
+
+    const plantsRow = new Adw.SwitchRow({
+      title: 'Plantes décoratives',
+      subtitle: 'Des plantes à grignoter sont maintenues sur le bureau.',
+    });
+    settings.bind('decor-plants', plantsRow, 'active', 0);
+    lifeGroup.add(plantsRow);
+
     const growthRow = new Adw.SwitchRow({
       title: 'Croissance',
       subtitle: "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte.",

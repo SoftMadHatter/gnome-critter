@@ -13,7 +13,8 @@
   "behavior": { "idleDuration": [0.5, 1.5], "sleepWeight": 1, "sleepDuration": [5, 20], "washWeight": 2, "climbSeekWeight": 30, "playWeight": 12 },
   "needs": {
     "decayPerHour": { "stimulation": 16, "satiety": 8 },
-    "diet": { "seeds": 30, "meat": 25 }
+    "diet": { "seeds": 30, "meat": 25, "leaf": 10 },
+    "prey": { "aphid": 25 }
   },
   "achievements": [
     {
@@ -37,6 +38,13 @@
       "description": "Courir 50 fois",
       "condition": { "stat": "runs", "atLeast": 50 },
       "coins": 10
+    },
+    {
+      "id": "aphid-hunter",
+      "name": "Terreur des pucerons",
+      "description": "Attraper 20 proies",
+      "condition": { "stat": "hunts", "atLeast": 20 },
+      "coins": 15
     }
   ],
   "anchors": {
@@ -45,7 +53,24 @@
   "tricks": [
     "roll"
   ],
-  "names": ["Scarabée", "Minus", "Câpre", "Pirouette", "Lucioles", "Trombone", "Bouton", "Coccinelle", "Grain", "Poussin", "Farandole", "Lentille", "Fourmi", "Pointille", "Gribouille", "Miette"],
+  "names": [
+    "Scarabée",
+    "Minus",
+    "Câpre",
+    "Pirouette",
+    "Lucioles",
+    "Trombone",
+    "Bouton",
+    "Coccinelle",
+    "Grain",
+    "Poussin",
+    "Farandole",
+    "Lentille",
+    "Fourmi",
+    "Pointille",
+    "Gribouille",
+    "Miette"
+  ],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.4, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.07, "loop": true },
@@ -60,6 +85,7 @@
     "chase": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.05, "loop": true },
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.05, "loop": true },
     "run": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.04, "loop": true },
+    "hunt": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.05, "loop": true },
     "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.14, "loop": true },
     "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.07, "loop": true },
     "trick_roll": { "file": "sprites/trick_roll.png", "frames": 6, "frameDuration": 0.1, "loop": true }

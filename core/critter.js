@@ -6,6 +6,7 @@ import { newlyUnlocked } from './achievements.js';
 import { edibleFor, consume, bedsOn, toysFor, kick, pickGift } from './items.js';
 import { TrickBook, TRICKS } from './tricks.js';
 import { sanitizeName } from './names.js';
+import { autonomyLevel } from './autonomy.js';
 import {
   findSurfaceBelow,
   isOnSegment,
@@ -50,6 +51,7 @@ export const State = Object.freeze({
   PLAY: 'play', // rejoint et joue avec un jouet, ou poursuit le pointeur laser
   BRUSHED: 'brushed', // se laisse brosser, immobile
   TRICK: 'trick', // exécute un tour (assis, roulade...)
+  HUNT: 'hunt', // poursuit une proie (animal autonome)
   GIFT: 'gift', // apporte un cadeau au curseur
   REMIND: 'remind', // vient vers le curseur rappeler au joueur de faire une pause
 });
@@ -97,7 +99,7 @@ const STATE_GROUPS = [
 const ACTIVE_STATES = new Set([
   State.WALK, State.RUN, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
   State.FLY, State.FLY_FAST, State.DIVE, State.FOLLOW, State.GREET, State.SEEK_WALL,
-  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD, State.PLAY, State.REMIND, State.GIFT,
+  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD, State.PLAY, State.REMIND, State.GIFT, State.HUNT,
 ]);
 
 /** Activités idle dont le poids suit la stimulation (l'animal s'ennuie : il bouge). */
@@ -138,6 +140,13 @@ const DEFAULT_CONFIG = {
   giftAffection: 70, // affection minimale pour offrir
   giftDuration: [12, 25],
   giftChancePerSecond: 0.01, // espèce sans sol : chance par seconde de partir offrir
+  autonomyMode: 'auto', // `auto` (suit la croissance), `off`, `partial`, `full` (voir core/autonomy.js)
+  needsPrey: {}, // proies chassées -> gain de satiété (section `needs.prey` du pack)
+  huntWeight: 30, // multiplié par l'autonomie et la faim
+  grazeWeight: 15, // idem, pour les plantes
+  huntDuration: 12, // secondes de poursuite au plus
+  catchDistance: 14, // distance à laquelle il attrape la proie
+  moldSickness: 20, // santé perdue en mangeant de la nourriture moisie
   achievements: [], // succès du pack (section `achievements`, filtrée par achievementsOverrides)
   typingCooldown: 20, // secondes minimales entre deux réactions à la frappe
   walkSpeed: 40, // px/s
@@ -314,6 +323,8 @@ export class Critter {
     this._lastTypingAt = -Infinity;
     this._acknowledged = false;
     this.stats = new Stats();
+    this.autonomy = 0; // niveau d'autonomie courant (recalculé à chaque tick)
+    this._huntTarget = null;
     this.tricks = new TrickBook();
     this._trick = null;
     this._lastGiftAt = 0; // le premier cadeau n'arrive qu'après giftCooldown secondes d activité
@@ -494,6 +505,12 @@ export class Critter {
     return true;
   }
 
+  /** Réglage d'autonomie vivant : `auto`, `off`, `partial` ou `full`. */
+  setAutonomyMode(mode) {
+    this._baseConfig.autonomyMode = mode;
+    this.config.autonomyMode = mode;
+  }
+
   setNeedsRateScale(scale) {
     this.needs.setRateScale(scale);
   }
@@ -507,6 +524,7 @@ export class Critter {
   startDrag() {
     this._releaseFood();
     this._playTarget = null;
+    this._huntTarget = null;
     this.state = State.DRAG;
     this.vx = 0;
     this.vy = 0;
@@ -599,6 +617,8 @@ export class Critter {
       this._countEvent(external);
     }
     const previousState = this.state;
+    this.autonomy = autonomyLevel(this.config.autonomyMode, this.life, this.tricks.learned().length);
+    this.needs.setAutonomy(this.autonomy);
     this.stateTimer -= dt;
     this._clock += dt;
     if (!this._lifeFrozen()) {
@@ -613,7 +633,7 @@ export class Critter {
         mood: this.needs.mood,
         health: this.needs.values.health,
         ageScale: this.config.lifeAgeScale,
-        needsScale: this.needs.rateScale,
+        needsScale: this.needs.rateScale * (1 - this.autonomy), // un animal autonome ne tombe pas dans la négligence
       }),
     );
 
@@ -684,6 +704,9 @@ export class Critter {
       case State.REMIND:
         this._tickRemind(dt, options);
         break;
+      case State.HUNT:
+        this._tickHunt(dt);
+        break;
       case State.TRICK:
         this._tickTrick();
         break;
@@ -727,6 +750,7 @@ export class Critter {
       state: this.state,
       event: this.life.stage === 'egg' ? null : this.lastEvent,
       name: this.name,
+      autonomy: this.autonomy,
       accessory: this.accessory,
       trick: this._trick,
       bubble: this.state === State.REMIND ? 'break' : null,
@@ -891,6 +915,12 @@ export class Critter {
     }
     if (this._giftReady(options)) candidates.push({ value: 'gift', weight: this.config.giftWeight });
 
+    // Autonomie : un animal qui se débrouille chasse et grignote, selon sa faim.
+    const prey = this._preyTargets(options);
+    if (prey.length > 0) candidates.push({ value: 'hunt', weight: this.config.huntWeight * this.autonomy });
+    const plants = this.autonomy > 0 ? this._edibleTargets(options, { plants: true }) : [];
+    if (plants.length > 0) candidates.push({ value: 'graze', weight: this.config.grazeWeight * this.autonomy });
+
     // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
     // pour un décollage, contrairement aux comportements ci-dessus).
     if (this.supports(Locomotion.GROUND)) {
@@ -929,6 +959,7 @@ export class Critter {
       else if (c.value === 'follow') c.weight *= needMultiplier(levels.affection, { boost: 4, satisfied: 0.5 });
       else if (c.value === 'food') c.weight *= needMultiplier(levels.satiety, { boost: 8, satisfied: 0.05 });
       else if (c.value === 'play') c.weight *= needMultiplier(levels.stimulation, { boost: 5, satisfied: 0.2 });
+      else if (c.value === 'hunt' || c.value === 'graze') c.weight *= needMultiplier(levels.satiety, { boost: 6, satisfied: 0.05 });
       else if (ENERGETIC_ACTIVITIES.has(c.value)) {
         c.weight *= needMultiplier(levels.stimulation, { boost: 3, satisfied: 0.6 });
         if (tired) c.weight *= 0.3;
@@ -978,6 +1009,12 @@ export class Critter {
         return;
       case 'gift':
         this._startGift();
+        return;
+      case 'hunt':
+        this._startHunt(prey[0]);
+        return;
+      case 'graze':
+        this._startSeekFood(plants[0]);
         return;
       case 'sleep': {
         // Un lit passe avant tout, quelle que soit la distance : on s'y rend
@@ -1265,7 +1302,8 @@ export class Critter {
   // --- Nourriture et lit ----------------------------------------------------
 
   /** Cibles comestibles pour cette espèce, la plus proche d'abord. */
-  _edibleTargets(options) {
+  /** Cibles comestibles ; les plantes (grignotage, autonomie) sont demandées à part. */
+  _edibleTargets(options, { plants = false } = {}) {
     if (!options.items?.length) return [];
     return edibleFor(options.items, this.config.needsDiet, {
       x: this.x,
@@ -1273,7 +1311,24 @@ export class Critter {
       canFly: this.supports(Locomotion.AIR),
       floating: !this.supports(Locomotion.GROUND),
       self: this,
-    });
+      avoidMold: this.autonomy >= 0.5, // un animal autonome ne mange pas de nourriture moisie
+    }).filter((e) => (e.item.type === 'plant') === plants);
+  }
+
+  /** Proies que cette espèce chasse, atteignables : la plus proche d'abord. */
+  _preyTargets(options) {
+    if (!options.items?.length || this.autonomy <= 0) return [];
+    const floating = !this.supports(Locomotion.GROUND);
+    const canFly = this.supports(Locomotion.AIR);
+    return options.items
+      .filter(
+        (i) =>
+          i.type === 'prey' && !i.consumed && !i.removed && !i.grabbed && !i.caught &&
+          this.config.needsPrey[i.kind] > 0 &&
+          i.floating === floating &&
+          (floating || (i.surface && (canFly || i.surface.surfaceId === this.currentSurface?.surfaceId))),
+      )
+      .sort((a, b) => Math.abs(a.x - this.x) - Math.abs(b.x - this.x));
   }
 
   _releaseFood() {
@@ -1369,14 +1424,87 @@ export class Critter {
     }
     if (this.stateTimer > 0) return;
 
-    consume(target.item);
-    this.needs.feed(target.gain);
-    if (target.gain >= Math.max(...Object.values(this.config.needsDiet))) {
-      this.needs.boost('affection', 5);
-      this.stats.add('mealsFavorite');
+    const { item, gain } = target;
+    const { sick } = consume(item);
+    this.needs.feed(gain);
+    if (sick) {
+      // Nourriture moisie : un petit coup de santé, une bulle « malade » à soigner.
+      this.needs.boost('health', -this.config.moldSickness);
+      this.lastEvent = 'sick';
+    } else {
+      if (item.type === 'food' && gain >= Math.max(...Object.values(this.config.needsDiet))) {
+        this.needs.boost('affection', 5);
+        this.stats.add('mealsFavorite');
+      }
+      if (item.type === 'plant') this.stats.add('grazes');
+      this.lastEvent = 'ate';
     }
-    this.lastEvent = 'ate';
     this._giveUpFood();
+  }
+
+  // --- Chasse ---------------------------------------------------------------------
+
+  _startHunt(prey) {
+    const sameSurface = prey.surface && this.currentSurface && prey.surface.surfaceId === this.currentSurface.surfaceId;
+    if (!prey.floating && !sameSurface) {
+      this._takeOffToward(prey); // espèce qui vole : décolle vers la surface de la proie
+      return;
+    }
+    this._releaseFood();
+    this._playTarget = null;
+    this._huntTarget = prey;
+    this.state = State.HUNT;
+    this.stateTimer = this.config.huntDuration;
+  }
+
+  _endHunt() {
+    this._huntTarget = null;
+    const roam = this._groundlessRoamState();
+    if (roam) this._startRoam(roam);
+    else this._enterState(State.IDLE);
+  }
+
+  /** Poursuite : abandon sans conséquence si la proie s'échappe, disparaît ou change de surface. */
+  _tickHunt(dt) {
+    const groundless = !this.supports(Locomotion.GROUND);
+    if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    const prey = this._huntTarget;
+    const lost =
+      !prey || prey.consumed || prey.removed || prey.grabbed || prey.caught || this.stateTimer <= 0 ||
+      (!groundless && (!prey.surface || prey.surface.surfaceId !== this.currentSurface?.surfaceId));
+    if (lost) {
+      this._endHunt();
+      return;
+    }
+
+    if (groundless) {
+      const speed = this.supports(Locomotion.WATER)
+        ? this.config.swimSpeed * this.config.swimFastFactor
+        : this.config.flySpeed * this.config.flyFastFactor;
+      if (Math.hypot(prey.x - this.x, prey.y - this.y) < this.config.catchDistance) {
+        this._catch(prey);
+        return;
+      }
+      this._approach2D(dt, prey.x, prey.y, speed);
+      return;
+    }
+    if (Math.abs(prey.x - this.x) < this.config.catchDistance) {
+      this._catch(prey);
+      return;
+    }
+    this._chase(dt, prey.x, this.config.walkSpeed * this.config.runSpeedFactor);
+  }
+
+  /** La proie est attrapée : elle se fige, l'animal la mange (état EAT réutilisé). */
+  _catch(prey) {
+    prey.caught = true;
+    this._huntTarget = null;
+    this._foodTarget = { item: prey, gain: this.config.needsPrey[prey.kind] };
+    this.stats.add('hunts');
+    this._startEating();
   }
 
   /** Décolle vers la surface d'un objet (espèce qui vole) ; une fois posée,
@@ -1936,6 +2064,16 @@ export class Critter {
             this._startSeekFood(edible[0]);
             return;
           }
+          const prey = this._preyTargets(options);
+          if (prey.length > 0) {
+            this._startHunt(prey[0]);
+            return;
+          }
+          const plants = this.autonomy > 0 ? this._edibleTargets(options, { plants: true }) : [];
+          if (plants.length > 0) {
+            this._startSeekFood(plants[0]);
+            return;
+          }
         }
       }
     }
@@ -2143,6 +2281,7 @@ export class Critter {
   _enterState(state) {
     this._releaseFood();
     this._playTarget = null;
+    this._huntTarget = null;
     this.state = state;
     switch (state) {
       case State.IDLE:

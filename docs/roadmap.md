@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 9 et sous-étapes 10.1 à 10.6 et 10.9 terminées ; l'ancienne étape 8 — vol/nage — avait été
+à 9 et sous-étapes 10.1 à 10.7 et 10.9 terminées ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -186,10 +186,11 @@ Pièces et boutique, succès propres à chaque espèce et à sa personnalité
 (déclarés dans `pack.json`), boutique et accessoires, tours, cadeaux,
 anniversaires. Voir `docs/progression.md`.
 
-### 10.7 Mode autonomie
-L'animal couvre lui-même ses besoins (proies, grignotage). À cadrer avec
-toi avant tout plan : statut (mode alternatif ou niveau progressif lié à
-la croissance), sources de nourriture, rôle du joueur, conséquences, coût.
+### 10.7 Mode autonomie — ✅ fait
+L'animal couvre lui-même ses besoins (proies, plantes, gamelle) : niveau
+d'autonomie qui suit la croissance et l'apprentissage, forçable dans les
+réglages ; proies qui fuient, plantes qui repoussent, gamelle qui moisit.
+Voir `docs/autonomy.md`.
 
 ### 10.8 Besoins naturels
 « Faire ses besoins » : nouveau besoin et comportements associés. À

@@ -4,10 +4,12 @@
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { loadImage } from './packLoader.js';
-import { throwItem } from '../core/items.js';
+import { throwItem, isMoldy, PLANTS } from '../core/items.js';
+import { PREY } from '../core/prey.js';
 
 const THROW_WINDOW_US = 100_000; // fenêtre de mesure de la vitesse du glisser
 const MAX_THROW_SPEED = 900; // px/s
@@ -16,9 +18,15 @@ const MAX_THROW_SPEED = 900; // px/s
 const SIZES = { food: { width: 16, height: 16 }, bowl: { width: 24, height: 12 }, bed: { width: 32, height: 12 } };
 const TOY_SIZES = { ball: { width: 12, height: 12 }, plush: { width: 16, height: 14 } };
 
+const PREY_SIZES = { mouse: { width: 16, height: 10 }, beetle: { width: 10, height: 8 }, aphid: { width: 6, height: 5 }, krill: { width: 8, height: 6 } };
+const PLANT_SIZE = { width: 16, height: 14 };
+const PREY_FRAME_SECONDS = 0.18; // cadence des deux frames de marche
+
 const sizeOf = (item) => {
   if (item.type === 'toy') return TOY_SIZES[item.kind];
   if (item.type === 'gift') return { width: 12, height: 12 };
+  if (item.type === 'prey') return PREY_SIZES[item.kind];
+  if (item.type === 'plant') return PLANT_SIZE;
   return SIZES[item.type];
 };
 
@@ -40,7 +48,15 @@ export function foodLabel(kind, portions = 1) {
 
 export const TOY_LABELS = { ball: 'Balle', plush: 'Peluche' };
 
-const IMAGE_NAMES = ['meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bed', 'ball', 'plush', 'laser', 'coin', 'flower', 'feather'];
+export const PREY_LABELS = { mouse: 'Souris', beetle: 'Scarabée', aphid: 'Puceron', krill: 'Krill' };
+export const PLANT_LABELS = { grass: 'Herbe', berries: 'Baies', leaf: 'Feuille', algae: 'Algue' };
+
+const IMAGE_NAMES = [
+  'meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bowl_moldy', 'bed', 'ball', 'plush',
+  'laser', 'coin', 'flower', 'feather',
+  ...Object.keys(PREY).flatMap((kind) => [`${kind}_0`, `${kind}_1`]),
+  ...Object.keys(PLANTS).flatMap((kind) => [0, 1, 2, 3].map((n) => `${kind}_${n}`)),
+];
 
 /**
  * @param {string} dir extension/assets/items
@@ -59,7 +75,16 @@ export function loadItemImages(dir) {
 
 function imageName(item) {
   if (item.type === 'bed') return 'bed';
-  if (item.type === 'bowl') return item.portions > 0 ? 'bowl_full' : 'bowl_empty';
+  if (item.type === 'bowl') {
+    if (isMoldy(item)) return 'bowl_moldy';
+    return item.portions > 0 ? 'bowl_full' : 'bowl_empty';
+  }
+  if (item.type === 'plant') return `${item.kind}_${item.portions}`;
+  if (item.type === 'prey') {
+    // Deux frames de marche alternées tant que la proie bouge.
+    const frame = item.moving ? Math.floor(GLib.get_monotonic_time() / 1_000_000 / PREY_FRAME_SECONDS) % 2 : 0;
+    return `${item.kind}_${frame}`;
+  }
   return item.kind; // aliments et jouets : le nom du sprite est le `kind`
 }
 
@@ -75,7 +100,12 @@ export class ItemActor {
     this._imageName = null;
 
     const size = sizeOf(item);
-    this.actor = new Clutter.Actor({ reactive: true, width: size.width, height: size.height });
+    this.actor = new Clutter.Actor({
+      reactive: true,
+      width: size.width,
+      height: size.height,
+      pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
+    });
     this._samples = []; // derniers points du glisser, pour l'élan au lancer
     this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
     this._setupGestures();
@@ -153,6 +183,7 @@ export class ItemActor {
       this.actor.content = this._images[name];
     }
     this.actor.set_position(Math.round(this.item.x - size.width / 2), Math.round(this.item.y - size.height));
+    if (this.item.type === 'prey') this.actor.scale_x = this.item.dir < 0 ? -1 : 1;
   }
 
   destroy() {

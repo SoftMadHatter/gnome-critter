@@ -3,42 +3,58 @@
   "displayName": "Critter (démo)",
   "version": "0.1.0",
   "author": "toi",
-  "supportedSurfaces": ["ground", "wall", "ceiling", "air", "water"],
+  "supportedSurfaces": [
+    "ground",
+    "wall",
+    "ceiling",
+    "air",
+    "water"
+  ],
   "spriteSize": { "width": 32, "height": 32 },
-  "speeds": {
-    "walk": 40,
-    "climb": 30,
-    "swim": 25,
-    "fly": 60
+  "speeds": { "walk": 40, "climb": 30, "swim": 25, "fly": 60 },
+  "needs": {
+    "diet": { "kibble": 30, "seeds": 30, "meat": 30, "grass": 8 },
+    "prey": { "mouse": 40 }
   },
-  "needs": { "diet": { "kibble": 30, "seeds": 30, "meat": 30 } },
-  "tricks": ["sit", "roll"],
-  "names": ["Critter", "Pixel", "Bidule", "Chose", "Machin", "Patapouf", "Zigzag", "Fripon"],
+  "tricks": [
+    "sit",
+    "roll"
+  ],
+  "names": [
+    "Critter",
+    "Pixel",
+    "Bidule",
+    "Chose",
+    "Machin",
+    "Patapouf",
+    "Zigzag",
+    "Fripon"
+  ],
   "animations": {
-    "idle":    { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.5,  "loop": true },
-    "walk":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "fall":    { "file": "sprites/fall.png",  "frames": 2, "frameDuration": 0.15, "loop": true },
-    "drag":    { "file": "sprites/fall.png",  "frames": 1, "frameDuration": 1,    "loop": false },
-    "sleep":   { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.8,  "loop": true },
-    "climb":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "ceiling": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "swim":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.2,  "loop": true },
-    "fly":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
-    "follow":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "wash":    { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5,  "loop": true },
-    "greet":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "seekWall":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "seekFocus":{ "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "chase":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "flee":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
-    "seekNap": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true }
+    "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
+    "walk": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "fall": { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.15, "loop": true },
+    "drag": { "file": "sprites/fall.png", "frames": 1, "frameDuration": 1, "loop": false },
+    "sleep": { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.8, "loop": true },
+    "climb": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "ceiling": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "swim": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.2, "loop": true },
+    "fly": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.1, "loop": true },
+    "follow": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "wash": { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5, "loop": true },
+    "greet": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "seekWall": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "seekFocus": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "chase": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "flee": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },
+    "seekNap": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true }
   },
   "reactions": {
-    "petted":   { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/petted.wav" },
-    "tickled":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/tickled.wav" },
-    "annoyed":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/annoyed.wav" },
-    "noticed":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/noticed.wav" },
+    "petted": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/petted.wav" },
+    "tickled": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/tickled.wav" },
+    "annoyed": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/annoyed.wav" },
+    "noticed": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/noticed.wav" },
     "startled": { "file": "sprites/fall.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/startled.wav" },
-    "greeted":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/greeted.wav" }
+    "greeted": { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/greeted.wav" }
   }
 }

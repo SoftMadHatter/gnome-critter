@@ -156,7 +156,7 @@ test('needsOverrides garde les débits valides et signale le reste', () => {
   });
   assert.deepEqual(rates, { energy: 3 });
   assert.deepEqual(ignored.sort(), ['autre', 'decayPerHour.cleanliness', 'decayPerHour.health', 'decayPerHour.satiety']);
-  assert.deepEqual(needsOverrides(undefined), { rates: {}, diet: {}, ignored: [] });
+  assert.deepEqual(needsOverrides(undefined), { rates: {}, diet: {}, prey: {}, ignored: [] });
 });
 
 test('feed et boost bornent la jauge ; le lit majore le gain de sommeil', () => {

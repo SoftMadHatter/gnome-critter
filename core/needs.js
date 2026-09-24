@@ -2,7 +2,9 @@
 // avec le temps réel. Module pur, sans dépendance GNOME : le Critter en
 // possède une instance et l'avance dans tick().
 
-import { FOODS } from './items.js';
+import { FOODS, PLANTS } from './items.js';
+import { PREY } from './prey.js';
+import { RELIEF } from './autonomy.js';
 
 /** Jauges stockées (la santé est traitée à part, les cinq premières forment l'humeur). */
 export const NEED_GAUGES = ['satiety', 'energy', 'cleanliness', 'stimulation', 'affection'];
@@ -60,24 +62,33 @@ export function needMultiplier(value, { boost = 4, satisfied = 0.3 } = {}) {
 
 /**
  * Filtre la section `needs` d'un pack.json : les débits `decayPerHour`
- * (nombres >= 0, jauges connues) et le régime `diet` (aliments connus ->
- * gain de satiété > 0) passent, le reste est signalé.
+ * (nombres >= 0, jauges connues), le régime `diet` (aliments et plantes connus
+ * -> gain de satiété > 0) et les proies `prey` (espèces connues -> gain)
+ * passent, le reste est signalé.
  * @param {object} [raw]
- * @returns {{rates: Record<string, number>, diet: Record<string, number>, ignored: string[]}}
+ * @returns {{rates: Record<string, number>, diet: Record<string, number>, prey: Record<string, number>, ignored: string[]}}
  */
 export function needsOverrides(raw = {}) {
   const rates = {};
   const diet = {};
+  const prey = {};
   const ignored = [];
   for (const [key, value] of Object.entries(raw ?? {})) {
-    if ((key !== 'decayPerHour' && key !== 'diet') || !value || typeof value !== 'object') {
+    if ((key !== 'decayPerHour' && key !== 'diet' && key !== 'prey') || !value || typeof value !== 'object') {
       ignored.push(key);
       continue;
     }
     if (key === 'diet') {
       for (const [food, gain] of Object.entries(value)) {
-        if (FOODS[food] && Number.isFinite(gain) && gain > 0) diet[food] = gain;
+        if ((FOODS[food] || PLANTS[food]) && Number.isFinite(gain) && gain > 0) diet[food] = gain;
         else ignored.push(`diet.${food}`);
+      }
+      continue;
+    }
+    if (key === 'prey') {
+      for (const [kind, gain] of Object.entries(value)) {
+        if (PREY[kind] && Number.isFinite(gain) && gain > 0) prey[kind] = gain;
+        else ignored.push(`prey.${kind}`);
       }
       continue;
     }
@@ -89,7 +100,7 @@ export function needsOverrides(raw = {}) {
       }
     }
   }
-  return { rates, diet, ignored };
+  return { rates, diet, prey, ignored };
 }
 
 export class Needs {
@@ -101,9 +112,15 @@ export class Needs {
   constructor({ rates = {}, rateScale = 1 } = {}) {
     this.rates = { ...DEFAULT_DECAY_PER_HOUR, ...rates };
     this.rateScale = rateScale;
+    this.autonomyFactor = 1; // 1 - RELIEF * autonomie : ralentit la baisse des jauges
     this.values = {};
     for (const g of NEED_GAUGES) this.values[g] = INITIAL_LEVEL;
     this.values.health = 100;
+  }
+
+  /** Autonomie (0-1) : plus l'animal se débrouille, plus ses besoins baissent lentement. */
+  setAutonomy(level) {
+    this.autonomyFactor = 1 - RELIEF * Math.min(1, Math.max(0, level));
   }
 
   setRateScale(scale) {
@@ -121,7 +138,9 @@ export class Needs {
     const decayFactor = sleeping ? SLEEP_DECAY_FACTOR : 1;
 
     for (const g of NEED_GAUGES) {
-      this.values[g] = clamp100(this.values[g] - this.rates[g] * this.rateScale * decayFactor * hours);
+      this.values[g] = clamp100(
+        this.values[g] - this.rates[g] * this.rateScale * this.autonomyFactor * decayFactor * hours,
+      );
     }
     if (sleeping) {
       this.values.energy = clamp100(this.values.energy + SLEEP_ENERGY_GAIN_PER_HOUR * sleepFactor * this.rateScale * hours);

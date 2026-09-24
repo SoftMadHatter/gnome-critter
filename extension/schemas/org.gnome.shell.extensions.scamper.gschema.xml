@@ -78,6 +78,27 @@
       <summary>Réagir à la frappe</summary>
       <description>Compte seulement qu'une touche est pressée, jamais laquelle.</description>
     </key>
+    <key name="autonomy" type="s">
+      <choices>
+        <choice value="auto"/>
+        <choice value="off"/>
+        <choice value="partial"/>
+        <choice value="full"/>
+      </choices>
+      <default>'auto'</default>
+      <summary>Autonomie des animaux</summary>
+      <description>Auto : suit la croissance et les tours appris. Sinon désactivée, partielle ou totale.</description>
+    </key>
+    <key name="prey-spawn" type="b">
+      <default>true</default>
+      <summary>Proies automatiques</summary>
+      <description>Des proies apparaissent de temps en temps pour les animaux autonomes.</description>
+    </key>
+    <key name="decor-plants" type="b">
+      <default>true</default>
+      <summary>Plantes décoratives</summary>
+      <description>Des plantes à grignoter sont maintenues sur le bureau pour les animaux autonomes.</description>
+    </key>
     <key name="saved-player" type="s">
       <default>''</default>
       <summary>Pièces, achats et journal (interne)</summary>

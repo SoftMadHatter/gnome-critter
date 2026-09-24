@@ -2109,7 +2109,7 @@ test('le caractère joue sur les débits de besoins', () => {
 });
 
 test("négligence prolongée : hibernation ; un clic réveille et remonte les jauges", () => {
-  const { c, surfaces } = groundedCritter();
+  const { c, surfaces } = groundedCritter({ autonomyMode: 'off' }); // un animal autonome ne tombe pas dans la négligence
   c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
   c.y = monitor.height;
   c.state = State.IDLE;
@@ -2507,4 +2507,163 @@ test('un œuf ne compte ni ne débloque rien', () => {
   for (let i = 0; i < 5; i++) c.tick(1, surfaces, { worldBounds: monitor });
   assert.equal(c.stats.get('pets'), 0);
   assert.deepEqual(c.takeUnlocked(), []);
+});
+
+// --- Autonomie : chasse, grignotage, moisissure ------------------------------------
+
+function hunterOf(config = {}) {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, runWeight: 0,
+      needsRateScale: 0, autonomyMode: 'full', needsPrey: { mouse: 40 }, needsDiet: { grass: 8, kibble: 30 }, ...config,
+    },
+    { x: 100, y: monitor.height },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  c.needs.values.satiety = 10;
+  return { c, surfaces };
+}
+
+function restingPrey(surfaces, kind, x) {
+  const p = createItem('prey', kind, x, 500);
+  p.surface = surfaces.segments.find((s) => s.type === 'ground');
+  p.wanderTimer = 1e9;
+  p.paused = true; // immobile pour un test déterministe
+  return p;
+}
+
+function huntRun(c, surfaces, items, seconds, stop) {
+  const seen = new Set();
+  for (let i = 0; i < seconds * 30; i++) {
+    const snap = c.tick(1 / 30, surfaces, { worldBounds: monitor, items });
+    seen.add(snap.state);
+    if (snap.event) seen.add(`event:${snap.event}`);
+    if (stop?.(snap)) break;
+  }
+  return seen;
+}
+
+test('un animal autonome affamé chasse une proie, la mange et compte la prise', () => {
+  const { c, surfaces } = hunterOf();
+  const prey = restingPrey(surfaces, 'mouse', 300);
+  const seen = huntRun(c, surfaces, [prey], 30, () => prey.consumed);
+  assert.ok(seen.has(State.HUNT) && seen.has(State.EAT));
+  assert.ok(prey.consumed);
+  assert.equal(c.needs.values.satiety, 50);
+  assert.equal(c.stats.get('hunts'), 1);
+  assert.ok(seen.has('event:ate'));
+});
+
+test('chasse ratée (proie changée de surface ou disparue) : sans conséquence', () => {
+  const { c, surfaces } = hunterOf();
+  const prey = restingPrey(surfaces, 'mouse', 800);
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [prey] });
+  assert.equal(c.state, State.HUNT);
+  prey.removed = true;
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [prey] });
+  assert.equal(c.state, State.IDLE);
+  assert.equal(c.stats.get('hunts'), 0);
+  assert.equal(c.needs.values.health, 100);
+});
+
+test('une proie trop rapide pour l’animal lui échappe au bout du délai', () => {
+  const { c, surfaces } = hunterOf({ walkSpeed: 5, huntDuration: 2 });
+  const prey = restingPrey(surfaces, 'mouse', 900);
+  const seen = huntRun(c, surfaces, [prey], 5);
+  assert.ok(seen.has(State.IDLE), 'il a abandonné la poursuite');
+  assert.ok(!prey.consumed);
+  assert.equal(c.stats.get('hunts'), 0);
+});
+
+test('un animal non autonome ne chasse pas ; rassasié non plus', () => {
+  const dependent = hunterOf({ autonomyMode: 'off' });
+  const p1 = restingPrey(dependent.surfaces, 'mouse', 300);
+  assert.ok(!huntRun(dependent.c, dependent.surfaces, [p1], 3).has(State.HUNT));
+
+  const full = hunterOf({ walkWeight: 77 });
+  full.c.needs.values.satiety = 100;
+  const p2 = restingPrey(full.surfaces, 'mouse', 300);
+  assert.ok(!huntRun(full.c, full.surfaces, [p2], 3).has(State.HUNT));
+});
+
+test('une espèce ne chasse que ses proies', () => {
+  const { c, surfaces } = hunterOf({ needsPrey: { beetle: 30 } });
+  const prey = restingPrey(surfaces, 'mouse', 300);
+  assert.ok(!huntRun(c, surfaces, [prey], 3).has(State.HUNT));
+});
+
+test('un poisson autonome chasse le krill flottant en 2D', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), needsRateScale: 0, autonomyMode: 'full', needsPrey: { krill: 25 },
+      supportedSurfaces: new Set([Locomotion.WATER]), swimSpeed: 200, swimWaveAmplitude: 0,
+    },
+    { x: 100, y: 300 },
+  );
+  c._startRoam(State.SWIM);
+  c.needs.values.satiety = 10;
+  const krill = createItem('prey', 'krill', 700, 150);
+  krill.targetX = 700;
+  krill.targetY = 150;
+  krill.wanderTimer = 1e9;
+  krill.caught = false;
+  const seen = huntRun(c, surfaces, [krill], 30, () => krill.consumed || krill.caught);
+  assert.ok(seen.has(State.HUNT));
+  assert.ok(krill.caught || krill.consumed);
+});
+
+test('grignoter une plante : autonomes seulement, une portion, compte les grignotages', () => {
+  const { c, surfaces } = hunterOf({ needsPrey: {} });
+  const grass = createItem('plant', 'grass', 300, 500);
+  grass.surface = surfaces.segments.find((s) => s.type === 'ground');
+  const seen = huntRun(c, surfaces, [grass], 30, () => grass.portions < 3 && c.state === State.IDLE);
+  assert.ok(seen.has(State.SEEK_FOOD) && seen.has(State.EAT));
+  assert.equal(grass.portions, 2);
+  assert.equal(c.stats.get('grazes'), 1);
+
+  const dependent = hunterOf({ autonomyMode: 'off', needsPrey: {} });
+  const plant = createItem('plant', 'grass', 300, 500);
+  plant.surface = dependent.surfaces.segments.find((s) => s.type === 'ground');
+  assert.ok(!huntRun(dependent.c, dependent.surfaces, [plant], 3).has(State.SEEK_FOOD));
+});
+
+test('nourriture moisie : un animal non autonome tombe malade, un autonome l’évite', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const moldyBowl = () => {
+    const bowl = createItem('bowl', 'kibble', 250, 500);
+    bowl.surface = surfaces.segments.find((s) => s.type === 'ground');
+    fillBowl(bowl, 'kibble');
+    bowl.fillAge = 24 * 3600 + 10;
+    return bowl;
+  };
+
+  const dependent = hunterOf({ autonomyMode: 'off', needsPrey: {}, foodWeight: 1000 });
+  const bowl = moldyBowl();
+  huntRun(dependent.c, dependent.surfaces, [bowl], 30, (snap) => snap.event === 'sick');
+  assert.equal(dependent.c.needs.values.health, 80);
+  assert.equal(bowl.portions, 4);
+
+  const autonomous = hunterOf({ needsPrey: {}, foodWeight: 1000 });
+  const bowl2 = moldyBowl();
+  const seen = huntRun(autonomous.c, autonomous.surfaces, [bowl2], 5);
+  assert.ok(!seen.has(State.EAT));
+  assert.equal(autonomous.c.needs.values.health, 100);
+});
+
+test('autonomie : besoins ralentis, et pas d’hibernation', () => {
+  const { c, surfaces } = hunterOf({ needsRateScale: 1, needsPrey: {} });
+  c.state = State.IDLE;
+  c.stateTimer = 1e9;
+  c.needs.values.satiety = 80;
+  c.tick(3600, surfaces, { worldBounds: monitor });
+  assert.equal(c.snapshot().autonomy, 1);
+  assert.ok(80 - c.needs.values.satiety < 5 * 0.25 + 0.01, `perte ${80 - c.needs.values.satiety}`);
+
+  c.setAutonomyMode('off');
+  c.tick(1, surfaces, { worldBounds: monitor });
+  assert.equal(c.snapshot().autonomy, 0);
 });

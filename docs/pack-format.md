@@ -85,14 +85,15 @@ packs/<species-id>/
     "seekFood": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
     "play":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.08, "loop": true },
     "brushed":  { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5,  "loop": true },
-    "remind":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.08, "loop": true }
+    "remind":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.08, "loop": true },
+    "hunt":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
   // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js),
   // sauf les allures rapides qui retombent d'abord sur leur allure normale :
   // "run" et "seekFood" -> "walk", "swimFast" -> "swim", "flyFast" et "dive"
   // -> "fly", "eat" -> "idle", "play" -> "run" puis "walk", "brushed" ->
-  // "wash" puis "idle", "remind" -> "follow" puis "walk".
+  // "wash" puis "idle", "remind" -> "follow" puis "walk", "hunt" -> "run" puis "walk".
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
   // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
@@ -129,7 +130,10 @@ Section optionnelle pour régler la vitesse à laquelle chaque besoin baisse
 ```
 
 `diet` : aliments que l'espèce mange (`meat`, `fish`, `kibble`, `seeds`,
-`plankton`) et gain de satiété de chacun ; un aliment absent est ignoré.
+`plankton`) et plantes qu'elle grignote (`grass`, `berries`, `leaf`, `algae`),
+avec le gain de satiété de chacun ; un aliment absent est ignoré. `prey` : proies
+qu'elle chasse (`mouse`, `beetle`, `aphid`, `krill`) et gain de satiété par
+proie (voir `docs/autonomy.md`).
 
 ## Apparence et stades (`appearance`, `stages`)
 

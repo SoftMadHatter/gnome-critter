@@ -2,6 +2,7 @@
 // GNOME : le Manager les possède et les avance à chaque tick, les critters
 // les lisent (et les consomment) via `options.items`.
 
+import { PREY, PREY_TTL, movePreyOnSurface, movePreyFloating } from './prey.js';
 import {
   findSurfaceBelow, findSegmentById, isOnSegment, isInsideAnyMonitor, respawnPoint,
 } from './surfaceMap.js';
@@ -15,6 +16,15 @@ export const FOODS = Object.freeze({
   seeds: { ttl: 900 },
   plankton: { ttl: 600, floats: true },
 });
+
+/** Plantes décoratives à grignoter : elles repoussent, ne disparaissent jamais (l'algue flotte). */
+export const PLANTS = Object.freeze({ grass: {}, berries: {}, leaf: {}, algae: { floats: true } });
+export const PLANT_MAX_PORTIONS = 3;
+const PLANT_REGROW_SECONDS = 300;
+
+/** Nourriture de gamelle : moisie après 24 h, disparaît 6 h plus tard. */
+export const BOWL_MOLD_SECONDS = 24 * 3600;
+export const BOWL_VANISH_SECONDS = 6 * 3600;
 
 /** Jouets : la balle roule et rebondit, la peluche reste posée. */
 export const TOYS = Object.freeze({ ball: {}, plush: {} });
@@ -30,7 +40,7 @@ export function pickGift(random) {
 
 const GIFT_TTL = 1800;
 
-export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift']);
+export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift', 'plant', 'prey']);
 
 export const BOWL_CAPACITY = 5;
 
@@ -51,6 +61,8 @@ let nextId = 1;
 export function createItem(type, kind, x, y) {
   const food = type === 'food' ? FOODS[kind] : null;
   const gift = type === 'gift';
+  const plant = type === 'plant' ? PLANTS[kind] : null;
+  const prey = type === 'prey' ? PREY[kind] : null;
   return {
     id: nextId++,
     type,
@@ -60,9 +72,13 @@ export function createItem(type, kind, x, y) {
     vx: 0, // vitesse horizontale (balle qui roule, objet lancé)
     vy: 0,
     surface: null, // segment sur lequel l'objet repose, une fois posé
-    floating: Boolean(food?.floats),
-    portions: 0, // gamelle uniquement
-    ttl: food ? food.ttl : gift ? GIFT_TTL : Infinity,
+    floating: Boolean(food?.floats || plant?.floats || prey?.floats),
+    portions: plant ? PLANT_MAX_PORTIONS : 0, // gamelle et plante
+    fillAge: 0, // gamelle : secondes depuis le dernier remplissage (moisissure)
+    regrow: 0, // plante : secondes vers la prochaine repousse
+    dir: 1, // proie : sens de marche
+    caught: false, // proie attrapée par un animal : figée
+    ttl: food ? food.ttl : gift ? GIFT_TTL : prey ? PREY_TTL : Infinity,
     collected: false, // cadeau ramassé par le joueur (le Manager crédite les pièces)
     consumed: false, // mangée ou expirée : à retirer
     removed: false, // retirée par le joueur : à retirer
@@ -75,12 +91,18 @@ export function fillBowl(bowl, kind, portions = BOWL_CAPACITY) {
   if (bowl.type !== 'bowl' || !FOODS[kind]) return;
   if (bowl.kind !== kind) bowl.portions = 0; // on ne mélange pas deux aliments
   bowl.kind = kind;
+  bowl.fillAge = 0; // nourriture fraîche
   bowl.portions = Math.min(BOWL_CAPACITY, bowl.portions + portions);
 }
 
 /** Vrai quand le Manager doit retirer l'objet. */
 export function isGone(item) {
-  return item.removed || ((item.type === 'food' || item.type === 'gift') && item.consumed);
+  return item.removed || ((item.type === 'food' || item.type === 'gift' || item.type === 'prey') && item.consumed);
+}
+
+/** Nourriture de gamelle moisie (rend malade). */
+export function isMoldy(item) {
+  return item.type === 'bowl' && item.portions > 0 && item.fillAge >= BOWL_MOLD_SECONDS;
 }
 
 /**
@@ -89,14 +111,34 @@ export function isGone(item) {
  * @param {ReturnType<typeof createItem>} item
  * @param {number} dt
  * @param {{segments: object[]}} surfaces
+
  * @param {{y:number, height:number}} [worldBounds]
+ * @param {{threats?: object[], random?: () => number}} [ctx] menaces (animaux, curseur) et hasard pour les proies
  */
-export function tickItem(item, dt, surfaces, worldBounds) {
-  if ((item.type === 'food' || item.type === 'gift') && Number.isFinite(item.ttl)) {
+export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
+  if ((item.type === 'food' || item.type === 'gift' || item.type === 'prey') && Number.isFinite(item.ttl)) {
     item.ttl -= dt;
     if (item.ttl <= 0) item.consumed = true;
   }
-  if (item.grabbed || item.floating) return;
+  if (item.type === 'plant' && item.portions < PLANT_MAX_PORTIONS) {
+    item.regrow += dt;
+    if (item.regrow >= PLANT_REGROW_SECONDS) {
+      item.regrow = 0;
+      item.portions += 1;
+    }
+  }
+  if (item.type === 'bowl' && item.portions > 0) {
+    item.fillAge += dt;
+    if (item.fillAge >= BOWL_MOLD_SECONDS + BOWL_VANISH_SECONDS) {
+      item.portions = 0; // la nourriture moisie disparaît
+      item.fillAge = 0;
+    }
+  }
+  if (item.grabbed || item.caught) return;
+  if (item.floating) {
+    if (item.type === 'prey' && worldBounds && worldBounds.width !== undefined) movePreyFloating(item, dt, worldBounds, ctx);
+    return;
+  }
 
   const isBall = item.type === 'toy' && item.kind === 'ball';
   const segments = surfaces.segments ?? [];
@@ -112,6 +154,7 @@ export function tickItem(item, dt, surfaces, worldBounds) {
     if (fresh && isOnSegment(fresh, item.x, item.y, 4)) {
       item.surface = fresh;
       item.y = fresh.y;
+      if (item.type === 'prey') movePreyOnSurface(item, dt, fresh, ctx);
       return;
     }
     item.surface = null; // fenêtre partie, ou bord dépassé : il tombe (avec son élan)
@@ -211,13 +254,14 @@ export function toysFor(items, { x, surfaceId, canFly }) {
  *   self : le critter demandeur (ses propres réclamations restent valables).
  * @returns {{item: object, gain: number}[]}
  */
-export function edibleFor(items, diet, { x, surfaceId, canFly, floating, self }) {
+export function edibleFor(items, diet, { x, surfaceId, canFly, floating, self, avoidMold = false }) {
   const found = [];
   for (const item of items) {
-    if (item.type === 'bed' || item.consumed || item.removed || item.grabbed) continue;
+    if (item.type === 'bed' || item.type === 'prey' || item.consumed || item.removed || item.grabbed) continue;
     const gain = diet[item.kind];
     if (!(gain > 0)) continue;
-    if (item.type === 'bowl' && item.portions <= 0) continue;
+    if ((item.type === 'bowl' || item.type === 'plant') && item.portions <= 0) continue;
+    if (avoidMold && isMoldy(item)) continue;
     if (item.claimedBy && item.claimedBy !== self) continue;
     if (item.floating !== floating) continue;
     if (!floating) {
@@ -229,11 +273,16 @@ export function edibleFor(items, diet, { x, surfaceId, canFly, floating, self })
   return found.sort((a, b) => Math.abs(a.item.x - x) - Math.abs(b.item.x - x));
 }
 
-/** Une portion en moins (gamelle) ou l'objet mangé. */
+/**
+ * Une portion en moins (gamelle, plante) ou l'objet mangé.
+ * @returns {{sick: boolean}} sick : la nourriture était moisie
+ */
 export function consume(item) {
-  if (item.type === 'bowl') item.portions = Math.max(0, item.portions - 1);
+  const sick = isMoldy(item);
+  if (item.type === 'bowl' || item.type === 'plant') item.portions = Math.max(0, item.portions - 1);
   else item.consumed = true;
   item.claimedBy = null;
+  return { sick };
 }
 
 /** Lits posés sur `surfaceId`, du plus proche au plus loin. */
@@ -250,13 +299,14 @@ export function serializeItems(items) {
   return JSON.stringify({
     version: SAVE_VERSION,
     items: items
-      .filter((i) => !isGone(i) && !i.grabbed)
+      .filter((i) => !isGone(i) && !i.grabbed && i.type !== 'prey') // les proies sont éphémères
       .map((i) => ({
         type: i.type,
         kind: i.kind,
         x: Math.round(i.x),
         y: Math.round(i.y),
         portions: i.portions,
+        fillAge: Math.round(i.fillAge ?? 0),
         ttl: Number.isFinite(i.ttl) ? Math.round(i.ttl) : null,
       })),
   });
@@ -277,12 +327,20 @@ export function parseSavedItems(text, { bounds }) {
 
   const result = [];
   for (const raw of data.items) {
-    if (!raw || !ITEM_TYPES.includes(raw.type) || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) continue;
-    if (raw.type === 'gift' ? !GIFTS[raw.kind] : raw.type === 'toy' ? !TOYS[raw.kind] : raw.type !== 'bed' && !FOODS[raw.kind]) continue;
+    if (!raw || !ITEM_TYPES.includes(raw.type) || raw.type === 'prey' || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) continue;
+    const validKind =
+      raw.type === 'gift' ? GIFTS[raw.kind] : raw.type === 'toy' ? TOYS[raw.kind] : raw.type === 'plant' ? PLANTS[raw.kind] : raw.type === 'bed' ? true : FOODS[raw.kind];
+    if (!validKind) continue;
     const item = createItem(raw.type, raw.kind, 0, 0);
     item.x = Math.min(Math.max(raw.x, bounds.x), bounds.x + bounds.width);
     item.y = Math.min(Math.max(raw.y, bounds.y), bounds.y + bounds.height);
-    if (item.type === 'bowl') item.portions = Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), BOWL_CAPACITY) : 0;
+    if (item.type === 'bowl') {
+      item.portions = Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), BOWL_CAPACITY) : 0;
+      item.fillAge = Number.isFinite(raw.fillAge) && raw.fillAge >= 0 ? raw.fillAge : 0;
+    }
+    if (item.type === 'plant') {
+      item.portions = Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), PLANT_MAX_PORTIONS) : PLANT_MAX_PORTIONS;
+    }
     if (item.type === 'food' || item.type === 'gift') {
       if (Number.isFinite(raw.ttl) && raw.ttl <= 0) continue;
       if (Number.isFinite(raw.ttl)) item.ttl = Math.min(raw.ttl, item.ttl);

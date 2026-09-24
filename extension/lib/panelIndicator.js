@@ -147,6 +147,8 @@ export const CritterIndicator = GObject.registerClass(
         }
       }
       section.addAction('Poser un lit', () => this._owner.dropBed());
+      if (this._owner.preyKinds().length > 0) section.addAction('Lâcher une proie', () => this._owner.dropPrey());
+      if (this._owner.plantKinds().length > 0) section.addAction('Poser une plante', () => this._owner.dropPlant());
       const toys = expandableRow(section, 'Poser un jouet');
       for (const [kind, label] of Object.entries(TOY_LABELS)) {
         toys.section.addAction(label, () => this._owner.dropToy(kind));

@@ -4,6 +4,9 @@ hors Pillow).
 
 - extension/assets/bubbles/ : six icônes de bulles de pensée 12x12, affichées
   en x2 au plus proche voisin (une bulle ronde avec l'icône du besoin).
+- extension/assets/items/ contient aussi les proies (deux frames de marche :
+  `mouse_0.png`, `mouse_1.png`...), les plantes (`grass_0..3.png`, un état par
+  nombre de portions restantes) et la gamelle moisie.
 - extension/assets/accessories/ : accessoires 16x16 (chapeaux, nœud, lunettes,
   couronne), posés sur la tête de l'animal ; le bas de l'image est le point
   d'ancrage.
@@ -328,8 +331,92 @@ ACCESSORY_SPRITES = {
 }
 
 
+PREY_SPRITES = {}
+
+
+def _prey(name, w, h, draw):
+    for frame in (0, 1):
+        img, d = canvas(w, h)
+        draw(d, frame)
+        PREY_SPRITES[f"{name}_{frame}"] = (lambda i=img: outline(i, (50, 40, 40, 255)))
+
+
+def _mouse(d, f):
+    d.ellipse((2, 3, 11, 8), fill=(150, 150, 165, 255))
+    d.ellipse((10, 4, 14, 8), fill=(170, 170, 185, 255))
+    d.point((13, 5), fill=(30, 30, 40, 255))
+    d.rectangle((9, 2, 10, 3), fill=(230, 150, 170, 255))
+    d.line((0, 6, 2, 5 + f), fill=(220, 160, 170, 255))
+    d.line((4, 8, 4 + f, 9), fill=(110, 110, 125, 255))
+    d.line((8, 8, 8 - f, 9), fill=(110, 110, 125, 255))
+
+
+def _beetle(d, f):
+    d.ellipse((1, 1, 8, 6), fill=(110, 70, 40, 255))
+    d.line((4, 2, 4, 5), fill=(70, 40, 20, 255))
+    d.line((2, 6, 2 + f, 7), fill=(50, 30, 20, 255))
+    d.line((6, 6, 6 - f, 7), fill=(50, 30, 20, 255))
+
+
+def _aphid(d, f):
+    d.ellipse((0, 0, 4, 3), fill=(120, 200, 100, 255))
+    d.point((1 + f, 4), fill=(50, 90, 40, 255))
+
+
+def _krill(d, f):
+    d.ellipse((1, 1, 6, 4), fill=(240, 150, 150, 255))
+    d.line((0, 2 + f, 1, 2), fill=(220, 110, 120, 255))
+    d.point((5, 2), fill=(40, 20, 30, 255))
+
+
+_prey("mouse", 16, 10, _mouse)
+_prey("beetle", 10, 8, _beetle)
+_prey("aphid", 6, 5, _aphid)
+_prey("krill", 8, 6, _krill)
+
+PLANT_SPRITES = {}
+
+
+def _plant(kind, portions):
+    img, d = canvas(16, 14)
+    xs = [3, 8, 12][: max(portions, 0)]
+    if kind == "grass":
+        d.line((2, 13, 13, 13), fill=(90, 60, 30, 255))
+        for x in xs or [8]:
+            h = 9 if xs else 3
+            d.line((x, 13, x - 1, 13 - h), fill=(70, 170, 70, 255))
+            d.line((x, 13, x + 1, 12 - h), fill=(100, 200, 90, 255))
+    elif kind == "berries":
+        d.ellipse((2, 5, 13, 13), fill=(60, 140, 70, 255) if xs else (90, 110, 70, 255))
+        for x in xs:
+            d.rectangle((x, 7 + (x % 3), x + 1, 8 + (x % 3)), fill=(220, 50, 70, 255))
+    elif kind == "leaf":
+        d.line((8, 13, 8, 10), fill=(60, 110, 50, 255))
+        for i, x in enumerate(xs or [8]):
+            d.ellipse((x - 3, 3 + i * 2 if xs else 8, x + 3, 9 + i * 2 if xs else 11), fill=(80, 180, 80, 255))
+    else:  # algue
+        for x in xs or [8]:
+            for y in range(13, 2 if xs else 9, -1):
+                d.point((x + (1 if y % 4 < 2 else -1), y), fill=(60, 170, 120, 255))
+    return outline(img, (30, 80, 50, 255))
+
+
+for _kind in ("grass", "berries", "leaf", "algae"):
+    for _n in range(4):
+        PLANT_SPRITES[f"{_kind}_{_n}"] = (lambda k=_kind, n=_n: _plant(k, n))
+
+
+def bowl_moldy():
+    img = bowl(True)
+    d = ImageDraw.Draw(img)
+    for x, y in ((6, 3), (10, 3), (14, 4), (9, 5), (17, 4)):
+        d.rectangle((x, y, x + 2, y + 1), fill=(120, 190, 130, 255))
+    return img
+
+
 ITEMS = {
     "ball": ball, "plush": plush, "laser": laser, "coin": coin, "flower": flower, "feather": feather,
+    "bowl_moldy": bowl_moldy, **PREY_SPRITES, **PLANT_SPRITES,
     "meat": meat, "fish": fish, "kibble": kibble, "seeds": seeds, "plankton": plankton,
     "bowl_empty": lambda: bowl(False), "bowl_full": lambda: bowl(True), "bed": bed,
 }

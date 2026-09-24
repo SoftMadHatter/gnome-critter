@@ -18,6 +18,7 @@ import { Life, stagesOverrides } from '../core/life.js';
 import { isNight, BreakTracker, IdleTracker } from '../core/rhythm.js';
 import { Player } from '../core/player.js';
 import { tricksOverrides } from '../core/tricks.js';
+import { PreySpawner, pickSpawnPoint, PREY, FLEE_ANIMAL_RADIUS, FLEE_POINTER_RADIUS } from '../core/prey.js';
 import { namesOverrides, pickName, sanitizeName, uniqueName } from '../core/names.js';
 import { anchorsOverrides, shopList, equippable, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
 import { achievementsOverrides, isEligible } from '../core/achievements.js';
@@ -25,7 +26,7 @@ import { CONDITION_STATS } from '../core/stats.js';
 import { STAGE_LABELS } from './lifeLabels.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
-  createItem, fillBowl, tickItem, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
+  createItem, fillBowl, tickItem, PLANTS, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
@@ -61,6 +62,8 @@ export class Manager {
     this._itemImages = {};
     this._lastSavedItems = null;
     this._eggSheet = null;
+    this._preySpawner = new PreySpawner();
+    this._plantTimer = 0;
     this._player = new Player();
     this._achievements = [];
     this._lastSavedPlayer = null;
@@ -161,6 +164,8 @@ export class Manager {
           ...behavior.config,
           needsRates: needs.rates,
           needsDiet: needs.diet,
+          needsPrey: needs.prey,
+          autonomyMode: this.settings.get_string('autonomy'),
           lifeAgeScale: this._lifeAgeScale(),
           achievements: this._achievements,
           tricks: tricks.list,
@@ -210,6 +215,7 @@ export class Manager {
     for (const key of ['vacation-mode', 'growth-enabled', 'growth-speed']) {
       this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyLifeAgeScale()));
     }
+    this._settingsIds.push(this.settings.connect('changed::autonomy', () => this._applyAutonomy()));
     this._settingsIds.push(this.settings.connect('changed::show-indicator', () => this._syncIndicator()));
     this._syncIndicator();
 
@@ -358,6 +364,47 @@ export class Manager {
     }
   }
 
+  /** Espèces de proies chassées par l'animal affiché (section `needs.prey` du pack). */
+  _preyKinds() {
+    return Object.keys(this._critters[0]?.critter.config.needsPrey ?? {});
+  }
+
+  /** Plantes que l'espèce grignote (son régime, restreint aux plantes connues). */
+  _plantKinds() {
+    return Object.keys(this._critters[0]?.critter.config.needsDiet ?? {}).filter((kind) => PLANTS[kind]);
+  }
+
+  /**
+   * Proies et plantes d'un monde autonome : une proie apparaît de temps en
+   * temps (si le réglage est actif et qu'un animal est assez autonome), et
+   * deux plantes sont maintenues. Les objets tombent depuis une surface.
+   */
+  _autonomyTick(dt, surfaces, worldBounds) {
+    const maxAutonomy = this._critters.reduce((m, { critter }) => Math.max(m, critter.autonomy), 0);
+    const preyKinds = this._preyKinds();
+    const preyCount = this._items.filter(({ item }) => item.type === 'prey' && !item.removed && !item.consumed).length;
+    const spawn = this._preySpawner.advance(dt, {
+      count: preyCount,
+      enabled: this.settings.get_boolean('prey-spawn') && maxAutonomy > 0.3 && preyKinds.length > 0,
+    });
+    if (spawn) {
+      const kind = preyKinds[Math.floor(Math.random() * preyKinds.length)];
+      const point = pickSpawnPoint(surfaces, Math.random, { floating: PREY[kind].floats, bounds: worldBounds });
+      if (point) this._addItem(createItem('prey', kind, point.x, point.y));
+    }
+
+    this._plantTimer += dt;
+    if (this._plantTimer < 5) return;
+    this._plantTimer = 0;
+    const plantKinds = this._plantKinds();
+    const plants = this._items.filter(({ item }) => item.type === 'plant' && !item.removed).length;
+    if (this.settings.get_boolean('decor-plants') && maxAutonomy > 0 && plantKinds.length > 0 && plants < 2) {
+      const kind = plantKinds[0];
+      const point = pickSpawnPoint(surfaces, Math.random, { floating: PLANTS[kind].floats, bounds: worldBounds });
+      if (point) this._addItem(createItem('plant', kind, point.x, point.y));
+    }
+  }
+
   /** Contexte du monde vu par un animal : nuit, absence, rappel de pause (le sien seulement). */
   _ambientFor(critter) {
     return {
@@ -377,6 +424,11 @@ export class Manager {
   _lifeAgeScale() {
     if (this.settings.get_boolean('vacation-mode') || !this.settings.get_boolean('growth-enabled')) return 0;
     return this.settings.get_double('growth-speed');
+  }
+
+  _applyAutonomy() {
+    const mode = this.settings.get_string('autonomy');
+    for (const { critter } of this._critters) critter.setAutonomyMode(mode);
   }
 
   _applyLifeAgeScale() {
@@ -436,6 +488,10 @@ export class Manager {
       dropBed: (critter) => this._dropNear('bed', null, critter),
       dropToy: (kind, critter) => this._dropNear('toy', kind, critter),
       brush: (critter) => critter.brush(),
+      preyKinds: () => this._preyKinds(),
+      plantKinds: () => this._plantKinds(),
+      dropPrey: (kind) => this._dropNear('prey', kind ?? this._preyKinds()[0], null),
+      dropPlant: (kind) => this._dropNear('plant', kind ?? this._plantKinds()[0], null),
       wake: (critter) => critter.wake(),
       setLaser: (on) => this.setLaser(on),
       isLaser: () => this._laser,
@@ -623,11 +679,19 @@ export class Manager {
       .filter(({ critter }) => critter.life.stage !== 'egg')
       .map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
 
+    // Menaces des proies : les animaux (hors œufs) et le curseur.
+    const threats = [
+      ...this._critters
+        .filter(({ critter }) => critter.life.stage !== 'egg')
+        .map(({ critter }) => ({ x: critter.x, y: critter.y, radius: FLEE_ANIMAL_RADIUS })),
+      { x: pointer.x, y: pointer.y, radius: FLEE_POINTER_RADIUS },
+    ];
     for (const { item, actor } of this._items) {
       rescueItem(item, monitors);
-      tickItem(item, dt, surfaces, worldBounds);
+      tickItem(item, dt, surfaces, worldBounds, { threats, random: Math.random });
       actor.sync();
     }
+    this._autonomyTick(dt, surfaces, worldBounds);
     this._removeGoneItems();
     const items = this._items.map(({ item }) => item);
     this._laserDot?.update(pointer, this._laser);

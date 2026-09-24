@@ -28,6 +28,7 @@ const ANIMATION_FALLBACKS = {
   brushed: ['wash', 'idle'],
   hibernate: ['sleep', 'idle'],
   remind: ['follow', 'walk'],
+  hunt: ['run', 'walk'],
   gift: ['follow', 'walk'],
   trick_sit: ['idle'],
   trick_roll: ['play', 'run', 'walk'],

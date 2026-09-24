@@ -10,7 +10,8 @@
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "walk": 30, "fly": 110 },
   "needs": {
-    "diet": { "seeds": 45, "kibble": 20 }
+    "diet": { "seeds": 45, "kibble": 20, "berries": 12 },
+    "prey": { "beetle": 30 }
   },
   "behavior": { "flyWeight": 35, "flyFastWeight": 12, "sleepDuration": [30, 180], "flyDuration": [3, 7], "napSeekMaxDistance": 800, "playWeight": 20 },
   "achievements": [
@@ -43,6 +44,13 @@
       "description": "Faire 20 siestes",
       "condition": { "stat": "naps", "atLeast": 20 },
       "coins": 10
+    },
+    {
+      "id": "bug-hunter",
+      "name": "Chasseur d'insectes",
+      "description": "Attraper 20 proies",
+      "condition": { "stat": "hunts", "atLeast": 20 },
+      "coins": 15
     }
   ],
   "anchors": {
@@ -51,7 +59,24 @@
   "tricks": [
     "flip"
   ],
-  "names": ["Piaf", "Plume", "Azur", "Pépin", "Colibri", "Zéphyr", "Trille", "Ciel", "Bleuet", "Mésange", "Gazou", "Léger", "Ondine", "Pinson", "Vent", "Éclair"],
+  "names": [
+    "Piaf",
+    "Plume",
+    "Azur",
+    "Pépin",
+    "Colibri",
+    "Zéphyr",
+    "Trille",
+    "Ciel",
+    "Bleuet",
+    "Mésange",
+    "Gazou",
+    "Léger",
+    "Ondine",
+    "Pinson",
+    "Vent",
+    "Éclair"
+  ],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },
@@ -70,6 +95,7 @@
     "flyFast": { "file": "sprites/fly.png", "frames": 6, "frameDuration": 0.045, "loop": true },
     "dive": { "file": "sprites/dive.png", "frames": 2, "frameDuration": 0.1, "loop": true },
     "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.15, "loop": true },
+    "hunt": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.06, "loop": true },
     "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true },
     "trick_flip": { "file": "sprites/trick_flip.png", "frames": 6, "frameDuration": 0.1, "loop": true }
   },
