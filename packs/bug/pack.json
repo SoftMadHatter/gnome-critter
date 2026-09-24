@@ -126,5 +126,6 @@
     "baby": { "scale": 1, "folder": "sprites/baby" },
     "young": { "scale": 1, "folder": "sprites/young" },
     "senior": { "scale": 1, "folder": "sprites/senior" }
-  }
+  },
+  "smooth": true
 }

@@ -113,6 +113,7 @@ export function loadVariantSheet(path) {
  * @returns {{
  *   meta: object,
  *   spriteSize: {width:number, height:number},
+ *   smooth: boolean,
  *   supportedSurfaces: Set<string>,
  *   speeds: object,
  *   behavior: object,
@@ -207,6 +208,7 @@ export function loadPack(packDirPath) {
   return {
     meta,
     spriteSize: meta.spriteSize ?? { width: 32, height: 32 },
+    smooth: meta.smooth === true,
     supportedSurfaces: new Set(meta.supportedSurfaces ?? ['ground']),
     speeds: meta.speeds ?? {},
     behavior: meta.behavior ?? {},

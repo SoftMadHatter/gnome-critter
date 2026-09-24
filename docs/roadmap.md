@@ -224,7 +224,7 @@ silhouette de jeune, adulte, senior (pelage grisonnant, posture voûtée),
 œuf propre à chaque espèce. Format `stages` de `pack.json` étendu pour
 désigner les feuilles par stade, avec repli sur la mise à l'échelle.
 
-## 13. Rendu moins pixellisé
+## 13. Rendu moins pixellisé — ✅ fait
 
 Sortir de l'aspect « gros pixels » : résolution de dessin plus fine (sprites
 64 px ou plus pour un affichage identique), lissage adapté au HiDPI,
@@ -232,6 +232,13 @@ ombrage plus riche, contours plus doux. À trancher au moment de planifier :
 garder un style pixel-art plus détaillé, ou passer à un rendu vectoriel/lissé.
 Impacte le générateur de sprites, le chargeur de packs et le filtre
 d'affichage.
+
+Livré (créatures seulement) : style hybride. Feuilles des 4 espèces en 64 px
+(`spriteSize` inchangé), formes tracées à 256 px puis réduites (bords lissés),
+ombrage en dégradé, contour doux, yeux et marques fins ; `"smooth": true` dans
+`pack.json` fait lisser la réduction par l'extension. Objets, accessoires et
+bulles restent en pixel-art (étape 14). Corrigé au passage : le chat était vert
+(constantes de la chenille qui écrasaient celles du chat).
 
 ## 14. Objets : visuels et variations
 

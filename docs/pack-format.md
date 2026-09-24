@@ -1,4 +1,4 @@
-# Format d'un pack d'animal (pixel-art)
+# Format d'un pack d'animal
 
 Un pack décrit une espèce : ses sprites, ses animations, ce qu'elle sait
 faire (marcher au sol, grimper aux murs, marcher au plafond, nager, voler)
@@ -34,6 +34,9 @@ packs/<species-id>/
   // Taille d'affichage à l'écran, en pixels logiques (avant mise à l'échelle
   // HiDPI). Libre : l'insecte (packs/bug) utilise 16x16.
   "spriteSize": { "width": 32, "height": 32 },
+  // Optionnel (défaut false) : feuilles plus fines que spriteSize, réduction lissée
+  // au lieu du plus proche voisin.
+  "smooth": true,
 
   // Vitesses en px/s, reprises telles quelles par core/critter.js.
   "speeds": {
@@ -158,9 +161,11 @@ Liste optionnelle de prénoms tirés à la naissance (au moins 8, voir
 
 Chaque fichier PNG référencé est une seule ligne de `frames` images carrées
 sans marge entre les frames. La taille d'une case est la hauteur du PNG : elle
-doit être un multiple entier de `spriteSize` (les packs cat/bug/fish/bird
-dessinent en 32x32 ; l'insecte est affiché à 16 px, sa feuille est donc
-réduite). L'affichage se fait au plus proche voisin (pas de flou). C'est le format le plus simple
+doit être un multiple entier de `spriteSize`. Les packs cat/bug/fish/bird
+dessinent en 64x64 pour un affichage à 32 px (l'insecte à 16 px) : ils
+déclarent `"smooth": true`, et l'extension réduit alors la feuille avec un
+filtre lisse (net en HiDPI). Sans `smooth` (cas de `critter-demo`, en 32x32),
+l'affichage se fait au plus proche voisin, sans flou. C'est le format le plus simple
 à découper côté extension (un `Clutter.Image` par frame, généré une fois au
 chargement du pack puis mis en cache).
 
@@ -236,7 +241,7 @@ insecte et poisson, à partir de recettes de poses par état.
 Leurs sons sont des placeholders générés par
 `scripts/gen_placeholder_sounds.py`. Les sprites de `critter-demo` viennent de
 `scripts/gen_placeholder_sprites.py` ; ceux de cat/bug/fish/bird de
-`scripts/gen_species_sprites.py` (dessin 32x32 avec contour automatique), qui
+`scripts/gen_species_sprites.py` (dessin fin sur-échantillonné, feuilles 64x64, contour doux automatique), qui
 réécrit aussi les sections `animations` et `reactions` de leur `pack.json`
 (une espèce en argument pour n'en régénérer qu'une). Ces packs ont des
 feuilles dédiées pour la plupart des états (grimper, plafond, course, fuite,

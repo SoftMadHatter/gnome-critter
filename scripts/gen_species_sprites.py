@@ -2,12 +2,14 @@
 """Génère les spritesheets (et le câblage animations/réactions des pack.json)
 des espèces cat, bug, fish et bird.
 
-Dessin sur une vraie grille 32x32 : ombrage à trois tons, contour 1 px
-calculé automatiquement autour de la silhouette, poses partagées entre
-espèces (marche, course, salut, réactions...). Les feuilles sont carrées, une
-ligne de frames par fichier ; l'affichage à l'écran reste réglé par
-`spriteSize` dans pack.json (l'insecte est affiché à 16 px : sa feuille 32 px
-est réduite au plus proche voisin).
+Les recettes de poses dessinent sur une grille logique 32x32, mais le rendu
+est fin : formes tracées en haute résolution (256 px) puis réduites à 64 px
+(bords lissés), ombrage en dégradé, contour doux calculé autour de la
+silhouette, détails (yeux, marques) tracés finement. Poses partagées entre
+espèces (marche, course, salut, réactions...). Les feuilles sont carrées (64 px),
+une ligne de frames par fichier ; l'affichage à l'écran reste réglé par
+`spriteSize` dans pack.json (32 px, l'insecte 16 px : la feuille est réduite
+par le filtre linéaire de l'extension).
 
 Le pack `critter-demo` reste géré par gen_placeholder_sprites.py.
 
@@ -21,9 +23,13 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 
-G = 32
+G = 32  # grille logique des recettes de dessin
+R = 64  # côté d'une frame de sortie
+S = R // G
+K = 8  # facteur haute résolution par unité de grille (256 px de travail)
+OUTLINE_RADIUS = 5  # épaisseur du contour, en pixels haute résolution
 PACKS_DIR = Path(__file__).resolve().parent.parent / "packs"
 
 WHITE = (255, 255, 255, 255)
@@ -37,44 +43,113 @@ def c(r, g, b):
 # --- outils de dessin -----------------------------------------------------------
 
 
+def _flat(coords):
+    """Accepte [(x, y), ...] ou (x0, y0, x1, y1, ...) et rend une liste de (x, y)."""
+    coords = list(coords)
+    if coords and isinstance(coords[0], (tuple, list)):
+        return [(float(x), float(y)) for x, y in coords]
+    return [(float(coords[i]), float(coords[i + 1])) for i in range(0, len(coords), 2)]
+
+
+class Canvas:
+    """Toile haute résolution avec l'API de dessin en coordonnées de grille 32x32.
+
+    Même sémantique de pixels qu'ImageDraw (bornes incluses, centres de pixels),
+    mais chaque forme est tracée à K fois la résolution ; `finish` ajoute le
+    contour et réduit à R px, ce qui lisse les bords."""
+
+    def __init__(self):
+        self.img = Image.new("RGBA", (G * K, G * K), (0, 0, 0, 0))
+        self._d = ImageDraw.Draw(self.img)
+
+    # formes à la grille (semantique ImageDraw : bornes incluses)
+    def _box(self, box):
+        x0, y0, x1, y1 = box
+        return (x0 * K, y0 * K, (x1 + 1) * K - 1, (y1 + 1) * K - 1)
+
+    def _pts(self, coords):
+        return [((x + 0.5) * K, (y + 0.5) * K) for x, y in _flat(coords)]
+
+    def ellipse(self, box, fill):
+        self._d.ellipse(self._box(box), fill=fill)
+
+    def rectangle(self, box, fill):
+        self._d.rectangle(self._box(box), fill=fill)
+
+    def polygon(self, coords, fill):
+        self._d.polygon(self._pts(coords), fill=fill)
+
+    def line(self, coords, fill, width=1):
+        pts = self._pts(coords)
+        self._d.line(pts, fill=fill, width=max(1, round(width * K)), joint="curve")
+        for x, y in (pts[0], pts[-1]):  # bouts arrondis
+            r = width * K / 2
+            self._d.ellipse((x - r, y - r, x + r, y + r), fill=fill)
+
+    def point(self, xy, fill):
+        x, y = xy
+        self._d.ellipse((x * K, y * K, (x + 1) * K - 1, (y + 1) * K - 1), fill=fill)
+
+    # formes continues (coordonnées fractionnaires de la grille), pour les détails fins
+    def oval(self, x0, y0, x1, y1, fill):
+        self._d.ellipse((x0 * K, y0 * K, x1 * K, y1 * K), fill=fill)
+
+    def stroke(self, pts, width, fill):
+        pts = [(x * K, y * K) for x, y in pts]
+        self._d.line(pts, fill=fill, width=max(1, round(width * K)), joint="curve")
+        r = width * K / 2
+        for x, y in (pts[0], pts[-1]):
+            self._d.ellipse((x - r, y - r, x + r, y + r), fill=fill)
+
+    def blob(self, box, base, dark, light):
+        """Ellipse ombrée en dégradé : ombre en bas, reflet doux en haut à gauche."""
+        x0, y0, x1, y1 = box
+        w, h = x1 - x0, y1 - y0
+        outer = self._box(box)
+        mask = Image.new("L", self.img.size, 0)
+        ImageDraw.Draw(mask).ellipse(outer, fill=255)
+        layer = Image.new("RGBA", self.img.size, dark)
+
+        def tone(ellipse, color, blur, strength=255):
+            m = Image.new("L", self.img.size, 0)
+            ImageDraw.Draw(m).ellipse(ellipse, fill=strength)
+            m = m.filter(ImageFilter.GaussianBlur(blur))
+            layer.paste(Image.new("RGBA", self.img.size, color), (0, 0), m)
+
+        tone(self._box((x0, y0, x1 - max(1, w // 8), y1 - max(1, h // 5))), base, K * 0.9)
+        tone(self._box((x0 + w * 0.2, y0 + h * 0.12, x0 + w * 0.48, y0 + h * 0.36)), light, K * 1.1, 230)
+        layer.putalpha(mask)
+        self.img.alpha_composite(layer)
+
+    def rotate(self, angle, center):
+        self.img = self.img.rotate(angle, resample=Image.BICUBIC, center=((center[0] + 0.5) * K, (center[1] + 0.5) * K))
+        self._d = ImageDraw.Draw(self.img)
+
+    def finish(self, outline_color):
+        """Contour doux autour de la silhouette, puis réduction à R px."""
+        mask = self.img.getchannel("A").point(lambda a: 255 if a > 64 else 0)
+        ring = ImageChops.subtract(mask.filter(ImageFilter.MaxFilter(2 * OUTLINE_RADIUS + 1)), mask)
+        out = Image.new("RGBA", self.img.size, outline_color[:3] + (0,))
+        out.putalpha(ring)
+        out.alpha_composite(self.img)
+        return out.resize((R, R), Image.BOX)
+
+
 def new_canvas():
-    img = Image.new("RGBA", (G, G), (0, 0, 0, 0))
-    return img, ImageDraw.Draw(img)
-
-
-def outline(img, color):
-    """Contour 1 px sur les pixels transparents adjacents à la silhouette."""
-    px = img.load()
-    marks = []
-    for y in range(G):
-        for x in range(G):
-            if px[x, y][3] != 0:
-                continue
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < G and 0 <= ny < G and px[nx, ny][3] > 0:
-                    marks.append((x, y))
-                    break
-    for m in marks:
-        px[m] = color
+    canvas = Canvas()
+    return canvas, canvas
 
 
 def blob(d, box, base, dark, light):
-    """Ellipse à trois tons : ombre en bas, reflet en haut à gauche."""
-    x0, y0, x1, y1 = box
-    w, h = x1 - x0, y1 - y0
-    d.ellipse(box, fill=dark)
-    d.ellipse((x0, y0, x1 - max(1, w // 8), y1 - max(1, h // 5)), fill=base)
-    d.ellipse(
-        (x0 + w * 0.2, y0 + h * 0.12, x0 + w * 0.48, y0 + h * 0.36), fill=light
-    )
+    d.blob(box, base, dark, light)
 
 
 def px_pattern(d, rows, x, y, color):
+    """Motif de pastilles : les cases voisines fusionnent en une forme lisse."""
     for j, row in enumerate(rows):
         for i, ch in enumerate(row):
             if ch == "X":
-                d.point((x + i, y + j), fill=color)
+                d.oval(x + i - 0.15, y + j - 0.15, x + i + 1.15, y + j + 1.15, color)
 
 
 MARKS = {
@@ -103,7 +178,7 @@ CONFETTI = [(1, 1, c(240, 80, 90)), (4, 0, c(80, 180, 240)), (7, 2, c(250, 210, 
 def mark(d, kind, x, y):
     if kind == "confetti":
         for dx, dy, color in CONFETTI:
-            d.rectangle((x + dx, y + dy, x + dx + 1, y + dy + 1), fill=color)
+            d.oval(x + dx, y + dy, x + dx + 2, y + dy + 2, color)
     elif kind:
         px_pattern(d, MARKS[kind], x, y, MARK_COLORS[kind])
 
@@ -112,25 +187,25 @@ def carry_item(d, x, y):
     """Petit cadeau tenu dans la gueule ou le bec."""
     d.rectangle((x, y, x + 3, y + 3), fill=c(245, 200, 60))
     d.rectangle((x + 1, y + 1, x + 2, y + 2), fill=c(250, 235, 150))
-    d.point((x + 3, y), fill=c(230, 70, 90))
+    d.oval(x + 2.6, y - 0.4, x + 4.2, y + 1.2, c(230, 70, 90))  # petit nœud
 
 
 def eye(d, x, y, kind):
+    """Œil fin : ovale, reflet, paupières en arcs lissés."""
     if kind == "open":
-        d.rectangle((x, y, x + 1, y + 1), fill=INK)
-        d.point((x, y), fill=WHITE)
+        d.oval(x + 0.1, y - 0.3, x + 2.0, y + 2.2, INK)
+        d.oval(x + 0.35, y - 0.1, x + 0.95, y + 0.55, WHITE)
     elif kind in ("closed", "blink"):
-        d.line((x - 1, y + 1, x + 1, y + 1), fill=INK)
+        d.stroke([(x - 0.5, y + 1.4), (x + 1, y + 1.85), (x + 2.5, y + 1.4)], 0.8, INK)
     elif kind == "happy":
-        d.point((x - 1, y + 1), fill=INK)
-        d.point((x, y), fill=INK)
-        d.point((x + 1, y + 1), fill=INK)
+        d.stroke([(x - 0.5, y + 2), (x + 1, y + 0.5), (x + 2.5, y + 2)], 0.9, INK)
     elif kind == "wide":
-        d.rectangle((x - 1, y - 1, x + 1, y + 1), fill=WHITE)
-        d.point((x, y), fill=INK)
+        d.oval(x - 1.3, y - 1.3, x + 3.1, y + 3.1, INK)
+        d.oval(x - 0.9, y - 0.9, x + 2.7, y + 2.7, WHITE)
+        d.oval(x + 0.3, y + 0.2, x + 1.7, y + 1.9, INK)
     elif kind == "angry":
-        d.rectangle((x, y, x + 1, y + 1), fill=INK)
-        d.line((x - 1, y - 2, x + 2, y - 1), fill=INK)
+        d.oval(x + 0.1, y - 0.1, x + 2.0, y + 2.1, INK)
+        d.stroke([(x - 1, y - 1.8), (x + 2.6, y - 0.6)], 0.9, INK)
 
 
 def pose(**kw):
@@ -387,12 +462,12 @@ def draw_bug_climb(img, d, p):
 
 
 # Larve : la chenille du bébé insecte, mêmes poses (donc mêmes déplacements) que l'adulte.
-CAT_BASE = c(150, 214, 96)
-CAT_DARK = c(84, 150, 72)
-CAT_LIGHT = c(214, 242, 150)
-CAT_HEAD = c(236, 170, 70)
-CAT_HEAD_DARK = c(190, 118, 44)
-CAT_HEAD_LIGHT = c(250, 214, 130)
+LARVA_BASE = c(150, 214, 96)
+LARVA_DARK = c(84, 150, 72)
+LARVA_LIGHT = c(214, 242, 150)
+LARVA_HEAD = c(236, 170, 70)
+LARVA_HEAD_DARK = c(190, 118, 44)
+LARVA_HEAD_LIGHT = c(250, 214, 130)
 
 
 def draw_caterpillar(img, d, p):
@@ -414,12 +489,12 @@ def draw_caterpillar(img, d, p):
             d.point((x, bottom + 1 if lifts[i] == 0 else bottom), fill=BUG_LEG)
     for i, x in enumerate(xs):
         top = bottom - height - lifts[i]
-        blob(d, (x - 3, top, x + 3, bottom - lifts[i]), CAT_BASE, CAT_DARK, CAT_LIGHT)
+        blob(d, (x - 3, top, x + 3, bottom - lifts[i]), LARVA_BASE, LARVA_DARK, LARVA_LIGHT)
         if i % 2 == 1:
-            d.line((x, top + 1, x, bottom - lifts[i] - 1), fill=CAT_DARK)
+            d.line((x, top + 1, x, bottom - lifts[i] - 1), fill=LARVA_DARK)
     h = p.head
     top = bottom - height - 1 + h
-    blob(d, (22, top, 30, bottom), CAT_HEAD, CAT_HEAD_DARK, CAT_HEAD_LIGHT)
+    blob(d, (22, top, 30, bottom), LARVA_HEAD, LARVA_HEAD_DARK, LARVA_HEAD_LIGHT)
     eye(d, 27, top + 3, "open" if p.eyes == "blink" else p.eyes)
     if p.carry:
         carry_item(d, 29, top + 5)
@@ -438,8 +513,8 @@ def draw_caterpillar_climb(img, d, p):
         dx = round(2 * math.sin(2 * math.pi * t))
         d.line((11 + dx, y + b, 8 + dx, y + b + 1), fill=BUG_LEG)
         d.line((21 + dx, y + b, 24 + dx, y + b + 1), fill=BUG_LEG)
-        blob(d, (12 + dx, y - 3 + b, 20 + dx, y + 3 + b), CAT_BASE, CAT_DARK, CAT_LIGHT)
-    blob(d, (12, -1 + b, 20, 5 + b), CAT_HEAD, CAT_HEAD_DARK, CAT_HEAD_LIGHT)
+        blob(d, (12 + dx, y - 3 + b, 20 + dx, y + 3 + b), LARVA_BASE, LARVA_DARK, LARVA_LIGHT)
+    blob(d, (12, -1 + b, 20, 5 + b), LARVA_HEAD, LARVA_HEAD_DARK, LARVA_HEAD_LIGHT)
     d.point((14, 3 + b), fill=INK)
     d.point((18, 3 + b), fill=INK)
 
@@ -700,9 +775,8 @@ def egg_frame(style, out, tilt=0, cracked=False):
         for (x0, y0), (x1, y1) in (((13, 8), (15, 11)), ((15, 11), (14, 14)), ((14, 14), (18, 16))):
             d.line((x0, y0, x1, y1), fill=INK)
     if tilt:
-        img = img.rotate(tilt, resample=Image.NEAREST, center=(16, 28))
-    outline(img, out)
-    return img
+        img.rotate(tilt, (16, 28))
+    return img.finish(out)
 
 
 def species_egg(species, out):
@@ -713,8 +787,8 @@ def species_egg(species, out):
 
 # --- stades de croissance : bébé, jeune, senior ------------------------------------
 
-# Abscisse (grille 32) qui sépare le corps de la tête, sprite tourné vers la droite.
-HEAD_SPLIT = {"cat": 17, "bird": 15, "bug": 21, "fish": 21}
+# Abscisse (pixels de sortie) qui sépare le corps de la tête, sprite tourné vers la droite.
+HEAD_SPLIT = {"cat": 17 * S, "bird": 15 * S, "bug": 21 * S, "fish": 21 * S}
 
 # body/head : facteurs d'échelle du corps et de la tête (bébé : grosse tête, petit corps) ;
 # uniform : réduction des feuilles pivotées ; lighten : éclaircissement ; gray : fondu vers un gris clair (poil grisonnant).
@@ -734,12 +808,13 @@ def tint_stage(frame, split, cfg):
     """Éclaircit et/ou grisonne les pixels clairs (les contours sombres restent intacts)."""
     img = frame.copy()
     px = img.load()
-    for y in range(G):
-        for x in range(G):
+    for y in range(R):
+        for x in range(R):
             r, g, b, a = px[x, y]
             if a == 0 or 0.3 * r + 0.59 * g + 0.11 * b < 70:
                 continue
-            gray = cfg["head_gray"] if x >= split else cfg["body_gray"]
+            t = min(1.0, max(0.0, (x - (split - 3 * S)) / (6 * S)))  # transition douce corps -> tête
+            gray = cfg["body_gray"] + (cfg["head_gray"] - cfg["body_gray"]) * t
             color = (r, g, b)
             if gray:
                 color = _mix(color, GRAY_HAIR, gray)
@@ -753,7 +828,7 @@ def _scaled(img, factor):
     if factor == 1:
         return img
     w, h = img.size
-    return img.resize((max(1, round(w * factor)), max(1, round(h * factor))), Image.NEAREST)
+    return img.resize((max(1, round(w * factor)), max(1, round(h * factor))), Image.LANCZOS)
 
 
 def uniform_stage(frame, factor, bbox):
@@ -761,32 +836,32 @@ def uniform_stage(frame, factor, bbox):
     if factor == 1:
         return frame
     content = _scaled(frame.crop(bbox), factor)
-    out = Image.new("RGBA", (G, G), (0, 0, 0, 0))
+    out = Image.new("RGBA", (R, R), (0, 0, 0, 0))
     cx = (bbox[0] + bbox[2]) // 2
-    out.paste(content, (min(max(cx - content.width // 2, 0), G - content.width), bbox[3] - content.height), content)
+    out.paste(content, (min(max(cx - content.width // 2, 0), R - content.width), bbox[3] - content.height), content)
     return out
 
 
 def morph_stage(frame, split, body, head, bbox):
     """Coupe corps/tête, les met chacun à son échelle, les rejoint : proportions différentes du même animal."""
-    left, right = frame.crop((0, 0, split, G)), frame.crop((split, 0, G, G))
+    left, right = frame.crop((0, 0, split, R)), frame.crop((split, 0, R, R))
     lb0, rb0 = left.getbbox(), right.getbbox()
     if lb0 is None or rb0 is None or (body == 1 and head == 1):
         return frame
     left_s, right_s = _scaled(left, body), _scaled(right, head)
     lb, rb = left_s.getbbox(), right_s.getbbox()
     feet = bbox[3]
-    canvas = Image.new("RGBA", (G * 2, G * 2), (0, 0, 0, 0))
-    off = G // 2
+    canvas = Image.new("RGBA", (R * 2, R * 2), (0, 0, 0, 0))
+    off = R // 2
     left_y = feet - lb[3]
     canvas.paste(left_s, (off, left_y + off), left_s)
     head_bottom = feet - round((feet - rb0[3]) * body)
-    right_x = lb[2] - 1 - rb[0]
+    right_x = lb[2] - S - rb[0]
     canvas.paste(right_s, (right_x + off, head_bottom - rb[3] + off), right_s)
     bb = canvas.getbbox()
     shift = (bbox[0] + bbox[2]) // 2 - (bb[0] + bb[2]) // 2
-    out = Image.new("RGBA", (G, G), (0, 0, 0, 0))
-    out.paste(canvas, (shift - 0, -off), canvas)
+    out = Image.new("RGBA", (R, R), (0, 0, 0, 0))
+    out.paste(canvas, (shift, -off), canvas)
     return out
 
 
@@ -836,9 +911,8 @@ def render(spec, p):
         for x in range(4, 28, 4):
             d.line((x, 21, x, 30), fill=c(70, 100, 170))
     if p.rot:
-        img = img.rotate(p.rot, resample=Image.NEAREST, center=(G / 2, G - 2 if p.pivot is None else p.pivot))
-    outline(img, spec["out"])
-    return img
+        img.rotate(p.rot, (G / 2, G - 2 if p.pivot is None else p.pivot))
+    return img.finish(spec["out"])
 
 
 def build_sheets(spec, species):
@@ -852,9 +926,9 @@ def build_sheets(spec, species):
 
 
 def save_sheet(path, frames):
-    sheet = Image.new("RGBA", (G * len(frames), G), (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (R * len(frames), R), (0, 0, 0, 0))
     for i, f in enumerate(frames):
-        sheet.paste(f, (i * G, 0))
+        sheet.paste(f, (i * R, 0))
     sheet.save(path)
 
 
@@ -893,6 +967,7 @@ def write_species(name):
         if sound:
             reactions[react]["sound"] = f"sounds/{sound}.wav"
         used.add(sheet)
+    meta["smooth"] = True  # dessin fin : l'extension lisse la réduction 64 -> spriteSize
     meta["animations"] = animations
     meta["reactions"] = reactions
 

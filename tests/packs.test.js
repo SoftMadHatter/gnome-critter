@@ -78,6 +78,9 @@ for (const id of packIds) {
         `${name} : hauteur ${height} pas multiple de spriteSize ${(meta.spriteSize?.height ?? 32)}`,
       );
       assert.ok(Number.isInteger(cells), `${name} : largeur ${width} pas multiple de la hauteur ${height}`);
+      if (meta.smooth) {
+        assert.ok(height > (meta.spriteSize?.height ?? 32), `${name} : pack "smooth" mais feuille de ${height}px, pas plus fine que spriteSize`);
+      }
       assert.ok(def.frames <= cells, `${name} : ${def.frames} frames demandées, ${cells} disponibles`);
     }
   });
