@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 6 terminées, étapes 7 et 8 à tester ; l'ancienne étape 8 — vol/nage — avait été
+à 6 terminées, étapes 7 à 9 à tester ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -136,12 +136,18 @@ trois tons, contour automatique, 6 frames de marche/vol/nage), feuilles
 dédiées par état (grimper, plafond, course, fuite, salut) et par réaction
 pour cat/bug/fish/bird. Reste à vérifier visuellement avec `scripts/dev.sh`.
 
-## 9. Persistance de l'état
+## 9. Persistance de l'état — 🧪 à tester
 
 Position, humeur, etc. qui survivent à un redémarrage de GNOME Shell.
 Aujourd'hui tout repart de zéro à chaque activation de l'extension. Prérequis
 technique isolé, dont le seul vrai consommateur est le tamagotchi
 (étape 10) : humeur/croissance qui doivent survivre dans le temps.
+
+Livré : `core/persistence.js` (JSON versionné, lecture tolérante),
+`Critter.serialize()`/`restore()` (position + orientation, reprise en
+`FALL` ; l'objet `extra` est réservé au tamagotchi), clé GSettings cachée
+`saved-state` écrite toutes les 30 s et à la désactivation, restaurée si le
+pack est le même. Reste à vérifier avec `scripts/dev.sh`.
 
 ## 10. Mode tamagotchi
 

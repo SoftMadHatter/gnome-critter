@@ -12,10 +12,12 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // l'arborescence source telle quelle : on développe toujours via
 // `scripts/build.sh --link`, qui reconstruit dist/<uuid>/ à chaque appel.
 import { Critter, Locomotion, behaviorOverrides } from '../core/critter.js';
+import { serializeCritters, parseSavedState } from '../core/persistence.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
 
+const SAVE_INTERVAL_S = 30;
 const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
 
 export class Manager {
@@ -29,6 +31,8 @@ export class Manager {
     /** @type {{critter: Critter, actor: CritterActor}[]} */
     this._critters = [];
     this._timeoutId = null;
+    this._saveTimeoutId = null;
+    this._lastSavedState = null;
     this._lastTickUs = null;
     /** @type {Set<number>|null} null tant que le premier tick n'a pas eu
      * lieu, pour ne jamais réagir aux fenêtres déjà ouvertes au démarrage. */
@@ -53,6 +57,11 @@ export class Manager {
         `Scamper: pack "${this.pack.meta.id}", clés "behavior" ignorées : ${behavior.ignored.join(', ')}`,
       );
     }
+
+    const saved = parseSavedState(this.settings.get_string('saved-state'), {
+      packId: this.pack.meta.id,
+      bounds,
+    });
 
     for (let i = 0; i < count; i++) {
       const startX = bounds.x + bounds.width * (0.3 + 0.1 * i);
@@ -80,6 +89,8 @@ export class Manager {
         { x: startX, y: startY },
       );
 
+      if (saved[i]) critter.restore(saved[i]);
+
       const actor = new CritterActor(critter, this.pack, this.settings);
       // GNOME 50 (layout.js) : addChrome() inclut automatiquement l'acteur
       // dans la région d'input selon sa taille/position/visibilité ; le
@@ -98,9 +109,27 @@ export class Manager {
       this._tick();
       return GLib.SOURCE_CONTINUE;
     });
+    this._saveTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, SAVE_INTERVAL_S, () => {
+      this._saveState();
+      return GLib.SOURCE_CONTINUE;
+    });
+  }
+
+  _saveState() {
+    const json = serializeCritters(
+      this.pack.meta.id,
+      this._critters.map(({ critter }) => critter),
+    );
+    if (json === this._lastSavedState) return;
+    this._lastSavedState = json;
+    this.settings.set_string('saved-state', json);
   }
 
   stop() {
+    if (this._saveTimeoutId) {
+      GLib.source_remove(this._saveTimeoutId);
+      this._saveTimeoutId = null;
+    }
     if (this._timeoutId) {
       GLib.source_remove(this._timeoutId);
       this._timeoutId = null;
@@ -108,6 +137,7 @@ export class Manager {
   }
 
   destroy() {
+    if (this._critters.length > 0) this._saveState();
     this.stop();
     for (const { actor } of this._critters) {
       Main.layoutManager.removeChrome(actor.actor);

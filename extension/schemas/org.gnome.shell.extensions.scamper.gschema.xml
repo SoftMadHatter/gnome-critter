@@ -15,5 +15,10 @@
       <default>true</default>
       <summary>Active les effets sonores des réactions</summary>
     </key>
+    <key name="saved-state" type="s">
+      <default>''</default>
+      <summary>État sauvegardé des animaux (interne)</summary>
+      <description>JSON écrit par l'extension : positions à restaurer au prochain démarrage. Ne pas modifier à la main.</description>
+    </key>
   </schema>
 </schemalist>

@@ -108,3 +108,15 @@ etc.) y apparaissent avec leur stack trace.
 Pour valider un comportement dépendant fortement de l'environnement réel
 (plusieurs moniteurs physiques, vrai multi-fenêtrage), retester
 ponctuellement dans la vraie session (déconnexion/reconnexion classique).
+
+## Sauvegarde de l'état
+
+Les positions des critters sont sauvegardées dans la clé GSettings cachée
+`saved-state` (toutes les 30 s et à la désactivation). Pour l'inspecter ou
+repartir de zéro :
+
+```bash
+SCHEMAS=dist/desktop-critter@beedi.xyz/schemas
+gsettings --schemadir "$SCHEMAS" get org.gnome.shell.extensions.scamper saved-state
+gsettings --schemadir "$SCHEMAS" reset org.gnome.shell.extensions.scamper saved-state
+```

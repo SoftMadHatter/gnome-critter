@@ -204,6 +204,21 @@ export class Critter {
     this._pendingEvent = null;
   }
 
+  /** Point d'extension de la persistance : tout ce qui doit survivre à un
+   * redémarrage (le tamagotchi y ajoutera humeur, faim...) va dans `extra`. */
+  serialize() {
+    return { x: Math.round(this.x), y: Math.round(this.y), facing: this.facing, extra: {} };
+  }
+
+  /** Repart en chute depuis la position sauvée : les surfaces ayant pu
+   * changer, on se repose sur ce qui se trouve dessous. */
+  restore(saved) {
+    this.x = saved.x;
+    this.y = saved.y;
+    this.facing = saved.facing;
+    this._enterState(State.FALL);
+  }
+
   supports(locomotion) {
     return this.config.supportedSurfaces.has(locomotion);
   }
