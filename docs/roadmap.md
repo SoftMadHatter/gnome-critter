@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 6 terminées, étapes 7 à 9 à tester ; l'ancienne étape 8 — vol/nage — avait été
+à 9 terminées ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -14,7 +14,7 @@ double-clic, clic droit, survol, etc., avec les réactions pack
 correspondantes. C'est la brique la plus rapide et la plus fondatrice — le
 pipeline existe déjà (`pack.reactionFrames`, `Critter.lastEvent`), il ne
 fait que jouer `petted`. Sert de base à quasiment tout le reste (le
-tamagotchi aura besoin d'une interaction "nourrir", le mode IA aura besoin
+mode compagnon aura besoin d'une interaction "nourrir", le mode IA aura besoin
 de déclencheurs).
 
 Livré : `tickled`/`annoyed`/`noticed` en plus de `petted`, via
@@ -120,10 +120,9 @@ générés par script. Deux prérequis ajoutés en chemin : une section
 (`behaviorOverrides()`, clés filtrées), et le fait qu'une espèce sans sol
 (le poisson) ne se pose jamais et enchaîne ses nages. Les préférences
 proposent une liste déroulante des packs, et `tests/packs.test.js` valide
-automatiquement chaque pack. 95/95 tests verts ; reste à vérifier en
-conditions réelles avec chaque animal (`scripts/dev.sh`).
+automatiquement chaque pack. Testé en conditions réelles avec chaque animal.
 
-## 8. Rendu sprites amélioré — 🧪 à tester
+## 8. Rendu sprites amélioré — ✅ fait
 
 Polish visuel (pixel-art plus abouti, animations plus fluides) une fois la
 liste d'états et d'animaux stabilisée par les étapes précédentes — éviter
@@ -134,22 +133,22 @@ Livré : rendu au plus proche voisin (`set_content_scaling_filters`),
 sprites dessinés en 32x32 par `scripts/gen_species_sprites.py` (ombrage à
 trois tons, contour automatique, 6 frames de marche/vol/nage), feuilles
 dédiées par état (grimper, plafond, course, fuite, salut) et par réaction
-pour cat/bug/fish/bird. Reste à vérifier visuellement avec `scripts/dev.sh`.
+pour cat/bug/fish/bird.
 
-## 9. Persistance de l'état — 🧪 à tester
+## 9. Persistance de l'état — ✅ fait
 
 Position, humeur, etc. qui survivent à un redémarrage de GNOME Shell.
 Aujourd'hui tout repart de zéro à chaque activation de l'extension. Prérequis
-technique isolé, dont le seul vrai consommateur est le tamagotchi
+technique isolé, dont le seul vrai consommateur est le mode compagnon
 (étape 10) : humeur/croissance qui doivent survivre dans le temps.
 
 Livré : `core/persistence.js` (JSON versionné, lecture tolérante),
 `Critter.serialize()`/`restore()` (position + orientation, reprise en
-`FALL` ; l'objet `extra` est réservé au tamagotchi), clé GSettings cachée
+`FALL` ; l'objet `extra` est réservé au mode compagnon), clé GSettings cachée
 `saved-state` écrite toutes les 30 s et à la désactivation, restaurée si le
-pack est le même. Reste à vérifier avec `scripts/dev.sh`.
+pack est le même.
 
-## 10. Mode tamagotchi
+## 10. Mode compagnon
 
 S'occuper de l'animal, le faire grandir, gérer ses besoins. Le morceau le
 plus gros : capstone qui s'appuie sur les interactions/besoins des étapes

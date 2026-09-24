@@ -205,7 +205,7 @@ export class Critter {
   }
 
   /** Point d'extension de la persistance : tout ce qui doit survivre à un
-   * redémarrage (le tamagotchi y ajoutera humeur, faim...) va dans `extra`. */
+   * redémarrage (le mode compagnon y ajoutera humeur, faim...) va dans `extra`. */
   serialize() {
     return { x: Math.round(this.x), y: Math.round(this.y), facing: this.facing, extra: {} };
   }
