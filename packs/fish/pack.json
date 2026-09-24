@@ -44,6 +44,7 @@
   "tricks": [
     "flip"
   ],
+  "names": ["Bulle", "Nemo", "Écume", "Coraille", "Onde", "Poisson d'or", "Filet", "Nageoire", "Goutte", "Marée", "Perlette", "Vagabond", "Ondin", "Flocon", "Sirène", "Ricochet"],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.4, "loop": true },
     "swim": { "file": "sprites/swim.png", "frames": 6, "frameDuration": 0.12, "loop": true },

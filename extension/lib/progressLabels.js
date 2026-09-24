@@ -36,3 +36,8 @@ export function formatJournalDate(ms) {
   const two = (n) => String(n).padStart(2, '0');
   return `${two(d.getDate())}/${two(d.getMonth() + 1)} ${two(d.getHours())}:${two(d.getMinutes())}`;
 }
+
+/** Remplace chaque lettre ou chiffre par un bloc : le texte devient illisible mais garde sa forme (succès non débloqués). */
+export function maskText(text) {
+  return text.replace(/[\p{L}\p{N}]/gu, '▒');
+}

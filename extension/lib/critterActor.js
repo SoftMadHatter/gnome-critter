@@ -10,6 +10,7 @@ import { State } from '../core/critter.js';
 import { ThoughtBubble } from './thoughtBubble.js';
 import { CritterMenu } from './critterMenu.js';
 import { AccessoryActor } from './accessoryActor.js';
+import { NameTag } from './nameTag.js';
 
 const DRAG_BEGIN_THRESHOLD_PX = 4;
 const EGG_FRAME_SECONDS = 0.6;
@@ -60,6 +61,7 @@ export class CritterActor {
     this._night = false;
     this._nightEffect = null;
     this._accessory = null;
+    this._nameTag = new NameTag();
     this._bubble = Object.keys(bubbleIcons).length > 0 ? new ThoughtBubble(bubbleIcons) : null;
     this._menu = menuOwner ? new CritterMenu(critter, pack, menuOwner) : null;
 
@@ -80,6 +82,11 @@ export class CritterActor {
 
     this.actor.connect('enter-event', () => {
       this.critter.interact('hover');
+      this._nameTag.setHover(true);
+      return Clutter.EVENT_PROPAGATE;
+    });
+    this.actor.connect('leave-event', () => {
+      this._nameTag.setHover(false);
       return Clutter.EVENT_PROPAGATE;
     });
 
@@ -227,6 +234,22 @@ export class CritterActor {
     this._updateSprite(dt, snapshot);
     this._updateBubble(snapshot);
     this._updateAccessory(snapshot);
+    this._updateNameTag(dt, snapshot);
+  }
+
+  _updateNameTag(dt, snapshot) {
+    const size = this._displaySize();
+    this._nameTag.update(
+      dt,
+      snapshot.name,
+      {
+        x: this.critter.x - size.width / 2,
+        y: snapshot.state === State.CEILING ? this.critter.y : this.critter.y - size.height,
+        width: size.width,
+        height: size.height,
+      },
+      this.actor.visible && snapshot.stage !== 'egg',
+    );
   }
 
   _updateBubble(snapshot) {
@@ -347,6 +370,7 @@ export class CritterActor {
     this._menu = null;
     this._accessory?.destroy();
     this._accessory = null;
+    this._nameTag.destroy();
     if (this._grab) {
       this._grab.dismiss();
       this._grab = null;

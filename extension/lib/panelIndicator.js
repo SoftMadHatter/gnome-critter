@@ -1,17 +1,20 @@
-// Icône dans la barre supérieure : humeur des animaux d'un coup d'oeil, et
-// menu avec leurs jauges, le mode vacances et l'action « Nourrir ».
+// Icône dans la barre supérieure : humeur des animaux d'un coup d'oeil, et un
+// menu court organisé en « fiche + actions rapides » :
+//   sélecteur d'animal (s'il y en a plusieurs), fiche (nom, jauges),
+//   quatre boutons d'action rapide, puis des rangées repliables (Plus…,
+//   Bureau…, Pièces) et « Réglages… ».
 
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
-import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { foodLabel, TOY_LABELS } from './itemActor.js';
+import { buildCritterActions } from './critterActions.js';
 import { lifeSummary } from './lifeLabels.js';
-import { STAT_LABELS, statValue, formatJournalDate } from './progressLabels.js';
+import { buttonRow, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
 
 const GAUGES = [
   ['satiety', 'Satiété'],
@@ -22,14 +25,7 @@ const GAUGES = [
   ['health', 'Santé'],
 ];
 
-const BAR_WIDTH = 120;
 const REFRESH_SECONDS = 2;
-
-function barColor(value) {
-  if (value >= 60) return '#57c785';
-  if (value >= 30) return '#e5c14b';
-  return '#e05a5a';
-}
 
 function moodIcon(mood) {
   if (mood >= 65) return 'face-smile-symbolic';
@@ -40,31 +36,35 @@ function moodIcon(mood) {
 export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
-     * @param {{getCritters: () => import('../core/critter.js').Critter[], title: string, foods: () => string[], dropFood: Function, fillBowl: Function, dropBed: Function, dropToy: Function, shopList: Function, buyAccessory: Function, setLaser: Function, isLaser: Function, hasToys: Function, clearToys: Function, clearItems: Function}} owner
+     * @param {object} owner API du Manager : getCritters, getPlayer, achievementsFor, shopList, buyAccessory, foods,
+     *   dropFood, fillBowl, dropBed, dropToy, setLaser, isLaser, hasToys, clearToys, clearItems, openSettings, pet,
+     *   quickFeed, et les actions d'un animal (rename, brush, train, perform, equip, equippable, wake)
      * @param {Gio.Settings} settings
      */
     _init(owner, settings) {
       super._init(0.5, 'Scamper');
       this._owner = owner;
       this._settings = settings;
-      this._rows = []; // [{critter, bars: {gauge: {fill, rest, value}}}]
+      this._selected = 0;
+      this._actions = null;
+      this._sections = [];
 
       this._icon = new St.Icon({ icon_name: 'face-smile-symbolic', style_class: 'system-status-icon' });
       this.add_child(this._icon);
 
       this._buildMenu();
-      this._rebuildProgress();
+      this._rebuildCritterSection();
 
       this._settingsId = settings.connect('changed::vacation-mode', () => {
         this._vacation.setToggleState(settings.get_boolean('vacation-mode'));
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
-        if (open) {
-          this._laser.setToggleState(this._owner.isLaser());
-          this._tidy.setSensitive(this._owner.hasToys());
-          this._rebuildProgress();
-          this.refresh();
-        }
+        if (!open) return;
+        this._laser.setToggleState(this._owner.isLaser());
+        this._tidy.setSensitive(this._owner.hasToys());
+        this._actions.refresh();
+        this._rebuildProgress();
+        this.refresh();
       });
       this._timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REFRESH_SECONDS, () => {
         this.refresh();
@@ -73,143 +73,157 @@ export const CritterIndicator = GObject.registerClass(
       this.refresh();
     }
 
+    _critters() {
+      return this._owner.getCritters();
+    }
+
+    _critter() {
+      const critters = this._critters();
+      return critters[Math.min(this._selected, critters.length - 1)];
+    }
+
     _buildMenu() {
-      this._coins = new PopupMenu.PopupMenuItem('', { reactive: false, can_focus: false });
-      this.menu.addMenuItem(this._coins);
-      const critters = this._owner.getCritters();
-      critters.forEach((critter, index) => {
-        const title = critters.length > 1 ? `${this._owner.title} ${index + 1}` : this._owner.title;
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(title));
-        const summary = new PopupMenu.PopupMenuItem('', { reactive: false, can_focus: false });
-        this.menu.addMenuItem(summary);
+      const critters = this._critters();
 
-        const bars = {};
-        for (const [gauge, label] of GAUGES) {
-          const item = new PopupMenu.PopupBaseMenuItem({ reactive: false, can_focus: false });
-          item.add_child(new St.Label({ text: label, x_expand: true, y_align: Clutter.ActorAlign.CENTER }));
+      // Sélecteur d'animal (un seul animal : pas de sélecteur).
+      this._selector = null;
+      if (critters.length > 1) {
+        this._selector = buttonRow(
+          critters.map((critter, index) => ({ label: critter.name ?? `#${index + 1}`, onClick: () => this._select(index) })),
+        );
+        this.menu.addMenuItem(this._selector.item);
+      }
 
-          const box = new St.BoxLayout({ width: BAR_WIDTH, y_align: Clutter.ActorAlign.CENTER });
-          const fill = new St.Widget({ height: 8, style: 'border-radius: 4px;' });
-          const rest = new St.Widget({ height: 8, style: 'background-color: rgba(128,128,128,0.3); border-radius: 4px;' });
-          box.add_child(fill);
-          box.add_child(rest);
-          item.add_child(box);
-          this.menu.addMenuItem(item);
-          bars[gauge] = { fill, rest };
-        }
-        const achievements = new PopupMenu.PopupSubMenuMenuItem('Succès');
-        const stats = new PopupMenu.PopupSubMenuMenuItem('Statistiques');
-        this.menu.addMenuItem(achievements);
-        this.menu.addMenuItem(stats);
-        this._rows.push({ critter, bars, summary, achievements, stats });
-      });
+      // Fiche : nom, état, jauges sur deux colonnes.
+      this._title = new St.Label({ text: '', style: 'font-weight: bold;' });
+      this.menu.addMenuItem(staticItem(this._title));
+      this._gauges = {};
+      for (let i = 0; i < GAUGES.length; i += 2) {
+        const cells = GAUGES.slice(i, i + 2).map(([key, label]) => {
+          const cell = gaugeCell(label);
+          this._gauges[key] = cell;
+          return cell;
+        });
+        this.menu.addMenuItem(gaugeRow(cells[0], cells[1]));
+      }
 
-      this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-      this._shop = new PopupMenu.PopupSubMenuMenuItem('Boutique');
-      this.menu.addMenuItem(this._shop);
-      this._journal = new PopupMenu.PopupSubMenuMenuItem('Journal');
-      this.menu.addMenuItem(this._journal);
-      this._vacation = new PopupMenu.PopupSwitchMenuItem(
-        'Mode vacances',
-        this._settings.get_boolean('vacation-mode'),
-      );
+      // Actions rapides : elles ne referment pas le menu, on peut les enchaîner.
+      this._quick = buttonRow([
+        { label: 'Nourrir', onClick: () => this._owner.quickFeed(this._critter()) },
+        { label: 'Jouer', onClick: () => this._owner.dropToy('ball', this._critter()) },
+        { label: 'Brosser', onClick: () => this._owner.brush(this._critter()) },
+        { label: 'Câlin', onClick: () => this._owner.pet(this._critter()) },
+      ]);
+      this.menu.addMenuItem(this._quick.item);
+
+      // Rangées repliables : une seule ouverte à la fois.
+      this._more = expandableRow(this.menu, 'Plus…', (open) => this._toggle(this._more, open));
+      this._desk = expandableRow(this.menu, 'Bureau…', (open) => this._toggle(this._desk, open));
+      this._progress = expandableRow(this.menu, 'Pièces', (open) => this._toggle(this._progress, open));
+      this._sections = [this._more, this._desk, this._progress];
+      this._buildDesk(this._desk.section);
+      this._shop = expandableRow(this._progress.section, 'Boutique');
+      this._journal = this._progress.section.addAction('Journal', () => this._owner.openProgress(this._critter(), 'journal'));
+
+      this.menu.addAction('Réglages…', () => this._owner.openSettings());
+    }
+
+    /** « Bureau… » : ce qui concerne tout le monde ; les objets tombent à la position du curseur. */
+    _buildDesk(section) {
+      this._vacation = new PopupMenu.PopupSwitchMenuItem('Mode vacances', this._settings.get_boolean('vacation-mode'));
       this._vacation.connect('toggled', (_item, state) => this._settings.set_boolean('vacation-mode', state));
-      this.menu.addMenuItem(this._vacation);
+      section.addMenuItem(this._vacation);
+      this._laser = new PopupMenu.PopupSwitchMenuItem('Pointeur laser', this._owner.isLaser());
+      this._laser.connect('toggled', (_item, state) => this._owner.setLaser(state));
+      section.addMenuItem(this._laser);
 
       const foods = this._owner.foods();
       if (foods.length > 0) {
-        const feed = new PopupMenu.PopupSubMenuMenuItem('Donner à manger');
-        const bowl = new PopupMenu.PopupSubMenuMenuItem('Remplir la gamelle');
+        const feed = expandableRow(section, 'Poser de la nourriture');
+        const bowl = expandableRow(section, 'Remplir une gamelle');
         for (const kind of foods) {
-          feed.menu.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
-          bowl.menu.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
+          feed.section.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
+          bowl.section.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
         }
-        this.menu.addMenuItem(feed);
-        this.menu.addMenuItem(bowl);
       }
-      this.menu.addAction('Poser un lit', () => this._owner.dropBed());
-      const toys = new PopupMenu.PopupSubMenuMenuItem('Poser un jouet');
+      section.addAction('Poser un lit', () => this._owner.dropBed());
+      const toys = expandableRow(section, 'Poser un jouet');
       for (const [kind, label] of Object.entries(TOY_LABELS)) {
-        toys.menu.addAction(label, () => this._owner.dropToy(kind));
+        toys.section.addAction(label, () => this._owner.dropToy(kind));
       }
-      this.menu.addMenuItem(toys);
-      this._laser = new PopupMenu.PopupSwitchMenuItem('Pointeur laser', this._owner.isLaser());
-      this._laser.connect('toggled', (_item, state) => this._owner.setLaser(state));
-      this.menu.addMenuItem(this._laser);
-      this._tidy = this.menu.addAction('Ranger les jouets', () => this._owner.clearToys());
-      this.menu.addAction('Retirer les objets', () => this._owner.clearItems());
+      this._tidy = section.addAction('Ranger les jouets', () => this._owner.clearToys());
+      section.addAction('Retirer les objets', () => this._owner.clearItems());
     }
 
-    /** Recrée les listes de succès, de statistiques et le journal (à l'ouverture du menu). */
+    _toggle(row, open) {
+      for (const other of this._sections) other.setOpen(other === row && open);
+    }
+
+    _select(index) {
+      this._selected = index;
+      this._rebuildCritterSection();
+      this._actions.refresh();
+      this._rebuildProgress();
+      this.refresh();
+    }
+
+    /** « Plus… » : les actions de l'animal choisi, plus ses succès et statistiques. */
+    _rebuildCritterSection() {
+      const section = this._more.section;
+      section.removeAll();
+      this._actions = buildCritterActions(section, this._critter(), this._owner);
+      // Le détail s'ouvre dans une fenêtre à part : le menu ne montre que le nombre de succès.
+      this._achievements = section.addAction('Succès', () => this._owner.openProgress(this._critter(), 'achievements'));
+      section.addAction('Statistiques', () => this._owner.openProgress(this._critter(), 'stats'));
+    }
+
+    /** Recrée succès, statistiques, boutique et journal (à l'ouverture du menu ou après un achat). */
     _rebuildProgress() {
       const player = this._owner.getPlayer();
-      this._coins.label.text = `Pièces : ${player.coins}`;
+      this._progress.setTitle(`Pièces : ${player.coins}`);
 
-      for (const { critter, achievements, stats } of this._rows) {
-        const list = this._owner.achievementsFor(critter);
-        achievements.label.text = `Succès (${list.filter((a) => a.unlocked).length}/${list.length})`;
-        achievements.menu.removeAll();
-        for (const { def, unlocked, progress } of list) {
-          const goal = def.condition.atLeast;
-          const text = unlocked
-            ? `✓ ${def.name} : ${def.description}`
-            : `${def.name} : ${def.description} (${Math.min(progress, goal)}/${goal})`;
-          const item = new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false });
-          if (!unlocked) item.label.opacity = 150;
-          achievements.menu.addMenuItem(item);
-        }
-        if (list.length === 0) {
-          achievements.menu.addMenuItem(new PopupMenu.PopupMenuItem('Aucun succès pour cet animal', { reactive: false }));
-        }
+      const critter = this._critter();
+      const list = this._owner.achievementsFor(critter);
+      this._achievements.label.text = `Succès (${list.filter((a) => a.unlocked).length}/${list.length})`;
 
-        stats.menu.removeAll();
-        const values = { ...critter.stats.counters, daysAlive: Math.floor(critter.life.ageSeconds / 86400) };
-        for (const [key, label] of Object.entries(STAT_LABELS)) {
-          stats.menu.addMenuItem(
-            new PopupMenu.PopupMenuItem(`${label} : ${statValue(key, values[key] ?? 0)}`, { reactive: false, can_focus: false }),
-          );
-        }
-      }
-
-      this._shop.menu.removeAll();
+      this._shop.section.removeAll();
       for (const { id, label, price, owned, free } of this._owner.shopList()) {
         if (owned || free) {
           const text = owned ? `✓ ${label}` : `${label} (gratuit de saison)`;
-          this._shop.menu.addMenuItem(new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false }));
+          this._shop.section.addMenuItem(new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false }));
         } else {
-          this._shop.menu.addAction(`Acheter : ${label} (${price} pièces)`, () => {
+          this._shop.section.addAction(`Acheter : ${label} (${price} pièces)`, () => {
             this._owner.buyAccessory(id);
             this._rebuildProgress();
           });
         }
       }
-
-      this._journal.menu.removeAll();
-      const entries = player.journal.slice(-10).reverse();
-      for (const entry of entries) {
-        this._journal.menu.addMenuItem(
-          new PopupMenu.PopupMenuItem(`${formatJournalDate(entry.t)}  ${entry.text}`, { reactive: false, can_focus: false }),
-        );
-      }
-      if (entries.length === 0) this._journal.menu.addMenuItem(new PopupMenu.PopupMenuItem('Rien pour le moment', { reactive: false }));
     }
 
     refresh() {
-      let moodSum = 0;
-      for (const { critter, bars, summary } of this._rows) {
-        const values = critter.needs.values;
-        moodSum += critter.needs.mood;
-        if (!this.menu.isOpen) continue;
-        summary.label.text = lifeSummary(critter.life);
-        for (const [gauge] of GAUGES) {
-          const value = values[gauge];
-          const filled = Math.round((BAR_WIDTH * value) / 100);
-          bars[gauge].fill.set_width(filled);
-          bars[gauge].fill.set_style(`background-color: ${barColor(value)}; border-radius: 4px;`);
-          bars[gauge].rest.set_width(BAR_WIDTH - filled);
-        }
+      const critters = this._critters();
+      if (critters.length > 0) {
+        const moodSum = critters.reduce((sum, c) => sum + c.needs.mood, 0);
+        this._icon.icon_name = moodIcon(moodSum / critters.length);
       }
-      if (this._rows.length > 0) this._icon.icon_name = moodIcon(moodSum / this._rows.length);
+      if (!this.menu.isOpen) return;
+
+      const critter = this._critter();
+      if (this._selector) {
+        this._selector.buttons.forEach((button, index) => {
+          button.label = critters[index].name ?? `#${index + 1}`;
+          button.style = index === this._selected ? 'font-weight: bold;' : '';
+        });
+      }
+      this._title.text = `${critter.name ?? 'Sans nom'} — ${lifeSummary(critter.life)}`;
+      for (const [key] of GAUGES) this._gauges[key].update(critter.needs.values[key]);
+
+      // Œuf : rien ne marche ; hibernation : seul « Câlin » (il réveille).
+      const egg = critter.life.stage === 'egg';
+      const asleep = critter.life.hibernating;
+      const [feed, play, brush, pet] = this._quick.buttons;
+      for (const button of [feed, play, brush]) setEnabled(button, !egg && !asleep);
+      setEnabled(pet, !egg);
     }
 
     destroy() {

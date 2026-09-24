@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 9 et sous-étapes 10.1 à 10.5 terminées ; l'ancienne étape 8 — vol/nage — avait été
+à 9 et sous-étapes 10.1 à 10.6 et 10.9 terminées ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -181,7 +181,7 @@ sprites par stade, départ doux et retour. Voir `docs/life.md`.
 ### 10.5 Rythme du monde — ✅ fait
 Jour/nuit, inactivité, rappel de pause, notifications, frappe clavier. Voir `docs/rhythm.md`.
 
-### 10.6 Progression — 🧪 à tester
+### 10.6 Progression — ✅ fait
 Pièces et boutique, succès propres à chaque espèce et à sa personnalité
 (déclarés dans `pack.json`), boutique et accessoires, tours, cadeaux,
 anniversaires. Voir `docs/progression.md`.
@@ -197,11 +197,11 @@ clarifier le moment venu (jauge et rythme, lieu choisi, litière ou objet
 dédié, nettoyage par le joueur, effets sur la propreté et la santé,
 adaptation par espèce, ton visuel).
 
-### 10.9 Noms et menus multi-créatures
+### 10.9 Noms et menus multi-créatures — ✅ fait
 Donner un nom à chaque créature (choisi par le joueur, modifiable, sauvegardé)
 et revoir les menus quand il y a plusieurs créatures : menu de l'icône de
-barre (une section par créature, actions ciblées sur l'une d'elles), menu
-contextuel, affichage des noms. À détailler le moment venu.
+barre (un bloc par créature, actions ciblées sur l'une d'elles), menu
+contextuel, affichage des noms. Voir `docs/creatures.md`.
 
 ## 11. Sprites dédiés pour chaque état
 
@@ -247,3 +247,17 @@ supplémentaires à suivre dans `core/stats.js`, format des paliers et de la
 génération (gabarits dans les packs plutôt que des listes écrites à la main),
 récompenses, affichage groupé dans le menu, validation automatique de la
 bibliothèque par les tests.
+
+## 16. Langues et traductions
+
+Prendre en compte plusieurs langues : sortir tous les textes français
+(menus, fenêtres, notifications, libellés d'aliments, jouets, accessoires, tours,
+noms et descriptions des succès, journal, préférences) vers un mécanisme de
+traduction standard de GNOME (gettext : `_()` côté extension, domaine
+`gettext-domain` déjà présent dans le schéma), avec des fichiers `.po` par
+langue (français, anglais au minimum). À trancher au moment de planifier : la
+langue de référence des sources, la traduction des textes portés par les packs
+(noms d'espèce, prénoms, succès) et par le cœur (événements du journal),
+l'outillage d'extraction (`xgettext`) et de compilation (`msgfmt`) dans
+`scripts/build.sh`, et des tests qui vérifient qu'aucun texte n'échappe à la
+traduction.

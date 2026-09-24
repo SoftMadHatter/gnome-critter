@@ -63,6 +63,7 @@
     "sit",
     "roll"
   ],
+  "names": ["Minou", "Moka", "Câline", "Pixel", "Nougat", "Ronron", "Tigrou", "Luna", "Félix", "Mimine", "Grisou", "Perle", "Miel", "Chaussette", "Filou", "Cléo"],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },

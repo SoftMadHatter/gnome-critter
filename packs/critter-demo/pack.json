@@ -13,6 +13,7 @@
   },
   "needs": { "diet": { "kibble": 30, "seeds": 30, "meat": 30 } },
   "tricks": ["sit", "roll"],
+  "names": ["Critter", "Pixel", "Bidule", "Chose", "Machin", "Patapouf", "Zigzag", "Fripon"],
   "animations": {
     "idle":    { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.5,  "loop": true },
     "walk":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },

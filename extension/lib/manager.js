@@ -18,6 +18,7 @@ import { Life, stagesOverrides } from '../core/life.js';
 import { isNight, BreakTracker, IdleTracker } from '../core/rhythm.js';
 import { Player } from '../core/player.js';
 import { tricksOverrides } from '../core/tricks.js';
+import { namesOverrides, pickName, sanitizeName, uniqueName } from '../core/names.js';
 import { anchorsOverrides, shopList, equippable, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
 import { achievementsOverrides, isEligible } from '../core/achievements.js';
 import { CONDITION_STATS } from '../core/stats.js';
@@ -34,6 +35,8 @@ import { loadVariantSheet } from './packLoader.js';
 import { ActivitySensor } from './activitySensor.js';
 import { ItemActor, LaserDot, loadItemImages } from './itemActor.js';
 import { loadAccessoryImages } from './accessoryActor.js';
+import { RenameDialog } from './renameDialog.js';
+import { ProgressDialog } from './progressDialog.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
@@ -43,13 +46,14 @@ export class Manager {
   /**
    * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
    * @param {Gio.Settings} settings
-   * @param {{extensionPath: string, uuid: string}} extension
+   * @param {{extensionPath: string, uuid: string, openSettings?: () => void}} extension
    */
-  constructor(pack, settings, { extensionPath, uuid }) {
+  constructor(pack, settings, { extensionPath, uuid, openSettings = () => {} }) {
     this.pack = pack;
     this.settings = settings;
     this._extensionPath = extensionPath;
     this._uuid = uuid;
+    this._openSettings = openSettings;
     this._indicator = null;
     this._settingsIds = [];
     /** @type {{item: object, actor: ItemActor}[]} */
@@ -121,6 +125,7 @@ export class Manager {
     if (stages.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
     }
+    const namesList = namesOverrides(this.pack.meta.names).list;
     const achievements = achievementsOverrides(this.pack.meta.achievements);
     if (achievements.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", succès ignorés : ${achievements.ignored.join(', ')}`);
@@ -179,7 +184,12 @@ export class Manager {
         Life.create(Math.random, { growth: growthEnabled && !saved[i], hueRange, scales: stages.scales }),
       );
       if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
-      else if (growthEnabled) this._player.log(`Un œuf de ${this.pack.meta.displayName ?? this.pack.meta.id} est déposé.`, Date.now());
+      // Nom : celui de la sauvegarde, sinon tiré dans la liste de l'espèce parmi les noms libres.
+      if (!critter.name) {
+        const taken = this._critters.map((e) => e.critter.name).filter(Boolean);
+        critter.setName(pickName(Math.random, namesList, taken));
+      }
+      if (!saved[i] && growthEnabled) this._player.log(`Un œuf est déposé : ${critter.name}.`, Date.now());
 
       const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner(), this._eggSheet);
       actor.attachAccessories(this._accessoryImages, anchors.anchors);
@@ -273,8 +283,41 @@ export class Manager {
 
   /** Nom d'un animal dans les messages : l'espèce, numérotée s'il y en a plusieurs. */
   _nameOf(index) {
-    const title = this.pack.meta.displayName ?? this.pack.meta.id;
-    return this._critters.length > 1 ? `${title} ${index + 1}` : title;
+    return this._critters[index]?.critter.name ?? this.pack.meta.displayName ?? this.pack.meta.id;
+  }
+
+  /** Bouton « Nourrir » : l'aliment gratuit que l'espèce préfère (à défaut le moins cher), qui tombe près d'elle. */
+  quickFeed(critter) {
+    const kinds = Object.entries(critter.config.needsDiet).sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
+    const kind = kinds.find((k) => !(FOOD_PRICES[k] > 0)) ?? kinds.sort((a, b) => (FOOD_PRICES[a] ?? 0) - (FOOD_PRICES[b] ?? 0))[0];
+    if (kind && this._pay(FOOD_PRICES[kind] ?? 0)) this._dropNear('food', kind, critter);
+  }
+
+  /** Fenêtre de détail : succès (les non débloqués sont floutés), statistiques, journal. */
+  openProgress(critter, tab) {
+    const values = { ...critter.stats.counters, daysAlive: Math.floor(critter.life.ageSeconds / 86400) };
+    new ProgressDialog({
+      title: `${critter.name ?? 'Sans nom'} — progression`,
+      tab,
+      achievements: this.achievementsFor(critter),
+      stats: Object.entries(values),
+      journal: this._player.journal,
+    }).open();
+  }
+
+  /** Ouvre la boîte de dialogue de renommage d'une créature. */
+  openRename(critter) {
+    new RenameDialog(critter.name ?? '', (text) => this.rename(critter, text)).open();
+  }
+
+  /** Renomme (nettoyé, unique parmi les animaux affichés) et l'inscrit au journal. */
+  rename(critter, text) {
+    const clean = sanitizeName(text);
+    if (clean === null || clean === critter.name) return;
+    const taken = this._critters.map((e) => e.critter.name).filter((n) => n && n !== critter.name);
+    const previous = critter.name;
+    critter.setName(uniqueName(clean, taken));
+    this._player.log(`${previous ?? 'Une créature'} est rebaptisé(e) ${critter.name}.`, Date.now());
   }
 
   /** Succès qu'un animal peut obtenir (espèce et caractère compatibles), avec leur état. */
@@ -373,6 +416,11 @@ export class Manager {
   /** Actions offertes aux menus (contextuel de l'animal et icône de barre). */
   _menuOwner() {
     return {
+      rename: (critter) => this.openRename(critter),
+      openSettings: () => this._openSettings(),
+      openProgress: (critter, tab) => this.openProgress(critter, tab),
+      quickFeed: (critter) => this.quickFeed(critter),
+      pet: (critter) => (critter.life.hibernating ? critter.wake() : critter.pet()),
       dropFood: (kind, critter) => {
         if (this._pay(FOOD_PRICES[kind] ?? 0)) this._dropNear('food', kind, critter);
       },
@@ -413,19 +461,20 @@ export class Manager {
   }
 
   /** Lâche un objet juste à côté (au-dessus) de l'animal, il retombe. */
-  _dropNear(type, kind, critter = this._critters[0]?.critter) {
-    if (!critter) return null;
+  _dropNear(type, kind, critter) {
     const bounds = computeWorldBounds(getMonitors());
-    const x = Math.min(Math.max(critter.x + critter.facing * 48, bounds.x + 16), bounds.x + bounds.width - 16);
-    const y = Math.max(bounds.y + 20, critter.y - 90);
+    // Sans animal précis (menu global) : tombe en haut de l'écran, à l'abscisse du curseur.
+    const anchor = critter ?? { x: getPointer().x, y: bounds.y + 110, facing: 0 };
+    const x = Math.min(Math.max(anchor.x + anchor.facing * 48, bounds.x + 16), bounds.x + bounds.width - 16);
+    const y = Math.max(bounds.y + 20, anchor.y - 90);
     return this._addItem(createItem(type, kind, x, y));
   }
 
-  _fillBowl(kind, critter = this._critters[0]?.critter) {
-    if (!critter) return;
+  _fillBowl(kind, critter) {
+    const reference = critter ?? getPointer();
     const bowls = this._items.map((e) => e.item).filter((i) => i.type === 'bowl' && !i.removed);
     const bowl =
-      bowls.sort((a, b) => Math.abs(a.x - critter.x) - Math.abs(b.x - critter.x))[0] ??
+      bowls.sort((a, b) => Math.abs(a.x - reference.x) - Math.abs(b.x - reference.x))[0] ??
       this._dropNear('bowl', kind, critter);
     if (bowl) fillBowl(bowl, kind);
   }

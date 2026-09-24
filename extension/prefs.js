@@ -39,9 +39,17 @@ export default class ScamperPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
     const settings = this.getSettings();
 
-    const page = new Adw.PreferencesPage();
-    const group = new Adw.PreferencesGroup({ title: 'Scamper' });
-    page.add(group);
+    // Tous les réglages s'appliquent immédiatement, sans recharger l'extension
+    // (changer d'animal ou de nombre recrée le gestionnaire à chaud).
+    const generalPage = new Adw.PreferencesPage({ title: 'Général', icon_name: 'preferences-system-symbolic' });
+    const group = new Adw.PreferencesGroup({ title: 'Animaux', description: 'Les changements sont appliqués tout de suite.' });
+    generalPage.add(group);
+
+    const lifePage = new Adw.PreferencesPage({ title: 'Besoins et vie', icon_name: 'emblem-favorite-symbolic' });
+    const lifeGroup = new Adw.PreferencesGroup({ title: 'Besoins et croissance' });
+    lifePage.add(lifeGroup);
+
+    const worldPage = new Adw.PreferencesPage({ title: 'Rythme et capteurs', icon_name: 'preferences-system-time-symbolic' });
 
     const packs = listPacks(this.path);
     const packRow = new Adw.ComboRow({
@@ -86,18 +94,18 @@ export default class ScamperPreferences extends ExtensionPreferences {
     difficultyRow.connect('notify::selected', () => {
       settings.set_string('difficulty', difficulties[difficultyRow.selected][0]);
     });
-    group.add(difficultyRow);
+    lifeGroup.add(difficultyRow);
 
     const vacationRow = new Adw.SwitchRow({
       title: 'Mode vacances',
       subtitle: 'Fige tous les besoins des animaux.',
     });
     settings.bind('vacation-mode', vacationRow, 'active', 0);
-    group.add(vacationRow);
+    lifeGroup.add(vacationRow);
 
     const indicatorRow = new Adw.SwitchRow({
       title: 'Icône dans la barre supérieure',
-      subtitle: 'Humeur et jauges des animaux (effective à la réactivation de l\'extension).',
+      subtitle: 'Humeur et menu des animaux.',
     });
     settings.bind('show-indicator', indicatorRow, 'active', 0);
     group.add(indicatorRow);
@@ -107,7 +115,7 @@ export default class ScamperPreferences extends ExtensionPreferences {
       subtitle: "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte.",
     });
     settings.bind('growth-enabled', growthRow, 'active', 0);
-    group.add(growthRow);
+    lifeGroup.add(growthRow);
 
     const growthSpeedRow = new Adw.SpinRow({
       title: 'Vitesse de croissance',
@@ -115,13 +123,13 @@ export default class ScamperPreferences extends ExtensionPreferences {
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 1000, step_increment: 1, page_increment: 10 }),
     });
     settings.bind('growth-speed', growthSpeedRow, 'value', 0);
-    group.add(growthSpeedRow);
+    lifeGroup.add(growthSpeedRow);
 
     const worldGroup = new Adw.PreferencesGroup({
       title: 'Rythme et capteurs',
       description: "Aucun contenu n'est jamais lu : ni notifications, ni touches.",
     });
-    page.add(worldGroup);
+    worldPage.add(worldGroup);
 
     const dayNightRow = new Adw.SwitchRow({
       title: 'Cycle jour/nuit',
@@ -172,11 +180,8 @@ export default class ScamperPreferences extends ExtensionPreferences {
     settings.bind('react-typing', typingRow, 'active', 0);
     worldGroup.add(typingRow);
 
-    const noteRow = new Adw.ActionRow({
-      title: 'Le changement d\'animal ou de nombre demande de désactiver/réactiver l\'extension.',
-    });
-    group.add(noteRow);
-
-    window.add(page);
+    window.add(generalPage);
+    window.add(lifePage);
+    window.add(worldPage);
   }
 }

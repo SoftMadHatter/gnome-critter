@@ -5,6 +5,7 @@ import { Stats } from './stats.js';
 import { newlyUnlocked } from './achievements.js';
 import { edibleFor, consume, bedsOn, toysFor, kick, pickGift } from './items.js';
 import { TrickBook, TRICKS } from './tricks.js';
+import { sanitizeName } from './names.js';
 import {
   findSurfaceBelow,
   isOnSegment,
@@ -320,6 +321,8 @@ export class Critter {
     this._giftArrived = false;
     /** Accessoire porté (id de core/accessories.js) ou null. */
     this.accessory = null;
+    /** Nom de la créature (choisi ou tiré à la naissance), ou null. */
+    this.name = null;
     /** Succès déjà obtenus et ceux à annoncer (voir takeUnlocked). */
     this.unlocked = new Set();
     this._pendingUnlocked = [];
@@ -403,6 +406,13 @@ export class Critter {
     }
   }
 
+  /** Nomme la créature ; un texte vide ou invalide ne change rien. */
+  setName(text) {
+    const name = sanitizeName(text);
+    if (name !== null) this.name = name;
+    return this.name;
+  }
+
   /** Équipe un accessoire (le Manager vérifie qu'il est acheté ou de saison) ; null pour l'enlever. */
   equip(id) {
     this.accessory = typeof id === 'string' ? id : null;
@@ -428,6 +438,7 @@ export class Critter {
         stats: this.stats.serialize(),
         achievements: [...this.unlocked],
         accessory: this.accessory,
+        name: this.name,
         tricks: this.tricks.serialize(),
       },
     };
@@ -442,6 +453,7 @@ export class Critter {
     if (saved.extra?.life) this.life.restore(saved.extra.life);
     this.stats.restore(saved.extra?.stats);
     this.tricks.restore(saved.extra?.tricks);
+    this.name = sanitizeName(saved.extra?.name);
     this.accessory = typeof saved.extra?.accessory === 'string' ? saved.extra.accessory : null;
     if (Array.isArray(saved.extra?.achievements)) {
       this.unlocked = new Set(saved.extra.achievements.filter((id) => typeof id === 'string'));
@@ -714,6 +726,7 @@ export class Critter {
       facing: this.facing,
       state: this.state,
       event: this.life.stage === 'egg' ? null : this.lastEvent,
+      name: this.name,
       accessory: this.accessory,
       trick: this._trick,
       bubble: this.state === State.REMIND ? 'break' : null,

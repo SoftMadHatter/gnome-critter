@@ -145,6 +145,11 @@ l'espèce et au caractère, tours de l'espèce, point d'ancrage de la tête pour
 les accessoires. Animations facultatives `trick_sit`, `trick_roll`,
 `trick_flip` (l'une par tour déclaré) et `gift`.
 
+## Noms (`names`)
+
+Liste optionnelle de prénoms tirés à la naissance (au moins 8, voir
+`docs/creatures.md`) ; liste générique en repli.
+
 ## Règle du spritesheet
 
 Chaque fichier PNG référencé est une seule ligne de `frames` images carrées

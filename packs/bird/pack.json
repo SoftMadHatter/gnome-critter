@@ -51,6 +51,7 @@
   "tricks": [
     "flip"
   ],
+  "names": ["Piaf", "Plume", "Azur", "Pépin", "Colibri", "Zéphyr", "Trille", "Ciel", "Bleuet", "Mésange", "Gazou", "Léger", "Ondine", "Pinson", "Vent", "Éclair"],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },

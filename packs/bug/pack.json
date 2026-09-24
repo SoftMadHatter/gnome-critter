@@ -45,6 +45,7 @@
   "tricks": [
     "roll"
   ],
+  "names": ["Scarabée", "Minus", "Câpre", "Pirouette", "Lucioles", "Trombone", "Bouton", "Coccinelle", "Grain", "Poussin", "Farandole", "Lentille", "Fourmi", "Pointille", "Gribouille", "Miette"],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.4, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.07, "loop": true },

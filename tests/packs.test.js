@@ -11,6 +11,7 @@ import { stagesOverrides } from '../core/life.js';
 import { achievementsOverrides } from '../core/achievements.js';
 import { anchorsOverrides } from '../core/accessories.js';
 import { tricksOverrides } from '../core/tricks.js';
+import { namesOverrides } from '../core/names.js';
 
 const PACKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs');
 const LOCOMOTIONS = new Set(Object.values(Locomotion));
@@ -92,5 +93,11 @@ for (const id of packIds) {
 
   test(`pack "${id}" : tours connus`, () => {
     assert.deepEqual(tricksOverrides(meta.tricks).ignored, []);
+  });
+
+  test(`pack "${id}" : noms valides`, () => {
+    const { list, ignored } = namesOverrides(meta.names);
+    assert.deepEqual(ignored, [], `noms ignorés : ${ignored.join(', ')}`);
+    assert.ok(list.length >= 8, 'assez de noms pour plusieurs animaux');
   });
 }
