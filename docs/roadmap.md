@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 6 terminées, étape 7 à tester ; l'ancienne étape 8 — vol/nage — avait été
+à 6 terminées, étapes 7 et 8 à tester ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -105,7 +105,7 @@ perpendiculairement à la trajectoire). La fuite est une invitation que la
 cible peut ignorer, pondérée par la distance au poursuivant. Le pack démo
 supporte désormais toutes les locomotions. Testé en conditions réelles.
 
-## 7. Nouveaux animaux — 🧪 à tester
+## 7. Nouveaux animaux — ✅ fait
 
 Fusionne les anciennes étapes 7 ("animaux faciles") et 8 (poissons/oiseaux
 "difficiles") : une fois l'étape 6 terminée, toutes les locomotions
@@ -123,12 +123,18 @@ proposent une liste déroulante des packs, et `tests/packs.test.js` valide
 automatiquement chaque pack. 95/95 tests verts ; reste à vérifier en
 conditions réelles avec chaque animal (`scripts/dev.sh`).
 
-## 8. Rendu sprites amélioré
+## 8. Rendu sprites amélioré — 🧪 à tester
 
 Polish visuel (pixel-art plus abouti, animations plus fluides) une fois la
 liste d'états et d'animaux stabilisée par les étapes précédentes — éviter
 de repeindre deux fois si un nouvel état apparaît en cours de route (ex.
 "se laver" à l'étape 3).
+
+Livré : rendu au plus proche voisin (`set_content_scaling_filters`),
+sprites dessinés en 32x32 par `scripts/gen_species_sprites.py` (ombrage à
+trois tons, contour automatique, 6 frames de marche/vol/nage), feuilles
+dédiées par état (grimper, plafond, course, fuite, salut) et par réaction
+pour cat/bug/fish/bird. Reste à vérifier visuellement avec `scripts/dev.sh`.
 
 ## 9. Persistance de l'état
 

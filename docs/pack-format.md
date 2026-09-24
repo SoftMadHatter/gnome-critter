@@ -103,7 +103,10 @@ packs/<species-id>/
 ## Règle du spritesheet
 
 Chaque fichier PNG référencé est une seule ligne de `frames` images carrées
-de `spriteSize`, sans marge entre les frames. C'est le format le plus simple
+sans marge entre les frames. La taille d'une case est la hauteur du PNG : elle
+doit être un multiple entier de `spriteSize` (les packs cat/bug/fish/bird
+dessinent en 32x32 ; l'insecte est affiché à 16 px, sa feuille est donc
+réduite). L'affichage se fait au plus proche voisin (pas de flou). C'est le format le plus simple
 à découper côté extension (un `Clutter.Image` par frame, généré une fois au
 chargement du pack puis mis en cache).
 
@@ -129,9 +132,14 @@ cas du poisson (`packs/fish`, `["water"]`).
 | `fish` | Poisson | eau seulement | nage ondulante en continu |
 | `bird` | Oiseau | sol, air | vole souvent, se pose sur les rebords |
 
-Leurs sprites et sons sont des placeholders générés par
-`scripts/gen_placeholder_sprites.py` et `scripts/gen_placeholder_sounds.py`
-(une espèce en argument pour n'en régénérer qu'une). `tests/packs.test.js`
+Leurs sons sont des placeholders générés par
+`scripts/gen_placeholder_sounds.py`. Les sprites de `critter-demo` viennent de
+`scripts/gen_placeholder_sprites.py` ; ceux de cat/bug/fish/bird de
+`scripts/gen_species_sprites.py` (dessin 32x32 avec contour automatique), qui
+réécrit aussi les sections `animations` et `reactions` de leur `pack.json`
+(une espèce en argument pour n'en régénérer qu'une). Ces packs ont des
+feuilles dédiées pour la plupart des états (grimper, plafond, course, fuite,
+salut...) et pour chaque réaction. `tests/packs.test.js`
 vérifie automatiquement chaque pack (fichiers présents, découpage des
 spritesheets, sons, clés `behavior`).
 

@@ -44,6 +44,10 @@ for (const id of packIds) {
       // Même règle que packLoader.loadFrames : une ligne de frames carrées.
       const { width, height } = pngSize(path);
       const cells = width / height;
+      assert.ok(
+        height >= (meta.spriteSize?.height ?? 32) && height % (meta.spriteSize?.height ?? 32) === 0,
+        `${name} : hauteur ${height} pas multiple de spriteSize ${(meta.spriteSize?.height ?? 32)}`,
+      );
       assert.ok(Number.isInteger(cells), `${name} : largeur ${width} pas multiple de la hauteur ${height}`);
       assert.ok(def.frames <= cells, `${name} : ${def.frames} frames demandées, ${cells} disponibles`);
     }

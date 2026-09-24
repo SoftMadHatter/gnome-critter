@@ -33,6 +33,12 @@ export class CritterActor {
       pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
     });
 
+    // Pixel-art : au plus proche voisin, sinon flou en HiDPI et au retournement.
+    this.actor.set_content_scaling_filters(
+      Clutter.ScalingFilter.NEAREST,
+      Clutter.ScalingFilter.NEAREST,
+    );
+
     this._setupGestures();
 
     this.actor.connect('enter-event', () => {
