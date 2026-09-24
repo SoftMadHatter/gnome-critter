@@ -9,8 +9,10 @@ import Graphene from 'gi://Graphene';
 import { State } from '../core/critter.js';
 import { ThoughtBubble } from './thoughtBubble.js';
 import { CritterMenu } from './critterMenu.js';
+import { AccessoryActor } from './accessoryActor.js';
 
 const DRAG_BEGIN_THRESHOLD_PX = 4;
+const EGG_FRAME_SECONDS = 0.6;
 
 // Animation de repli d'un état que le pack ne décrit pas, avant le repli
 // final sur "idle" : une allure rapide ressemble à son allure normale.
@@ -23,6 +25,12 @@ const ANIMATION_FALLBACKS = {
   eat: ['idle'],
   play: ['run', 'walk'],
   brushed: ['wash', 'idle'],
+  hibernate: ['sleep', 'idle'],
+  remind: ['follow', 'walk'],
+  gift: ['follow', 'walk'],
+  trick_sit: ['idle'],
+  trick_roll: ['play', 'run', 'walk'],
+  trick_flip: ['play', 'swim', 'fly', 'walk'],
 };
 
 export class CritterActor {
@@ -32,8 +40,9 @@ export class CritterActor {
    * @param {Gio.Settings} settings
    * @param {Record<string, St.ImageContent>} [bubbleIcons] icônes des bulles de pensée (aucune bulle si vide)
    * @param {object} [menuOwner] actions du menu contextuel (voir CritterMenu) ; pas de menu si absent
+   * @param {{framesFor: Function}|null} [eggSheet] feuille de l'œuf (générique, avec variantes de couleur)
    */
-  constructor(critter, pack, settings, bubbleIcons = {}, menuOwner = null) {
+  constructor(critter, pack, settings, bubbleIcons = {}, menuOwner = null, eggSheet = null) {
     this.critter = critter;
     this.pack = pack;
     this._settings = settings;
@@ -42,6 +51,15 @@ export class CritterActor {
     this._frameElapsed = 0;
     this._reaction = null; // {name, elapsed}
     this._grab = null;
+    this._eggSheet = eggSheet;
+    this._appearanceKey = null;
+    this._frames = pack.framesFor(critter.life.appearance);
+    this._eggFrames = eggSheet?.framesFor(critter.life.appearance) ?? null;
+    this._scale = critter.life.scale;
+    this._stage = critter.life.stage;
+    this._night = false;
+    this._nightEffect = null;
+    this._accessory = null;
     this._bubble = Object.keys(bubbleIcons).length > 0 ? new ThoughtBubble(bubbleIcons) : null;
     this._menu = menuOwner ? new CritterMenu(critter, pack, menuOwner) : null;
 
@@ -103,7 +121,9 @@ export class CritterActor {
         required_button: Clutter.BUTTON_MIDDLE,
         recognize_on_press: true,
       });
-      middleClickGesture.connect('recognize', () => this._menu.open());
+      middleClickGesture.connect('recognize', () => {
+        if (this._stage !== 'egg') this._menu.open(this._displaySize().height);
+      });
       this.actor.add_action(middleClickGesture);
     }
 
@@ -132,8 +152,51 @@ export class CritterActor {
     this.actor.add_action(panGesture);
   }
 
-  syncPosition() {
+  /** Active l'affichage des accessoires (images et point d'ancrage de la tête). */
+  attachAccessories(images, anchors) {
+    if (Object.keys(images).length > 0) this._accessory = new AccessoryActor(images, anchors);
+  }
+
+  _updateAccessory(snapshot) {
+    if (!this._accessory) return;
+    const size = this._displaySize();
+    const id = snapshot.stage === 'egg' ? null : (snapshot.accessory ?? (snapshot.birthdayToday ? 'partyhat' : null));
+    this._accessory.update(
+      id,
+      {
+        x: this.critter.x - size.width / 2,
+        y: snapshot.state === State.CEILING ? this.critter.y : this.critter.y - size.height,
+        width: size.width,
+        height: size.height,
+      },
+      snapshot.facing ?? this.critter.facing,
+      this.actor.visible,
+    );
+  }
+
+  /** Ambiance de nuit : léger assombrissement du sprite. */
+  setNight(night) {
+    if (night === this._night) return;
+    this._night = night;
+    if (!this._nightEffect) {
+      this._nightEffect = new Clutter.BrightnessContrastEffect();
+      this._nightEffect.set_brightness(-0.25);
+      this.actor.add_effect_with_name('night', this._nightEffect);
+    }
+    this._nightEffect.set_enabled(night);
+  }
+
+  /** Taille affichée : la taille du pack, mise à l'échelle du stade (bébé plus petit). */
+  _displaySize() {
     const size = this.pack.spriteSize;
+    return { width: Math.round(size.width * this._scale), height: Math.round(size.height * this._scale) };
+  }
+
+  syncPosition() {
+    const size = this._displaySize();
+    if (this.actor.width !== size.width || this.actor.height !== size.height) {
+      this.actor.set_size(size.width, size.height);
+    }
     // critter.y est le point d'accroche : les pieds pour tout état posé sur
     // le dessus d'une surface, mais le haut du sprite pour CEILING (accroché
     // sous un surplomb, donc suspendu SOUS ce point plutôt que dessus).
@@ -148,15 +211,28 @@ export class CritterActor {
    * @param {number} dt
    * @param {{state: string, event: string|null}} snapshot
    */
+  /** Nouvelle apparence (évolution) : bascule sur le jeu de frames correspondant. */
+  _refreshAppearance(snapshot) {
+    const { hue, tone, saturation } = snapshot.appearance;
+    const key = `${Math.round(hue)}|${Math.round(tone)}|${saturation}`;
+    if (key === this._appearanceKey) return;
+    this._appearanceKey = key;
+    this._frames = this.pack.framesFor(snapshot.appearance);
+    this._eggFrames = this._eggSheet?.framesFor(snapshot.appearance) ?? null;
+  }
+
   updateAnimation(dt, snapshot) {
+    this._scale = snapshot.scale ?? 1;
+    this._refreshAppearance(snapshot);
     this._updateSprite(dt, snapshot);
     this._updateBubble(snapshot);
+    this._updateAccessory(snapshot);
   }
 
   _updateBubble(snapshot) {
     if (!this._bubble) return;
-    const size = this.pack.spriteSize;
-    const need = snapshot.state === State.DRAG ? null : snapshot.urgentNeed;
+    const size = this._displaySize();
+    const need = snapshot.state === State.DRAG ? null : (snapshot.bubble ?? snapshot.urgentNeed);
     this._bubble.update(
       need,
       {
@@ -170,6 +246,18 @@ export class CritterActor {
   }
 
   _updateSprite(dt, snapshot) {
+    this._stage = snapshot.stage;
+    // Tant qu'il n'a pas éclos, rien d'autre que l'œuf : même en chute ou
+    // pendant un glisser, et sans aucune réaction de l'espèce.
+    if (snapshot.stage === 'egg') {
+      this._reaction = null;
+      if (this._frames.animationFrames.egg) this._applyFrame('egg', dt);
+      else if (this._eggFrames) this._applyEgg(dt, snapshot);
+      else this._applyFrame(snapshot.state, dt);
+      this.syncPosition();
+      return;
+    }
+
     // La garde sur this._reaction?.name évite qu'un événement répété (ex.
     // 'noticed' au survol, qui peut se redéclencher souvent si le curseur
     // reste immobile pendant que le critter marche dessous) ne redémarre
@@ -177,7 +265,7 @@ export class CritterActor {
     // interrompt toujours l'actuelle normalement.
     if (
       snapshot.event &&
-      this.pack.reactionFrames[snapshot.event] &&
+      this._frames.reactionFrames[snapshot.event] &&
       this._reaction?.name !== snapshot.event
     ) {
       this._reaction = { name: snapshot.event, elapsed: 0, index: 0 };
@@ -186,7 +274,7 @@ export class CritterActor {
 
     if (this._reaction) {
       const timing = this.pack.reactionTiming[this._reaction.name];
-      const frames = this.pack.reactionFrames[this._reaction.name];
+      const frames = this._frames.reactionFrames[this._reaction.name];
       this._reaction.elapsed += dt;
       if (this._reaction.elapsed >= timing.frameDuration) {
         this._reaction.elapsed = 0;
@@ -202,7 +290,7 @@ export class CritterActor {
       }
     }
 
-    this._applyFrame(snapshot.state, dt);
+    this._applyFrame(snapshot.state === State.TRICK ? `trick_${snapshot.trick}` : snapshot.state, dt);
     this.syncPosition();
   }
 
@@ -212,9 +300,26 @@ export class CritterActor {
     global.display.get_sound_player().play_from_file(file, `Critter: ${name}`, null);
   }
 
+  /** Œuf générique : se balance, puis se fissure à l'approche de l'éclosion. */
+  _applyEgg(dt, snapshot) {
+    if (this._animState !== State.EGG) {
+      this._animState = State.EGG;
+      this._frameIndex = 0;
+      this._frameElapsed = 0;
+    }
+    this._frameElapsed += dt;
+    if (this._frameElapsed >= EGG_FRAME_SECONDS) {
+      this._frameElapsed = 0;
+      this._frameIndex = (this._frameIndex + 1) % 4;
+    }
+    const cracking = snapshot.hatchProgress >= 0.9;
+    const sequence = cracking ? [3, 1, 3, 2] : [0, 1, 0, 2];
+    this.actor.content = this._eggFrames[sequence[this._frameIndex]];
+  }
+
   _applyFrame(state, dt) {
-    const key = [state, ...(ANIMATION_FALLBACKS[state] ?? []), 'idle'].find((k) => this.pack.animationFrames[k]);
-    const frames = this.pack.animationFrames[key] ?? this.pack.animationFrames.idle;
+    const key = [state, ...(ANIMATION_FALLBACKS[state] ?? []), 'idle'].find((k) => this._frames.animationFrames[k]);
+    const frames = this._frames.animationFrames[key] ?? this._frames.animationFrames.idle;
     const timing = this.pack.animationTiming[key] ?? { frameDuration: 0.2, loop: true };
 
     if (state !== this._animState) {
@@ -240,6 +345,8 @@ export class CritterActor {
     this._bubble = null;
     this._menu?.destroy();
     this._menu = null;
+    this._accessory?.destroy();
+    this._accessory = null;
     if (this._grab) {
       this._grab.dismiss();
       this._grab = null;

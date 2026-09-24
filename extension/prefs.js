@@ -102,6 +102,76 @@ export default class ScamperPreferences extends ExtensionPreferences {
     settings.bind('show-indicator', indicatorRow, 'active', 0);
     group.add(indicatorRow);
 
+    const growthRow = new Adw.SwitchRow({
+      title: 'Croissance',
+      subtitle: "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte.",
+    });
+    settings.bind('growth-enabled', growthRow, 'active', 0);
+    group.add(growthRow);
+
+    const growthSpeedRow = new Adw.SpinRow({
+      title: 'Vitesse de croissance',
+      subtitle: '1 = temps réel. Plus haut pour essayer les stades sans attendre.',
+      adjustment: new Gtk.Adjustment({ lower: 1, upper: 1000, step_increment: 1, page_increment: 10 }),
+    });
+    settings.bind('growth-speed', growthSpeedRow, 'value', 0);
+    group.add(growthSpeedRow);
+
+    const worldGroup = new Adw.PreferencesGroup({
+      title: 'Rythme et capteurs',
+      description: "Aucun contenu n'est jamais lu : ni notifications, ni touches.",
+    });
+    page.add(worldGroup);
+
+    const dayNightRow = new Adw.SwitchRow({
+      title: 'Cycle jour/nuit',
+      subtitle: 'De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris.',
+    });
+    settings.bind('day-night', dayNightRow, 'active', 0);
+    worldGroup.add(dayNightRow);
+
+    const awayRow = new Adw.SwitchRow({
+      title: 'Dormir en votre absence',
+      subtitle: 'Ils s\'endorment quand vous êtes inactif, et vous accueillent à votre retour.',
+    });
+    settings.bind('away-sleep', awayRow, 'active', 0);
+    worldGroup.add(awayRow);
+
+    const awayMinutesRow = new Adw.SpinRow({
+      title: "Minutes d'inactivité avant l'absence",
+      adjustment: new Gtk.Adjustment({ lower: 1, upper: 240, step_increment: 1, page_increment: 10 }),
+    });
+    settings.bind('away-minutes', awayMinutesRow, 'value', 0);
+    worldGroup.add(awayMinutesRow);
+
+    const breakRow = new Adw.SwitchRow({
+      title: 'Rappel de pause',
+      subtitle: 'Un animal vient vers votre curseur après une longue période d\'activité.',
+    });
+    settings.bind('break-reminder', breakRow, 'active', 0);
+    worldGroup.add(breakRow);
+
+    const breakMinutesRow = new Adw.SpinRow({
+      title: "Minutes d'activité avant le rappel",
+      adjustment: new Gtk.Adjustment({ lower: 1, upper: 480, step_increment: 5, page_increment: 30 }),
+    });
+    settings.bind('break-minutes', breakMinutesRow, 'value', 0);
+    worldGroup.add(breakMinutesRow);
+
+    const notificationsRow = new Adw.SwitchRow({
+      title: 'Réagir aux notifications',
+      subtitle: "Seul le fait qu'une notification arrive est utilisé, jamais son contenu.",
+    });
+    settings.bind('react-notifications', notificationsRow, 'active', 0);
+    worldGroup.add(notificationsRow);
+
+    const typingRow = new Adw.SwitchRow({
+      title: 'Réagir à la frappe',
+      subtitle: "Compte seulement qu'une touche est pressée, jamais laquelle.",
+    });
+    settings.bind('react-typing', typingRow, 'active', 0);
+    worldGroup.add(typingRow);
+
     const noteRow = new Adw.ActionRow({
       title: 'Le changement d\'animal ou de nombre demande de désactiver/réactiver l\'extension.',
     });

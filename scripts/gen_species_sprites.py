@@ -263,6 +263,8 @@ def cat_sheets():
     s = common_sheets()
     s["fall"] = [pose(bob=-1, tail=t, eyes="wide", kind="jump") for t in (2, -2)]
     s["eat"] = [pose(head=h, mouth=m, tail=t) for h, m, t in [(5, False, 0), (6, True, 1), (5, False, 0), (6, True, -1)]]
+    s["trick_sit"] = [pose(kind="wash", lift=l) for l in (0, 1)]
+    s["trick_roll"] = [pose(rot=-i * 60, pivot=18, eyes="happy") for i in range(6)]
     s["sleep"] = [pose(kind="sleep"), pose(kind="sleep", mark="z")]
     s["wash"] = [pose(kind="wash", lift=l, mouth=m) for l, m in [(3, False), (1, True), (0, True), (2, False)]]
     s["climb"] = [pose(kind="climb", bob=-(i % 2), lift=[0, 1, 2, 1, 0, -1][i]) for i in range(6)]
@@ -326,6 +328,7 @@ def bug_sheets():
     s["fall"] = [pose(bob=0, kind="back", phase=i, tail=i) for i in range(2)]
     s["climb"] = [pose(kind="climb", phase=i, bob=-(i % 2)) for i in range(6)]
     s["eat"] = [pose(head=h, tail=t) for h, t in [(2, 0), (0, 1), (2, 0), (0, -1)]]
+    s["trick_roll"] = [pose(rot=-i * 60, pivot=18, eyes="happy") for i in range(6)]
     return s
 
 
@@ -366,6 +369,7 @@ def fish_sheets():
                  for i, t in enumerate([-1, 1, -1, 1, -1, 1])]
     s["greet"] = [pose(tail=t, eyes="happy", mark=m) for t, m in [(-1, "bubble"), (1, None), (-1, None), (1, "bubble")]]
     s["swimFast"] = [pose(tail=t, fin=f) for t, f in [(-2, 0), (0, 1), (2, 0), (0, 1), (-2, 0), (0, 1)]]
+    s["trick_flip"] = [pose(tail=(-1) ** i, rot=-i * 60, pivot=16, eyes="happy") for i in range(6)]
     s["fall"] = [pose(tail=t, rot=r, eyes="wide") for t, r in [(-1, -14), (1, 14)]]
     return s
 
@@ -433,6 +437,7 @@ def bird_sheets():
     s["flee"] = [pose(bob=b, kind="flee", wing=w, tail=2, eyes="wide", mark="!" if i == 0 else None)
                  for i, (b, w) in enumerate([(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")])]
     s["eat"] = [pose(head=h, tail=t) for h, t in [(7, 0), (3, 1), (7, 0), (3, -1)]]
+    s["trick_flip"] = [pose(kind="fly", wing="mid", rot=-i * 60, pivot=18, eyes="happy") for i in range(6)]
     s["dive"] = [pose(kind="fly", wing="folded", rot=-55, pivot=16, eyes="wide", tail=b) for b in (1, 2)]
     s["sleep"] = [pose(kind="sleep", bob=1, eyes="closed"), pose(kind="sleep", bob=1, eyes="closed", mark="z")]
     s["wash"] = [pose(kind="preen", bob=b, eyes="closed") for b in (0, 1, 0, 1)]
@@ -455,6 +460,7 @@ SPECIES = {
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekWall": ("walk", 0.09),
             "seekFocus": ("walk", 0.08), "seekNap": ("walk", 0.1), "chase": ("chase", 0.07), "flee": ("flee", 0.06),
             "run": ("chase", 0.06), "eat": ("eat", 0.18), "play": ("play", 0.09),
+            "trick_sit": ("trick_sit", 0.3), "trick_roll": ("trick_roll", 0.1),
         },
     ),
     "bug": dict(
@@ -465,7 +471,7 @@ SPECIES = {
             "idle": ("idle", 0.4), "walk": ("walk", 0.07), "fall": ("fall", 0.1), "drag": ("fall", 0.1),
             "climb": ("climb", 0.08), "ceiling": ("ceiling", 0.07), "follow": ("walk", 0.06),
             "greet": ("greet", 0.15), "seekWall": ("walk", 0.06), "seekFocus": ("walk", 0.06),
-            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04), "eat": ("eat", 0.14), "play": ("play", 0.07),
+            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04), "eat": ("eat", 0.14), "play": ("play", 0.07), "trick_roll": ("trick_roll", 0.1),
         },
     ),
     "fish": dict(
@@ -473,7 +479,7 @@ SPECIES = {
         draw=draw_fish, flip={},
         states={
             "idle": ("idle", 0.4), "swim": ("swim", 0.12), "fall": ("fall", 0.12), "drag": ("fall", 0.12),
-            "greet": ("greet", 0.2), "flee": ("flee", 0.07), "swimFast": ("swimFast", 0.07), "play": ("swimFast", 0.07),
+            "greet": ("greet", 0.2), "flee": ("flee", 0.07), "swimFast": ("swimFast", 0.07), "play": ("swimFast", 0.07), "trick_flip": ("trick_flip", 0.1),
         },
     ),
     "bird": dict(
@@ -484,7 +490,7 @@ SPECIES = {
             "fly": ("fly", 0.07), "sleep": ("sleep", 0.8), "wash": ("wash", 0.22),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekFocus": ("walk", 0.09),
             "seekNap": ("walk", 0.1), "chase": ("walk", 0.06), "flee": ("flee", 0.06),
-            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1), "eat": ("eat", 0.15), "play": ("play", 0.09),
+            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1), "eat": ("eat", 0.15), "play": ("play", 0.09), "trick_flip": ("trick_flip", 0.1),
         },
     ),
 }
@@ -495,6 +501,8 @@ REACTIONS = {
     "annoyed": ("react_annoyed", 0.3, "annoyed"), "noticed": ("react_noticed", 0.25, "noticed"),
     "startled": ("react_startled", 0.2, "startled"), "greeted": ("greet", 0.15, "greeted"),
     "purring": ("react_petted", 0.4, "petted"), "brushed": ("react_petted", 0.35, "petted"),
+    "hatched": ("react_startled", 0.2, "startled"), "grew": ("react_tickled", 0.12, "tickled"),
+    "awakened": ("react_noticed", 0.25, "noticed"),
 }
 
 

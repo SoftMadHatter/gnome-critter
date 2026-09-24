@@ -13,6 +13,37 @@
     "decayPerHour": { "energy": 0, "cleanliness": 0 },
     "diet": { "plankton": 40 }
   },
+  "achievements": [
+    {
+      "id": "big-swimmer",
+      "name": "Grand nageur",
+      "description": "Faire 200 nages",
+      "condition": { "stat": "swims", "atLeast": 200 },
+      "coins": 15
+    },
+    {
+      "id": "laser-dancer",
+      "name": "Danseur laser",
+      "description": "Jouer 15 fois",
+      "requires": { "trait": "playful" },
+      "condition": { "stat": "playSessions", "atLeast": 15 },
+      "coins": 15
+    },
+    {
+      "id": "glutton",
+      "name": "Glouton",
+      "description": "Faire 30 repas",
+      "requires": { "trait": "greedy" },
+      "condition": { "stat": "meals", "atLeast": 30 },
+      "coins": 15
+    }
+  ],
+  "anchors": {
+    "head": { "x": 0.78, "y": 0.28 }
+  },
+  "tricks": [
+    "flip"
+  ],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.4, "loop": true },
     "swim": { "file": "sprites/swim.png", "frames": 6, "frameDuration": 0.12, "loop": true },
@@ -21,7 +52,8 @@
     "greet": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.2, "loop": true },
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.07, "loop": true },
     "swimFast": { "file": "sprites/swimFast.png", "frames": 6, "frameDuration": 0.07, "loop": true },
-    "play": { "file": "sprites/swimFast.png", "frames": 6, "frameDuration": 0.07, "loop": true }
+    "play": { "file": "sprites/swimFast.png", "frames": 6, "frameDuration": 0.07, "loop": true },
+    "trick_flip": { "file": "sprites/trick_flip.png", "frames": 6, "frameDuration": 0.1, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },
@@ -31,6 +63,9 @@
     "startled": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
     "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" },
     "purring": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.4, "sound": "sounds/petted.wav" },
-    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" }
+    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" },
+    "hatched": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
+    "grew": { "file": "sprites/react_tickled.png", "frames": 4, "frameDuration": 0.12, "sound": "sounds/tickled.wav" },
+    "awakened": { "file": "sprites/react_noticed.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/noticed.wav" }
   }
 }

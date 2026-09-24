@@ -17,25 +17,22 @@ import GdkPixbuf from 'gi://GdkPixbuf';
 import St from 'gi://St';
 import Cogl from 'gi://Cogl';
 
+import { shiftPixels, appearanceOverrides } from '../core/colorShift.js';
+
 /**
  * @param {GdkPixbuf.Pixbuf} pixbuf
+ * @param {((pixels: Uint8Array) => Uint8Array)|null} [transform] variation de couleur
  * @returns {St.ImageContent}
  */
-function pixbufToImage(pixbuf) {
+function pixbufToImage(pixbuf, transform = null) {
   const coglContext = global.stage.context.get_backend().get_cogl_context();
   const format = pixbuf.get_has_alpha() ? Cogl.PixelFormat.RGBA_8888 : Cogl.PixelFormat.RGB_888;
   const width = pixbuf.get_width();
   const height = pixbuf.get_height();
 
+  const pixels = transform && pixbuf.get_has_alpha() ? transform(pixbuf.get_pixels()) : pixbuf.get_pixels();
   const image = St.ImageContent.new_with_preferred_size(width, height);
-  const ok = image.set_data(
-    coglContext,
-    pixbuf.get_pixels(),
-    format,
-    width,
-    height,
-    pixbuf.get_rowstride(),
-  );
+  const ok = image.set_data(coglContext, pixels, format, width, height, pixbuf.get_rowstride());
   if (!ok) {
     throw new Error('St.ImageContent.set_data a échoué (spritesheet corrompue ?)');
   }
@@ -52,16 +49,14 @@ export function loadImage(path) {
 }
 
 /**
- * Découpe un spritesheet (une ligne de frames carrées) en `count` images.
- * @param {Gio.File} baseDir
- * @param {string} relativePath
+ * Découpe un spritesheet décodé (une ligne de frames carrées) en `count` images.
+ * @param {GdkPixbuf.Pixbuf} sheet
+ * @param {string} path pour les messages d'erreur
  * @param {number} count
+ * @param {((pixels: Uint8Array) => Uint8Array)|null} transform
  * @returns {St.ImageContent[]}
  */
-function loadFrames(baseDir, relativePath, count) {
-  const file = baseDir.get_child(relativePath);
-  const path = file.get_path();
-  const sheet = GdkPixbuf.Pixbuf.new_from_file(path);
+function sliceFrames(sheet, path, count, transform) {
   const frameSize = sheet.get_height();
   const sheetFrameCount = sheet.get_width() / frameSize;
 
@@ -73,10 +68,43 @@ function loadFrames(baseDir, relativePath, count) {
 
   const frames = [];
   for (let i = 0; i < count; i++) {
-    const sub = sheet.new_subpixbuf(i * frameSize, 0, frameSize, frameSize);
-    frames.push(pixbufToImage(sub));
+    frames.push(pixbufToImage(sheet.new_subpixbuf(i * frameSize, 0, frameSize, frameSize), transform));
   }
   return frames;
+}
+
+/** Vrai quand l'apparence ne change aucun pixel (teinte nulle, saturation normale). */
+function isIdentity(appearance, colorizeGrays) {
+  return !appearance || (Math.abs(appearance.hue) < 0.5 && appearance.saturation === 1 && !colorizeGrays);
+}
+
+function cacheKey(appearance) {
+  return `${Math.round(appearance.hue)}|${Math.round(appearance.tone)}|${appearance.saturation.toFixed(2)}`;
+}
+
+/**
+ * Feuille d'une seule ligne (ex. l'œuf, commun à toutes les espèces), avec
+ * une variante de couleur par apparence, calculée à la demande et mise en cache.
+ * @param {string} path
+ * @returns {{framesFor: (appearance: {hue:number, tone:number, saturation:number}) => St.ImageContent[]}}
+ */
+export function loadVariantSheet(path) {
+  const sheet = GdkPixbuf.Pixbuf.new_from_file(path);
+  const count = sheet.get_width() / sheet.get_height();
+  const cache = new Map();
+  return {
+    framesFor(appearance) {
+      const key = isIdentity(appearance, false) ? 'base' : cacheKey(appearance);
+      if (!cache.has(key)) {
+        const transform =
+          key === 'base'
+            ? null
+            : (pixels) => shiftPixels(pixels, { hue: appearance.hue, saturation: appearance.saturation });
+        cache.set(key, sliceFrames(sheet, path, count, transform));
+      }
+      return cache.get(key);
+    },
+  };
 }
 
 /**
@@ -93,6 +121,8 @@ function loadFrames(baseDir, relativePath, count) {
  *   reactionFrames: Record<string, St.ImageContent[]>,
  *   reactionTiming: Record<string, {frameDuration:number, loop:boolean}>,
  *   reactionSounds: Record<string, Gio.File>,
+ *   framesFor: (appearance: {hue:number, tone:number, saturation:number}) =>
+ *     {animationFrames: Record<string, St.ImageContent[]>, reactionFrames: Record<string, St.ImageContent[]>},
  * }}
  */
 export function loadPack(packDirPath) {
@@ -100,19 +130,59 @@ export function loadPack(packDirPath) {
   const packFile = dir.get_child('pack.json');
   const [, contents] = packFile.load_contents(null);
   const meta = JSON.parse(new TextDecoder('utf-8').decode(contents));
+  const appearanceConfig = appearanceOverrides(meta.appearance).config;
 
-  const animationFrames = {};
+  // Feuilles décodées une seule fois : chaque variante de couleur repart des
+  // pixels d'origine.
+  const sheets = new Map();
+  const sheetOf = (relativePath) => {
+    if (!sheets.has(relativePath)) {
+      sheets.set(relativePath, GdkPixbuf.Pixbuf.new_from_file(dir.get_child(relativePath).get_path()));
+    }
+    return sheets.get(relativePath);
+  };
+
+  const buildFrames = (transform) => {
+    const animationFrames = {};
+    for (const [state, def] of Object.entries(meta.animations ?? {})) {
+      animationFrames[state] = sliceFrames(sheetOf(def.file), def.file, def.frames, transform);
+    }
+    const reactionFrames = {};
+    for (const [name, def] of Object.entries(meta.reactions ?? {})) {
+      reactionFrames[name] = sliceFrames(sheetOf(def.file), def.file, def.frames, transform);
+    }
+    return { animationFrames, reactionFrames };
+  };
+
+  const base = buildFrames(null);
+  const variants = new Map();
+  const framesFor = (appearance) => {
+    if (!appearanceConfig.enabled || isIdentity(appearance, appearanceConfig.colorizeGrays)) return base;
+    const key = cacheKey(appearance);
+    if (!variants.has(key)) {
+      variants.set(
+        key,
+        buildFrames((pixels) =>
+          shiftPixels(pixels, {
+            hue: appearance.hue,
+            saturation: appearance.saturation,
+            colorizeGrays: appearanceConfig.colorizeGrays,
+            tone: appearance.tone,
+            graySaturation: appearanceConfig.graySaturation,
+          }),
+        ),
+      );
+    }
+    return variants.get(key);
+  };
+
   const animationTiming = {};
   for (const [state, def] of Object.entries(meta.animations ?? {})) {
-    animationFrames[state] = loadFrames(dir, def.file, def.frames);
     animationTiming[state] = { frameDuration: def.frameDuration, loop: def.loop !== false };
   }
-
-  const reactionFrames = {};
   const reactionTiming = {};
   const reactionSounds = {};
   for (const [name, def] of Object.entries(meta.reactions ?? {})) {
-    reactionFrames[name] = loadFrames(dir, def.file, def.frames);
     reactionTiming[name] = { frameDuration: def.frameDuration, loop: def.loop === true };
     // Optionnel : un pack peut ne fournir aucun son, ou seulement pour
     // certaines réactions (rétrocompatible avec les packs sans "sound").
@@ -126,11 +196,13 @@ export function loadPack(packDirPath) {
     speeds: meta.speeds ?? {},
     behavior: meta.behavior ?? {},
     needs: meta.needs ?? {},
-    animationFrames,
+    appearance: appearanceConfig,
+    animationFrames: base.animationFrames,
     animationTiming,
-    reactionFrames,
+    reactionFrames: base.reactionFrames,
     reactionTiming,
     reactionSounds,
+    framesFor,
   };
 }
 

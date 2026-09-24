@@ -1,6 +1,10 @@
 import { clamp, sign } from './vec2.js';
-import { Needs, needMultiplier } from './needs.js';
-import { edibleFor, consume, bedsOn, toysFor, kick } from './items.js';
+import { Needs, needMultiplier, NEED_GAUGES } from './needs.js';
+import { Life, modifiersFor } from './life.js';
+import { Stats } from './stats.js';
+import { newlyUnlocked } from './achievements.js';
+import { edibleFor, consume, bedsOn, toysFor, kick, pickGift } from './items.js';
+import { TrickBook, TRICKS } from './tricks.js';
 import {
   findSurfaceBelow,
   isOnSegment,
@@ -40,8 +44,13 @@ export const State = Object.freeze({
   FLEE: 'flee', // s'éloigne d'un poursuivant
   SEEK_FOOD: 'seekFood', // rejoint une nourriture visée
   EAT: 'eat', // mange, immobile
+  EGG: 'egg', // œuf : immobile, posé, jusqu'à l'éclosion
+  HIBERNATE: 'hibernate', // hibernation après une négligence prolongée
   PLAY: 'play', // rejoint et joue avec un jouet, ou poursuit le pointeur laser
   BRUSHED: 'brushed', // se laisse brosser, immobile
+  TRICK: 'trick', // exécute un tour (assis, roulade...)
+  GIFT: 'gift', // apporte un cadeau au curseur
+  REMIND: 'remind', // vient vers le curseur rappeler au joueur de faire une pause
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -62,14 +71,32 @@ const INTERACTION_REACTIONS = {
   rightClick: 'annoyed',
   hover: 'noticed',
   windowOpened: 'startled',
+  notification: 'noticed', // une notification arrive (contenu jamais lu)
+  typing: 'noticed', // le joueur tape (touches jamais lues), limité par typingCooldown
+  userReturned: 'greeted', // le joueur revient après une absence
   meetCritter: 'greeted', // posé sur LA CIBLE d'un GREET (voir _tickGreet) : arrive entre deux de ses propres ticks, donc via interact()/_pendingEvent comme les autres événements externes -- contrairement à l'initiateur, qui pose this.lastEvent directement puisque ça se passe DANS son propre tick.
 };
 
 /** États où l'animal se dépense (gain de stimulation, cf. Needs.advance). */
+/** Compteur incrémenté à chaque événement d'animal. */
+const EVENT_STATS = {
+  ate: 'meals', played: 'playSessions', brushed: 'brushes', purring: 'purrs', petted: 'pets', greeted: 'greets',
+};
+
+/** Compteurs d'activité : entrée dans un état depuis un état qui n'en fait pas partie. */
+const STATE_GROUPS = [
+  ['climbs', new Set(['climb'])],
+  ['flights', new Set(['fly', 'flyFast', 'dive'])],
+  ['dives', new Set(['dive'])],
+  ['swims', new Set(['swim', 'swimFast'])],
+  ['runs', new Set(['run'])],
+  ['naps', new Set(['sleep'])],
+];
+
 const ACTIVE_STATES = new Set([
   State.WALK, State.RUN, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
   State.FLY, State.FLY_FAST, State.DIVE, State.FOLLOW, State.GREET, State.SEEK_WALL,
-  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD, State.PLAY,
+  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD, State.PLAY, State.REMIND, State.GIFT,
 ]);
 
 /** Activités idle dont le poids suit la stimulation (l'animal s'ennuie : il bouge). */
@@ -82,6 +109,8 @@ const DEFAULT_CONFIG = {
   speciesId: 'unknown',
   needsRateScale: 1, // difficulté * (vacances ? 0 : 1), voir core/needs.js
   needsRates: {}, // débits par heure propres à l'espèce (section `needs` du pack, filtrée par needsOverrides)
+  lifeAgeScale: 1, // vitesse de croissance (réglage), 0 en mode vacances
+  stageScales: {}, // échelle d'affichage par stade (section `stages` du pack, filtrée par stagesOverrides)
   needsDiet: {}, // aliment -> gain de satiété (section `needs.diet` du pack) ; un aliment absent est ignoré
   foodWeight: 40, // multiplié par la faim : un affamé préfère manger, un rassasié ignore
   foodSeekDuration: [6, 12], // temps maximal pour rejoindre une nourriture
@@ -96,6 +125,20 @@ const DEFAULT_CONFIG = {
   petStreakWindow: 3, // secondes max entre deux caresses d'une même série
   petStreakMin: 3, // caresses pour que la série devienne un ronronnement
   brushDuration: 4,
+  nightSleepFactor: 3, // nuit : poids du sommeil
+  nightEnergeticFactor: 0.4, // nuit : poids des activités énergiques
+  awaySleepFactor: 4, // joueur absent : poids du sommeil
+  awayEnergeticFactor: 0.3,
+  remindWeight: 1000, // rappel de pause demandé : il l'emporte
+  remindDuration: 25, // secondes passées près du curseur
+  tricks: [], // tours de l'espèce (liste `tricks` du pack, filtrée par tricksOverrides)
+  giftWeight: 6, // rare : un animal très affectueux ramène un cadeau
+  giftCooldown: 1200, // secondes entre deux cadeaux
+  giftAffection: 70, // affection minimale pour offrir
+  giftDuration: [12, 25],
+  giftChancePerSecond: 0.01, // espèce sans sol : chance par seconde de partir offrir
+  achievements: [], // succès du pack (section `achievements`, filtrée par achievementsOverrides)
+  typingCooldown: 20, // secondes minimales entre deux réactions à la frappe
   walkSpeed: 40, // px/s
   climbSpeed: 30,
   swimSpeed: 25,
@@ -220,8 +263,13 @@ export class Critter {
    * @param {{x: number, y: number}} initialPosition
    */
   constructor(config, initialPosition) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this._baseConfig = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...this._baseConfig };
     this.needs = new Needs({ rates: this.config.needsRates, rateScale: this.config.needsRateScale });
+    this._baseRates = { ...this.needs.rates };
+    /** Adulte neutre par défaut : le Manager fournit la vraie vie (œuf, caractère,
+     * couleur) avec setLife(), ce qui garde le cœur déterministe pour les tests. */
+    this.life = new Life({}, { scales: this.config.stageScales });
     this.x = initialPosition.x;
     this.y = initialPosition.y;
     this.vx = 0;
@@ -262,6 +310,109 @@ export class Critter {
     this._lastPetAt = -Infinity;
     this._petStreak = 0;
     this._playTarget = null;
+    this._lastTypingAt = -Infinity;
+    this._acknowledged = false;
+    this.stats = new Stats();
+    this.tricks = new TrickBook();
+    this._trick = null;
+    this._lastGiftAt = 0; // le premier cadeau n'arrive qu'après giftCooldown secondes d activité
+    this._pendingGift = null;
+    this._giftArrived = false;
+    /** Accessoire porté (id de core/accessories.js) ou null. */
+    this.accessory = null;
+    /** Succès déjà obtenus et ceux à annoncer (voir takeUnlocked). */
+    this.unlocked = new Set();
+    this._pendingUnlocked = [];
+    this._sleepStreak = 0;
+    this._achieveTimer = 0;
+  }
+
+  /** Remplace la vie (œuf, caractère...) et recalcule la configuration qui en découle. */
+  setLife(life) {
+    this.life = life;
+    this._recomputeConfig();
+    // Un œuf (ou un hibernant) qui remplace un animal déjà actif : posé, il passe tout de
+    // suite à l'état immobile ; en l'air, il retombe d'abord.
+    if (this._lifeFrozen() && this.state !== State.DRAG && this.state !== State.FALL) {
+      if (this.currentSurface) this.state = this.life.hibernating ? State.HIBERNATE : State.EGG;
+      else this._enterState(State.FALL);
+    }
+  }
+
+  /**
+   * Configuration effective = configuration de base (défauts + pack) avec les
+   * facteurs de caractère et de stade sur les poids et les vitesses, et les
+   * débits de besoins ajustés. Rappelé à chaque changement de vie.
+   */
+  _recomputeConfig() {
+    const mods = modifiersFor(this.life.trait, this.life.stage);
+    const config = { ...this._baseConfig };
+    for (const [key, factor] of Object.entries(mods.weights)) {
+      if (typeof config[key] === 'number') config[key] *= factor;
+    }
+    for (const key of ['walkSpeed', 'climbSpeed', 'swimSpeed', 'flySpeed']) config[key] *= mods.speed;
+    this.config = config;
+    for (const gauge of NEED_GAUGES) {
+      this.needs.rates[gauge] = this._baseRates[gauge] * (mods.decay[gauge] ?? 1) * (mods.decay.all ?? 1);
+    }
+  }
+
+  setLifeAgeScale(scale) {
+    this._baseConfig.lifeAgeScale = scale;
+    this.config.lifeAgeScale = scale;
+  }
+
+  /** Le joueur réveille l'animal hibernant (soin) : jauges remontées, retour au repos. */
+  wake() {
+    if (!this.life.wake()) return;
+    this.needs.revive();
+    this._enterState(State.IDLE);
+    this._pendingEvent = 'awakened';
+  }
+
+  _countEvent(event) {
+    if (this.life.stage === 'egg') return;
+    if (EVENT_STATS[event]) this.stats.add(EVENT_STATS[event]);
+  }
+
+  /** Compteurs d'activité, plus longue sieste et évaluation des succès (une fois par seconde). */
+  _trackProgress(dt, previousState) {
+    if (this._lifeFrozen()) {
+      this._sleepStreak = 0;
+      return;
+    }
+    if (this.state !== previousState) {
+      for (const [key, states] of STATE_GROUPS) {
+        if (states.has(this.state) && !states.has(previousState)) this.stats.add(key);
+      }
+    }
+    if (this.state === State.SLEEP) {
+      this._sleepStreak += dt;
+      this.stats.max('longestSleepSeconds', Math.floor(this._sleepStreak));
+    } else {
+      this._sleepStreak = 0;
+    }
+
+    this._achieveTimer += dt;
+    if (this._achieveTimer < 1 || this.config.achievements.length === 0) return;
+    this._achieveTimer = 0;
+    const stats = { ...this.stats.counters, daysAlive: Math.floor(this.life.ageSeconds / 86400) };
+    for (const id of newlyUnlocked(this.config.achievements, { trait: this.life.trait, stage: this.life.stage, stats }, this.unlocked)) {
+      this.unlocked.add(id);
+      this._pendingUnlocked.push(id);
+    }
+  }
+
+  /** Équipe un accessoire (le Manager vérifie qu'il est acheté ou de saison) ; null pour l'enlever. */
+  equip(id) {
+    this.accessory = typeof id === 'string' ? id : null;
+  }
+
+  /** Succès débloqués depuis le dernier appel (chacun une seule fois). */
+  takeUnlocked() {
+    const ids = this._pendingUnlocked;
+    this._pendingUnlocked = [];
+    return ids;
   }
 
   /** Point d'extension de la persistance : tout ce qui doit survivre à un
@@ -271,7 +422,14 @@ export class Critter {
       x: Math.round(this.x),
       y: Math.round(this.y),
       facing: this.facing,
-      extra: { needs: this.needs.serialize() },
+      extra: {
+        needs: this.needs.serialize(),
+        life: this.life.serialize(),
+        stats: this.stats.serialize(),
+        achievements: [...this.unlocked],
+        accessory: this.accessory,
+        tricks: this.tricks.serialize(),
+      },
     };
   }
 
@@ -281,8 +439,18 @@ export class Critter {
     this.x = saved.x;
     this.y = saved.y;
     this.facing = saved.facing;
+    if (saved.extra?.life) this.life.restore(saved.extra.life);
+    this.stats.restore(saved.extra?.stats);
+    this.tricks.restore(saved.extra?.tricks);
+    this.accessory = typeof saved.extra?.accessory === 'string' ? saved.extra.accessory : null;
+    if (Array.isArray(saved.extra?.achievements)) {
+      this.unlocked = new Set(saved.extra.achievements.filter((id) => typeof id === 'string'));
+    }
+    this._recomputeConfig();
     this.needs.restore(saved.extra?.needs);
-    this.needs.catchUp(elapsedSeconds);
+    if (!this._lifeFrozen()) this.needs.catchUp(elapsedSeconds);
+    this.life.catchUp(elapsedSeconds, { ageScale: this.config.lifeAgeScale });
+    this._recomputeConfig();
     this._enterState(State.FALL);
   }
 
@@ -294,6 +462,11 @@ export class Critter {
    * @param {number} spriteHeight hauteur du sprite (y désigne les pieds)
    * @returns {boolean} vrai s'il a été replacé
    */
+  /** Besoins et décisions à l'arrêt : dans l'œuf ou en hibernation. */
+  _lifeFrozen() {
+    return this.life.hibernating || this.life.stage === 'egg';
+  }
+
   ensureVisible(monitors, spriteHeight) {
     if (this.state === State.DRAG || monitors.length === 0) return false;
     // Un pixel au-dessus des pieds : posé sur le bord bas d'un moniteur, il est visible.
@@ -351,7 +524,18 @@ export class Critter {
    * ce mapping reste modifiable à un seul endroit.
    */
   interact(kind) {
+    // Dans l'œuf : aucune interaction (ni réaction, ni caresse) ; seul le glisser reste possible.
+    if (this.life.stage === 'egg') return;
     let event = INTERACTION_REACTIONS[kind];
+    if (kind === 'typing') {
+      if (this._clock - this._lastTypingAt < this.config.typingCooldown) return;
+      this._lastTypingAt = this._clock;
+    }
+    if (kind === 'userReturned' && this.state === State.SLEEP) this._enterState(State.IDLE); // il t'accueille
+    if (kind === 'click' && this.state === State.REMIND) {
+      this._acknowledged = true; // le joueur a vu le rappel
+      this._enterState(State.IDLE);
+    }
     if (kind === 'click') {
       // Des caresses rapprochées forment une série : à partir de la 3e,
       // ronronnement (plus d'affection) au lieu d'une simple caresse.
@@ -364,6 +548,7 @@ export class Critter {
     // surface qui bouge ou disparaît sous l'animal le réveille par la chute
     // (cf. _tickWaiting/_resyncCurrentSurface).
     if (this.state === State.SLEEP && WAKING_GESTURES.has(kind)) this._enterState(State.IDLE);
+    if (this.state === State.HIBERNATE && WAKING_GESTURES.has(kind)) this.wake();
   }
 
   /**
@@ -372,7 +557,15 @@ export class Critter {
    * -- la cible pourra l'accepter ou l'ignorer à sa prochaine décision
    * idle, au même titre que sleep/wash/follow/etc.
    */
+  /** Vrai une seule fois après un clic sur l'animal venu rappeler la pause (le Manager remet le compteur à zéro). */
+  takeAcknowledgement() {
+    const acknowledged = this._acknowledged;
+    this._acknowledged = false;
+    return acknowledged;
+  }
+
   proposeChase(chaser) {
+    if (this.life.stage === 'egg') return;
     this._chaseInvitation = chaser;
   }
 
@@ -389,14 +582,28 @@ export class Critter {
     // L'événement venu de l'extérieur agit sur les jauges tout de suite : la
     // logique du tick peut ensuite écraser lastEvent (ex. 'sleep').
     const external = this.lastEvent;
-    if (external) this.needs.apply(external);
+    if (external) {
+      this.needs.apply(external);
+      this._countEvent(external);
+    }
+    const previousState = this.state;
     this.stateTimer -= dt;
     this._clock += dt;
-    this.needs.advance(dt, {
-      sleeping: this.state === State.SLEEP,
-      active: ACTIVE_STATES.has(this.state),
-      sleepFactor: this._bedSleepFactor(options),
-    });
+    if (!this._lifeFrozen()) {
+      this.needs.advance(dt, {
+        sleeping: this.state === State.SLEEP,
+        active: ACTIVE_STATES.has(this.state),
+        sleepFactor: this._bedSleepFactor(options),
+      });
+    }
+    this._applyLifeTransitions(
+      this.life.advance(dt, {
+        mood: this.needs.mood,
+        health: this.needs.values.health,
+        ageScale: this.config.lifeAgeScale,
+        needsScale: this.needs.rateScale,
+      }),
+    );
 
     // La fenêtre/le rebord sur lequel on s'est posé a pu être fermé,
     // déplacé ou redimensionné depuis le tick où `currentSurface` a été
@@ -462,6 +669,19 @@ export class Critter {
       case State.EAT:
         this._tickEat(dt);
         break;
+      case State.REMIND:
+        this._tickRemind(dt, options);
+        break;
+      case State.TRICK:
+        this._tickTrick();
+        break;
+      case State.GIFT:
+        this._tickGift(dt, options);
+        break;
+      case State.EGG:
+      case State.HIBERNATE:
+        this._tickResting();
+        break;
       case State.PLAY:
         this._tickPlay(dt, options);
         break;
@@ -478,7 +698,11 @@ export class Critter {
         this.stateTimer = randRange(this.config.idleDuration, this.config.random);
     }
 
-    if (this.lastEvent && this.lastEvent !== external) this.needs.apply(this.lastEvent);
+    if (this.lastEvent && this.lastEvent !== external) {
+      this.needs.apply(this.lastEvent);
+      this._countEvent(this.lastEvent);
+    }
+    this._trackProgress(dt, previousState);
 
     return this.snapshot();
   }
@@ -489,9 +713,13 @@ export class Critter {
       y: this.y,
       facing: this.facing,
       state: this.state,
-      event: this.lastEvent,
-      urgentNeed: this.needs.urgent(),
+      event: this.life.stage === 'egg' ? null : this.lastEvent,
+      accessory: this.accessory,
+      trick: this._trick,
+      bubble: this.state === State.REMIND ? 'break' : null,
+      urgentNeed: this._lifeFrozen() ? null : this.needs.urgent(),
       mood: this.needs.mood,
+      ...this.life.snapshot(),
     };
   }
 
@@ -534,7 +762,11 @@ export class Critter {
       this.vy = 0;
       this.currentSurface = landing;
       const groundless = this._groundlessRoamState();
-      if (landing.type === 'water' && this.supports(Locomotion.WATER)) {
+      if (this.life.hibernating) {
+        this.state = State.HIBERNATE;
+      } else if (this.life.stage === 'egg') {
+        this.state = State.EGG;
+      } else if (landing.type === 'water' && this.supports(Locomotion.WATER)) {
         this._startRoam(State.SWIM);
       } else if (groundless) {
         // Espèce sans sol (poisson, créature purement aérienne) : ne se pose
@@ -641,6 +873,10 @@ export class Critter {
         : [];
     if (toys.length > 0) candidates.push({ value: 'play', weight: this.config.playWeight });
     if (options.laser && options.pointer) candidates.push({ value: 'laser', weight: this.config.laserWeight });
+    if (options.ambient?.breakReminder && options.pointer) {
+      candidates.push({ value: 'remind', weight: this.config.remindWeight });
+    }
+    if (this._giftReady(options)) candidates.push({ value: 'gift', weight: this.config.giftWeight });
 
     // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
     // pour un décollage, contrairement aux comportements ci-dessus).
@@ -686,6 +922,16 @@ export class Critter {
       }
     }
 
+    // Contexte du monde : la nuit et l'absence du joueur poussent à dormir.
+    const ambient = options.ambient ?? {};
+    const sleepy = (ambient.night ? this.config.nightSleepFactor : 1) * (ambient.away ? this.config.awaySleepFactor : 1);
+    const lively =
+      (ambient.night ? this.config.nightEnergeticFactor : 1) * (ambient.away ? this.config.awayEnergeticFactor : 1);
+    for (const c of candidates) {
+      if (c.value === 'sleep') c.weight *= sleepy;
+      else if (ENERGETIC_ACTIVITIES.has(c.value) || c.value === 'play') c.weight *= lively;
+    }
+
     // Anti-répétition : uniquement sur les activités spéciales. "walk" est
     // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
     // en faveur des autres à chaque cycle qui suit une marche.
@@ -713,6 +959,12 @@ export class Critter {
       }
       case 'laser':
         this._startPlay({ laser: true });
+        return;
+      case 'remind':
+        this._startRemind();
+        return;
+      case 'gift':
+        this._startGift();
         return;
       case 'sleep': {
         // Un lit passe avant tout, quelle que soit la distance : on s'y rend
@@ -1106,7 +1358,10 @@ export class Critter {
 
     consume(target.item);
     this.needs.feed(target.gain);
-    if (target.gain >= Math.max(...Object.values(this.config.needsDiet))) this.needs.boost('affection', 5);
+    if (target.gain >= Math.max(...Object.values(this.config.needsDiet))) {
+      this.needs.boost('affection', 5);
+      this.stats.add('mealsFavorite');
+    }
     this.lastEvent = 'ate';
     this._giveUpFood();
   }
@@ -1208,8 +1463,189 @@ export class Critter {
       this._kickTimer -= dt;
       if (this._kickTimer <= 0) {
         kick(target.item, sign(tx - this.x) || this.facing);
+        this.stats.add('ballKicks');
         this._kickTimer = this.config.kickInterval;
       }
+    }
+  }
+
+  /** Transitions de vie : éclosion, croissance, hibernation. */
+  _applyLifeTransitions(transitions) {
+    if (transitions.length === 0) return;
+    for (const transition of transitions) {
+      if (transition === 'hatched') {
+        this.lastEvent = 'hatched';
+        if (this.state === State.EGG) this._enterState(State.IDLE);
+      } else if (transition === 'grew') {
+        this.lastEvent = 'grew';
+      } else if (transition === 'birthday') {
+        this.lastEvent = 'birthday';
+      } else if (transition === 'hibernated') {
+        this.lastEvent = 'hibernated';
+        this._releaseFood();
+        this._playTarget = null;
+        if (this.state !== State.DRAG && this.state !== State.FALL) this.state = State.HIBERNATE;
+      }
+    }
+    this._recomputeConfig();
+  }
+
+  /** Œuf et hibernation : immobile, seulement attentif à ce que le support tienne. */
+  _tickResting() {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+    }
+  }
+
+  // --- Tours et cadeaux -----------------------------------------------------------
+
+  /** Le tour existe pour l'espèce et l'animal est en état de l'exécuter (ni œuf, ni hibernation, ni en chute). */
+  _canPerform(name) {
+    if (!this.config.tricks.includes(name) || this._lifeFrozen()) return false;
+    const blocked = [State.DRAG, State.FALL, State.EGG, State.HIBERNATE, State.CLIMB, State.CEILING];
+    return !blocked.includes(this.state) && (Boolean(this.currentSurface) || !this.supports(Locomotion.GROUND));
+  }
+
+  _startTrick(name) {
+    this._releaseFood();
+    this._playTarget = null;
+    this._trick = name;
+    this.state = State.TRICK;
+    this.stateTimer = TRICKS[name].duration;
+    this.stats.add('tricksPerformed');
+  }
+
+  /**
+   * Entraînement (action du joueur) : réussi avec la probabilité de la
+   * maîtrise, qui monte dans tous les cas. Un tour enfin appris est annoncé
+   * (événement `trickLearned`).
+   * @returns {boolean} vrai si l'animal a exécuté le tour
+   */
+  trainTrick(name) {
+    if (!this._canPerform(name)) return false;
+    const { success, learned } = this.tricks.train(name, this.config.random, this.life.trait);
+    if (success) this._startTrick(name);
+    else this._pendingEvent = 'noticed'; // il hésite
+    if (learned) this._pendingEvent = 'trickLearned';
+    return success;
+  }
+
+  /** Exécute un tour déjà appris (action du joueur). */
+  performTrick(name) {
+    if (!this.tricks.isLearned(name) || !this._canPerform(name)) return false;
+    this._startTrick(name);
+    return true;
+  }
+
+  _tickTrick() {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    if (this.stateTimer > 0) return;
+    this._trick = null;
+    const roam = this._groundlessRoamState();
+    if (roam) this._startRoam(roam);
+    else this._enterState(State.IDLE);
+  }
+
+  /** Un adulte très affectueux, sans cadeau récent, peut en ramener un près du curseur. */
+  _giftReady(options) {
+    return (
+      Boolean(options.pointer) &&
+      (this.life.stage === 'adult' || this.life.stage === 'senior') &&
+      this.needs.values.affection >= this.config.giftAffection &&
+      this._clock - this._lastGiftAt >= this.config.giftCooldown
+    );
+  }
+
+  _startGift() {
+    this._releaseFood();
+    this._playTarget = null;
+    this.state = State.GIFT;
+    this.stateTimer = randRange(this.config.giftDuration, this.config.random);
+  }
+
+  /** Rejoint le curseur puis y dépose son cadeau (à ramasser par le joueur). */
+  _tickGift(dt, options) {
+    const groundless = !this.supports(Locomotion.GROUND);
+    if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    const pointer = options.pointer;
+    const end = () => {
+      const roam = this._groundlessRoamState();
+      if (roam) this._startRoam(roam);
+      else this._enterState(State.IDLE);
+    };
+    if (this.stateTimer <= 0 || !pointer) {
+      end(); // pas arrivé à temps : pas de cadeau, pas de délai consommé
+      return;
+    }
+
+    let distance;
+    if (groundless) {
+      const speed = this.supports(Locomotion.WATER) ? this.config.swimSpeed : this.config.flySpeed;
+      distance = this._approach2D(dt, pointer.x, pointer.y, speed);
+    } else {
+      distance = Math.abs(pointer.x - this.x);
+      if (distance >= this.config.kickDistance) this._chase(dt, pointer.x);
+    }
+    if (distance < this.config.kickDistance * 1.5) {
+      this._pendingGift = { kind: pickGift(this.config.random), x: this.x, y: this.y - 16 };
+      this._lastGiftAt = this._clock;
+      this.stats.add('giftsGiven');
+      this.lastEvent = 'gift';
+      end();
+    }
+  }
+
+  /** Cadeau déposé depuis le dernier appel (le Manager en fait un objet), ou null. */
+  takeGift() {
+    const gift = this._pendingGift;
+    this._pendingGift = null;
+    return gift;
+  }
+
+  _startRemind() {
+    this._releaseFood();
+    this._playTarget = null;
+    this._remindArrived = false;
+    this.state = State.REMIND;
+    this.stateTimer = this.config.remindDuration;
+  }
+
+  /** Rappel de pause : rejoint le curseur (marche, vol ou nage) et reste à côté jusqu'à la fin. */
+  _tickRemind(dt, options) {
+    const groundless = !this.supports(Locomotion.GROUND);
+    if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    const pointer = options.pointer;
+    if (this.stateTimer <= 0 || !pointer || !options.ambient?.breakReminder) {
+      const roam = this._groundlessRoamState();
+      if (roam) this._startRoam(roam);
+      else this._enterState(State.IDLE);
+      return;
+    }
+
+    let distance;
+    if (groundless) {
+      const speed = this.supports(Locomotion.WATER)
+        ? this.config.swimSpeed * this.config.swimFastFactor
+        : this.config.flySpeed * this.config.flyFastFactor;
+      distance = this._approach2D(dt, pointer.x, pointer.y, speed);
+    } else {
+      distance = Math.abs(pointer.x - this.x);
+      if (distance >= this.config.kickDistance) {
+        this._chase(dt, pointer.x, this.config.walkSpeed * this.config.runSpeedFactor);
+      }
+    }
+    if (distance < this.config.kickDistance * 1.5 && !this._remindArrived) {
+      this._remindArrived = true;
+      this.lastEvent = 'reminded';
     }
   }
 
@@ -1219,7 +1655,11 @@ export class Critter {
       State.DRAG, State.FALL, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
       State.FLY, State.FLY_FAST, State.DIVE,
     ];
-    if (!this.currentSurface || blocked.includes(this.state)) return;
+    if (this.state === State.HIBERNATE) {
+      this.wake();
+      return;
+    }
+    if (!this.currentSurface || blocked.includes(this.state) || this.state === State.EGG) return;
     this._releaseFood();
     this._playTarget = null;
     this.state = State.BRUSHED;
@@ -1465,6 +1905,14 @@ export class Critter {
       this._foodCheckTimer = (this._foodCheckTimer ?? 0) - dt;
       if (this._foodCheckTimer <= 0) {
         this._foodCheckTimer = 1;
+        if (options.ambient?.breakReminder && options.pointer) {
+          this._startRemind();
+          return;
+        }
+        if (this._giftReady(options) && this.config.random() < this.config.giftChancePerSecond) {
+          this._startGift();
+          return;
+        }
         if (options.laser && options.pointer) {
           this._startPlay({ laser: true });
           return;

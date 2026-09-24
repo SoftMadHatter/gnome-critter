@@ -19,7 +19,18 @@ export const FOODS = Object.freeze({
 /** Jouets : la balle roule et rebondit, la peluche reste posée. */
 export const TOYS = Object.freeze({ ball: {}, plush: {} });
 
-export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy']);
+/** Cadeaux ramenés par un animal : pièces gagnées quand le joueur les ramasse. */
+export const GIFTS = Object.freeze({ coin: { coins: 5 }, flower: { coins: 3 }, feather: { coins: 8 } });
+
+/** Cadeau tiré au hasard (la plume est rare). */
+export function pickGift(random) {
+  const r = random();
+  return r < 0.6 ? 'coin' : r < 0.9 ? 'flower' : 'feather';
+}
+
+const GIFT_TTL = 1800;
+
+export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift']);
 
 export const BOWL_CAPACITY = 5;
 
@@ -39,6 +50,7 @@ let nextId = 1;
  */
 export function createItem(type, kind, x, y) {
   const food = type === 'food' ? FOODS[kind] : null;
+  const gift = type === 'gift';
   return {
     id: nextId++,
     type,
@@ -50,7 +62,8 @@ export function createItem(type, kind, x, y) {
     surface: null, // segment sur lequel l'objet repose, une fois posé
     floating: Boolean(food?.floats),
     portions: 0, // gamelle uniquement
-    ttl: food ? food.ttl : Infinity,
+    ttl: food ? food.ttl : gift ? GIFT_TTL : Infinity,
+    collected: false, // cadeau ramassé par le joueur (le Manager crédite les pièces)
     consumed: false, // mangée ou expirée : à retirer
     removed: false, // retirée par le joueur : à retirer
     grabbed: false, // tenue à la souris : pas de physique
@@ -67,7 +80,7 @@ export function fillBowl(bowl, kind, portions = BOWL_CAPACITY) {
 
 /** Vrai quand le Manager doit retirer l'objet. */
 export function isGone(item) {
-  return item.removed || (item.type === 'food' && item.consumed);
+  return item.removed || ((item.type === 'food' || item.type === 'gift') && item.consumed);
 }
 
 /**
@@ -79,7 +92,7 @@ export function isGone(item) {
  * @param {{y:number, height:number}} [worldBounds]
  */
 export function tickItem(item, dt, surfaces, worldBounds) {
-  if (item.type === 'food' && Number.isFinite(item.ttl)) {
+  if ((item.type === 'food' || item.type === 'gift') && Number.isFinite(item.ttl)) {
     item.ttl -= dt;
     if (item.ttl <= 0) item.consumed = true;
   }
@@ -265,12 +278,12 @@ export function parseSavedItems(text, { bounds }) {
   const result = [];
   for (const raw of data.items) {
     if (!raw || !ITEM_TYPES.includes(raw.type) || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) continue;
-    if (raw.type === 'toy' ? !TOYS[raw.kind] : raw.type !== 'bed' && !FOODS[raw.kind]) continue;
+    if (raw.type === 'gift' ? !GIFTS[raw.kind] : raw.type === 'toy' ? !TOYS[raw.kind] : raw.type !== 'bed' && !FOODS[raw.kind]) continue;
     const item = createItem(raw.type, raw.kind, 0, 0);
     item.x = Math.min(Math.max(raw.x, bounds.x), bounds.x + bounds.width);
     item.y = Math.min(Math.max(raw.y, bounds.y), bounds.y + bounds.height);
     if (item.type === 'bowl') item.portions = Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), BOWL_CAPACITY) : 0;
-    if (item.type === 'food') {
+    if (item.type === 'food' || item.type === 'gift') {
       if (Number.isFinite(raw.ttl) && raw.ttl <= 0) continue;
       if (Number.isFinite(raw.ttl)) item.ttl = Math.min(raw.ttl, item.ttl);
     }

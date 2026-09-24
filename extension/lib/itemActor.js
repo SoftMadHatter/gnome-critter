@@ -16,7 +16,11 @@ const MAX_THROW_SPEED = 900; // px/s
 const SIZES = { food: { width: 16, height: 16 }, bowl: { width: 24, height: 12 }, bed: { width: 32, height: 12 } };
 const TOY_SIZES = { ball: { width: 12, height: 12 }, plush: { width: 16, height: 14 } };
 
-const sizeOf = (item) => (item.type === 'toy' ? TOY_SIZES[item.kind] : SIZES[item.type]);
+const sizeOf = (item) => {
+  if (item.type === 'toy') return TOY_SIZES[item.kind];
+  if (item.type === 'gift') return { width: 12, height: 12 };
+  return SIZES[item.type];
+};
 
 export const FOOD_LABELS = {
   meat: 'Viande',
@@ -26,9 +30,17 @@ export const FOOD_LABELS = {
   plankton: 'Plancton',
 };
 
+import { FOOD_PRICES } from '../core/accessories.js';
+
+/** Libellé d'un aliment avec son prix (aliments premium seulement), pour `portions` portions. */
+export function foodLabel(kind, portions = 1) {
+  const price = (FOOD_PRICES[kind] ?? 0) * portions;
+  return `${FOOD_LABELS[kind] ?? kind}${price > 0 ? ` (${price} pièces)` : ''}`;
+}
+
 export const TOY_LABELS = { ball: 'Balle', plush: 'Peluche' };
 
-const IMAGE_NAMES = ['meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bed', 'ball', 'plush', 'laser'];
+const IMAGE_NAMES = ['meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bed', 'ball', 'plush', 'laser', 'coin', 'flower', 'feather'];
 
 /**
  * @param {string} dir extension/assets/items
@@ -71,6 +83,16 @@ export class ItemActor {
   }
 
   _setupGestures() {
+    if (this.item.type === 'gift') {
+      // Un clic ramasse le cadeau : le Manager crédite les pièces.
+      const collect = new Clutter.ClickGesture();
+      collect.connect('recognize', () => {
+        this.item.collected = true;
+        this.item.removed = true;
+      });
+      this.actor.add_action(collect);
+    }
+
     const remove = new Clutter.ClickGesture({
       required_button: Clutter.BUTTON_SECONDARY,
       recognize_on_press: true,

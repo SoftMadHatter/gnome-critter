@@ -14,15 +14,26 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { Critter, Locomotion, behaviorOverrides } from '../core/critter.js';
 import { serializeCritters, parseSavedState } from '../core/persistence.js';
 import { needsOverrides } from '../core/needs.js';
+import { Life, stagesOverrides } from '../core/life.js';
+import { isNight, BreakTracker, IdleTracker } from '../core/rhythm.js';
+import { Player } from '../core/player.js';
+import { tricksOverrides } from '../core/tricks.js';
+import { anchorsOverrides, shopList, equippable, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
+import { achievementsOverrides, isEligible } from '../core/achievements.js';
+import { CONDITION_STATS } from '../core/stats.js';
+import { STAGE_LABELS } from './lifeLabels.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
-  createItem, fillBowl, tickItem, isGone, isToy, rescueItem, serializeItems, parseSavedItems,
+  createItem, fillBowl, tickItem, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
 import { loadBubbleIcons } from './thoughtBubble.js';
 import { addIndicator } from './panelIndicator.js';
+import { loadVariantSheet } from './packLoader.js';
+import { ActivitySensor } from './activitySensor.js';
 import { ItemActor, LaserDot, loadItemImages } from './itemActor.js';
+import { loadAccessoryImages } from './accessoryActor.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
@@ -45,6 +56,19 @@ export class Manager {
     this._items = [];
     this._itemImages = {};
     this._lastSavedItems = null;
+    this._eggSheet = null;
+    this._player = new Player();
+    this._achievements = [];
+    this._lastSavedPlayer = null;
+    this._sensors = null;
+    this._idleTracker = new IdleTracker();
+    this._breakTracker = new BreakTracker({ enabled: false });
+    this._worldTimer = 0;
+    this._night = false;
+    this._nightHour = -1;
+    /** Animal chargé du rappel de pause, et fin de la fenêtre de rappel (µs). */
+    this._reminder = null;
+    this._reminderUntilUs = 0;
     this._laser = false; // mode pointeur laser, en mémoire seulement (éteint à chaque activation)
     this._laserDot = null;
     /** @type {{critter: Critter, actor: CritterActor}[]} */
@@ -81,8 +105,34 @@ export class Manager {
     if (needs.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
     }
+    this._accessoryImages = loadAccessoryImages(GLib.build_filenamev([this._extensionPath, 'assets', 'accessories']));
+    const anchors = anchorsOverrides(this.pack.meta.anchors);
+    if (anchors.ignored.length > 0) {
+      console.warn(`Scamper: pack "${this.pack.meta.id}", clés "anchors" ignorées : ${anchors.ignored.join(', ')}`);
+    }
     this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
     if (this._itemImages.laser) this._laserDot = new LaserDot(this._itemImages.laser);
+    try {
+      this._eggSheet = loadVariantSheet(GLib.build_filenamev([this._extensionPath, 'assets', 'life', 'egg.png']));
+    } catch (e) {
+      console.warn(`Scamper : sprite d'œuf indisponible (${e.message})`);
+    }
+    const stages = stagesOverrides(this.pack.meta.stages);
+    if (stages.ignored.length > 0) {
+      console.warn(`Scamper: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
+    }
+    const achievements = achievementsOverrides(this.pack.meta.achievements);
+    if (achievements.ignored.length > 0) {
+      console.warn(`Scamper: pack "${this.pack.meta.id}", succès ignorés : ${achievements.ignored.join(', ')}`);
+    }
+    this._achievements = achievements.list;
+    const tricks = tricksOverrides(this.pack.meta.tricks);
+    if (tricks.ignored.length > 0) {
+      console.warn(`Scamper: pack "${this.pack.meta.id}", tours ignorés : ${tricks.ignored.join(', ')}`);
+    }
+    this._player = Player.parse(this.settings.get_string('saved-player'));
+    const growthEnabled = this.settings.get_boolean('growth-enabled');
+    const hueRange = this.pack.appearance.enabled ? this.pack.appearance.hueRange : [0, 0];
     const bubbleIcons = loadBubbleIcons(GLib.build_filenamev([this._extensionPath, 'assets', 'bubbles']));
 
     const saved = parseSavedState(this.settings.get_string('saved-state'), {
@@ -106,6 +156,10 @@ export class Manager {
           ...behavior.config,
           needsRates: needs.rates,
           needsDiet: needs.diet,
+          lifeAgeScale: this._lifeAgeScale(),
+          achievements: this._achievements,
+          tricks: tricks.list,
+          stageScales: stages.scales,
           needsRateScale: this._needsRateScale(),
           speciesId: this.pack.meta.id,
           walkSpeed: this.pack.speeds.walk ?? 40,
@@ -119,9 +173,16 @@ export class Manager {
         { x: startX, y: startY },
       );
 
+      // Un animal neuf naît en œuf (si la croissance est active) ; une
+      // sauvegarde d'avant la croissance en fait un adulte au caractère tiré.
+      critter.setLife(
+        Life.create(Math.random, { growth: growthEnabled && !saved[i], hueRange, scales: stages.scales }),
+      );
       if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
+      else if (growthEnabled) this._player.log(`Un œuf de ${this.pack.meta.displayName ?? this.pack.meta.id} est déposé.`, Date.now());
 
-      const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner());
+      const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner(), this._eggSheet);
+      actor.attachAccessories(this._accessoryImages, anchors.anchors);
       // GNOME 50 (layout.js) : addChrome() inclut automatiquement l'acteur
       // dans la région d'input selon sa taille/position/visibilité ; le
       // paramètre affectsInputRegion n'existe plus (Params.parse rejette
@@ -136,14 +197,148 @@ export class Manager {
     for (const key of ['difficulty', 'vacation-mode']) {
       this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyNeedsRateScale()));
     }
+    for (const key of ['vacation-mode', 'growth-enabled', 'growth-speed']) {
+      this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyLifeAgeScale()));
+    }
     this._settingsIds.push(this.settings.connect('changed::show-indicator', () => this._syncIndicator()));
     this._syncIndicator();
+
+    this._sensors = new ActivitySensor({
+      onNotification: () => this._broadcast('notification', 'react-notifications'),
+      onTyping: () => this._broadcast('typing', 'react-typing'),
+    });
+    for (const [key, apply] of [
+      ['react-notifications', (on) => this._sensors.setNotifications(on)],
+      ['react-typing', (on) => this._sensors.setTyping(on)],
+    ]) {
+      apply(this.settings.get_boolean(key));
+      this._settingsIds.push(this.settings.connect(`changed::${key}`, () => apply(this.settings.get_boolean(key))));
+    }
+  }
+
+  /** Événement du monde (notification, frappe, retour du joueur) transmis aux animaux. */
+  _broadcast(kind, settingKey = null) {
+    if (settingKey && !this.settings.get_boolean(settingKey)) return;
+    for (const { critter } of this._critters) critter.interact(kind);
+  }
+
+  /**
+   * Rythme du monde, une fois par seconde : absence et retour du joueur,
+   * heure (nuit), suivi de la pause. Rien n'est lu au-delà du temps
+   * d'inactivité et de l'heure locale.
+   */
+  _worldTick(dt, nowUs) {
+    this._worldTimer += dt;
+    if (this._worldTimer < 1 || !this._sensors) return;
+    const elapsed = this._worldTimer;
+    this._worldTimer = 0;
+    const idle = this._sensors.idleSeconds();
+
+    this._idleTracker.awayAfter = this.settings.get_int('away-minutes') * 60;
+    const transition = this._idleTracker.update(idle);
+    if (transition === 'returned' && this.settings.get_boolean('away-sleep')) this._broadcast('userReturned');
+
+    const hour = GLib.DateTime.new_now_local().get_hour();
+    if (hour !== this._nightHour) {
+      this._nightHour = hour;
+      this._night = isNight(hour);
+    }
+
+    this._breakTracker.enabled = this.settings.get_boolean('break-reminder');
+    this._breakTracker.interval = this.settings.get_int('break-minutes') * 60;
+    if (this._breakTracker.advance(elapsed, idle) === 'remind') {
+      this._reminder =
+        this._critters.find(({ critter }) => critter.life.stage !== 'egg' && !critter.life.hibernating)?.critter ?? null;
+      this._reminderUntilUs = nowUs + 90_000_000;
+    }
+    if (!this._breakTracker.enabled || nowUs > this._reminderUntilUs) this._reminder = null;
+  }
+
+  /** Débite `price` pièces ; sans assez de pièces, prévient et refuse. */
+  _pay(price) {
+    if (price <= 0) return true;
+    if (this._player.spend(price)) return true;
+    Main.notify('Critter', `Pièces insuffisantes (${price} nécessaires, ${this._player.coins} en poche).`);
+    return false;
+  }
+
+  buyAccessory(id) {
+    const def = ACCESSORIES[id];
+    if (!def || this._player.owns(id) || def.price === 0) return;
+    if (!this._pay(def.price)) return;
+    this._player.own(id);
+    this._player.log(`Accessoire acheté : ${def.label}.`, Date.now());
+    Main.notify('Critter', `${def.label} acheté (-${def.price} pièces).`);
+  }
+
+  /** Nom d'un animal dans les messages : l'espèce, numérotée s'il y en a plusieurs. */
+  _nameOf(index) {
+    const title = this.pack.meta.displayName ?? this.pack.meta.id;
+    return this._critters.length > 1 ? `${title} ${index + 1}` : title;
+  }
+
+  /** Succès qu'un animal peut obtenir (espèce et caractère compatibles), avec leur état. */
+  achievementsFor(critter) {
+    return this._achievements
+      .filter((def) => isEligible(def, { trait: critter.life.trait }))
+      .map((def) => ({ def, unlocked: critter.unlocked.has(def.id), progress: this._statOf(critter, def.condition.stat) }));
+  }
+
+  _statOf(critter, stat) {
+    if (!CONDITION_STATS.includes(stat)) return 0;
+    return stat === 'daysAlive' ? Math.floor(critter.life.ageSeconds / 86400) : critter.stats.get(stat);
+  }
+
+  /**
+   * Progression d'un animal après son tick : pièces des événements, journal,
+   * succès (pièces, entrée de journal, notification).
+   */
+  _processProgress(index, critter, snapshot, nowUs) {
+    const name = this._nameOf(index);
+    const nowSeconds = nowUs / 1_000_000;
+    const event = snapshot.event;
+    if (event) {
+      this._player.awardEvent(`${index}`, event, nowSeconds);
+      if (event === 'hatched') this._player.log(`${name} a éclos.`, Date.now());
+      else if (event === 'birthday') this._player.log(`${name} fête son anniversaire !`, Date.now());
+      else if (event === 'grew') this._player.log(`${name} devient ${STAGE_LABELS[snapshot.stage]?.toLowerCase() ?? snapshot.stage}.`, Date.now());
+    }
+    if (event === 'trickLearned') this._player.log(`${name} a appris un tour.`, Date.now());
+    const gift = critter.takeGift();
+    if (gift) this._addItem(createItem('gift', gift.kind, gift.x, gift.y));
+    for (const id of critter.takeUnlocked()) {
+      const def = this._achievements.find((a) => a.id === id);
+      if (!def) continue;
+      this._player.award(`achievement:${index}:${id}`, def.coins, nowSeconds);
+      this._player.log(`${name} : succès « ${def.name} ».`, Date.now());
+      Main.notify('Critter', `${name} : succès « ${def.name} » (+${def.coins} pièces)`);
+    }
+  }
+
+  /** Contexte du monde vu par un animal : nuit, absence, rappel de pause (le sien seulement). */
+  _ambientFor(critter) {
+    return {
+      night: this.settings.get_boolean('day-night') && this._night,
+      away: this.settings.get_boolean('away-sleep') && this._idleTracker.away,
+      breakReminder: this._reminder === critter,
+    };
   }
 
   /** Difficulté choisie, ou 0 en mode vacances (tout figé). */
   _needsRateScale() {
     if (this.settings.get_boolean('vacation-mode')) return 0;
     return DIFFICULTY_SCALE[this.settings.get_string('difficulty')] ?? 1;
+  }
+
+  /** Vitesse de croissance : réglage choisi, 0 en vacances ou croissance désactivée. */
+  _lifeAgeScale() {
+    if (this.settings.get_boolean('vacation-mode') || !this.settings.get_boolean('growth-enabled')) return 0;
+    return this.settings.get_double('growth-speed');
+  }
+
+  _applyLifeAgeScale() {
+    const scale = this._lifeAgeScale();
+    for (const { critter } of this._critters) critter.setLifeAgeScale(scale);
   }
 
   _applyNeedsRateScale() {
@@ -159,6 +354,8 @@ export class Manager {
           getCritters: () => this._critters.map(({ critter }) => critter),
           title: this.pack.meta.displayName ?? this.pack.meta.id,
           ...this._menuOwner(),
+          getPlayer: () => this._player,
+          achievementsFor: (critter) => this.achievementsFor(critter),
           foods: () => this._foods(),
           clearItems: () => this.clearItems(),
         },
@@ -176,11 +373,22 @@ export class Manager {
   /** Actions offertes aux menus (contextuel de l'animal et icône de barre). */
   _menuOwner() {
     return {
-      dropFood: (kind, critter) => this._dropNear('food', kind, critter),
-      fillBowl: (kind, critter) => this._fillBowl(kind, critter),
+      dropFood: (kind, critter) => {
+        if (this._pay(FOOD_PRICES[kind] ?? 0)) this._dropNear('food', kind, critter);
+      },
+      fillBowl: (kind, critter) => {
+        if (this._pay((FOOD_PRICES[kind] ?? 0) * 5)) this._fillBowl(kind, critter);
+      },
+      train: (critter, name) => critter.trainTrick(name),
+      perform: (critter, name) => critter.performTrick(name),
+      equippable: () => equippable(new Date(), this._player.owned),
+      equip: (critter, id) => critter.equip(id),
+      shopList: () => shopList(new Date(), this._player.owned),
+      buyAccessory: (id) => this.buyAccessory(id),
       dropBed: (critter) => this._dropNear('bed', null, critter),
       dropToy: (kind, critter) => this._dropNear('toy', kind, critter),
       brush: (critter) => critter.brush(),
+      wake: (critter) => critter.wake(),
       setLaser: (on) => this.setLaser(on),
       isLaser: () => this._laser,
       hasToys: () => this._items.some(({ item }) => isToy(item) && !item.removed),
@@ -238,6 +446,11 @@ export class Manager {
   _removeGoneItems() {
     this._items = this._items.filter((entry) => {
       if (!isGone(entry.item)) return true;
+      if (entry.item.collected) {
+        const coins = GIFTS[entry.item.kind]?.coins ?? 0;
+        this._player.award('gift', coins, 0);
+        this._player.log(`Cadeau ramassé : +${coins} pièces.`, Date.now());
+      }
       Main.layoutManager.removeChrome(entry.actor.actor);
       entry.actor.destroy();
       return false;
@@ -267,6 +480,12 @@ export class Manager {
       this.settings.set_string('saved-state', json);
     }
 
+    const playerJson = this._player.serialize();
+    if (playerJson !== this._lastSavedPlayer) {
+      this._lastSavedPlayer = playerJson;
+      this.settings.set_string('saved-player', playerJson);
+    }
+
     const itemsJson = serializeItems(this._items.map(({ item }) => item));
     if (itemsJson !== this._lastSavedItems) {
       this._lastSavedItems = itemsJson;
@@ -292,6 +511,8 @@ export class Manager {
     this._settingsIds = [];
     this._indicator?.destroy();
     this._indicator = null;
+    this._sensors?.destroy();
+    this._sensors = null;
     for (const { actor } of this._critters) {
       Main.layoutManager.removeChrome(actor.actor);
       actor.destroy();
@@ -348,7 +569,10 @@ export class Manager {
     // la référence à l'instance voyage à côté (pas dans le calcul de
     // ciblage, seulement pour que GREET puisse déclencher une réaction sur
     // la cible une fois atteinte -- voir Critter._tickGreet).
-    const others = this._critters.map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
+    // Un œuf n'est pas un voisin : personne ne va le saluer ni le poursuivre.
+    const others = this._critters
+      .filter(({ critter }) => critter.life.stage !== 'egg')
+      .map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
 
     for (const { item, actor } of this._items) {
       rescueItem(item, monitors);
@@ -359,10 +583,20 @@ export class Manager {
     const items = this._items.map(({ item }) => item);
     this._laserDot?.update(pointer, this._laser);
 
+    this._worldTick(dt, nowUs);
     this._critters.forEach(({ critter, actor }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
       critter.ensureVisible(monitors, this.pack.spriteSize.height);
-      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser });
+      const ambient = this._ambientFor(critter);
+      const snapshot = critter.tick(dt, surfaces, {
+        worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient,
+      });
+      actor.setNight(ambient.night);
+      this._processProgress(i, critter, snapshot, nowUs);
+      if (critter.takeAcknowledgement()) {
+        this._breakTracker.acknowledge();
+        this._reminder = null;
+      }
       actor.updateAnimation(dt, snapshot);
     });
   }

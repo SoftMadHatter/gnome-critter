@@ -2029,3 +2029,482 @@ test('un objet hors écran est ramené en haut de l\'écran le plus proche', asy
   const ok = createItem('bed', null, 100, 500);
   assert.equal(rescueItem(ok, monitors), false);
 });
+
+// --- Vie : œuf, stades, personnalité, hibernation --------------------------------
+
+import { Life } from '../core/life.js';
+
+function lifeSeq(...values) {
+  let i = 0;
+  return () => values[Math.min(i++, values.length - 1)];
+}
+
+function groundedCritter(config = {}) {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter({ random: fixedRandom(0.9), ...config }, { x: 300, y: 100 });
+  return { c, surfaces };
+}
+
+test("un œuf tombe, se pose et reste immobile, sans besoins, puis éclot", () => {
+  const { c, surfaces } = groundedCritter();
+  c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+
+  let snap;
+  for (let i = 0; i < 200 && c.state !== State.EGG; i++) snap = c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(c.state, State.EGG);
+  assert.equal(snap.stage, 'egg');
+  assert.equal(snap.urgentNeed, null);
+
+  const x = c.x;
+  const satiety = c.needs.values.satiety;
+  for (let i = 0; i < 50; i++) c.tick(10, surfaces, { worldBounds: monitor }); // 500 s : toujours dans l'œuf
+  assert.equal(c.x, x);
+  assert.equal(c.needs.values.satiety, satiety, 'besoins figés dans l\'œuf');
+
+  c.life.ageSeconds = 0.25 * 3600 - 1;
+  const seen = [];
+  for (let i = 0; i < 5; i++) seen.push(c.tick(1, surfaces, { worldBounds: monitor }).event);
+  assert.ok(seen.includes('hatched'));
+  assert.equal(c.life.stage, 'baby');
+  assert.notEqual(c.state, State.EGG);
+  assert.equal(c.snapshot().scale, 0.5);
+});
+
+test('un bébé va plus lentement qu\'un adulte', () => {
+  const walkedBy = (stage) => {
+    const { c, surfaces } = groundedCritter({ walkSpeed: 40 });
+    const life = new Life({ ageSeconds: { baby: 1, adult: 60 * 3600 }[stage] });
+    life.ageSeconds = { baby: 0.3 * 3600, adult: 60 * 3600 }[stage];
+    c.setLife(life);
+    c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+    c.y = monitor.height;
+    c.x = 100;
+    c.state = State.WALK;
+    c.stateTimer = 100;
+    c.walkTargetX = 900;
+    c.tick(1, surfaces, { worldBounds: monitor });
+    return c.x - 100;
+  };
+  const baby = walkedBy('baby');
+  const adult = walkedBy('adult');
+  assert.ok(baby < adult * 0.8, `bébé ${baby}, adulte ${adult}`);
+});
+
+test('le caractère modifie les poids : un paresseux dort davantage, un timide salue moins', () => {
+  const { c } = groundedCritter({ sleepWeight: 10, greetWeight: 20 });
+  const base = c.config.sleepWeight;
+  c.setLife(new Life({ trait: 'lazy' }));
+  assert.ok(c.config.sleepWeight > base * 1.7);
+  c.setLife(new Life({ trait: 'shy' }));
+  assert.ok(c.config.greetWeight < 20 * 0.5);
+  c.setLife(new Life({ trait: null }));
+  assert.equal(c.config.greetWeight, 20);
+});
+
+test('le caractère joue sur les débits de besoins', () => {
+  const { c } = groundedCritter();
+  const before = c.needs.rates.satiety;
+  c.setLife(new Life({ trait: 'greedy' }));
+  assert.ok(c.needs.rates.satiety > before * 1.3);
+});
+
+test("négligence prolongée : hibernation ; un clic réveille et remonte les jauges", () => {
+  const { c, surfaces } = groundedCritter();
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.y = monitor.height;
+  c.state = State.IDLE;
+  c.stateTimer = 1e9;
+  c.needs.values.health = 5;
+  c.needs.values.satiety = 1;
+  c.life.neglectSeconds = 6 * 3600 - 1;
+  const events = [];
+  for (let i = 0; i < 3; i++) events.push(c.tick(1, surfaces, { worldBounds: monitor }).event);
+  assert.ok(events.includes('hibernated'));
+  assert.equal(c.state, State.HIBERNATE);
+  assert.equal(c.snapshot().urgentNeed, null);
+
+  c.interact('hover');
+  assert.equal(c.state, State.HIBERNATE, 'le survol ne réveille pas');
+  c.interact('click');
+  assert.equal(c.state, State.IDLE);
+  assert.equal(c.life.hibernating, false);
+  assert.ok(c.needs.values.satiety >= 50 && c.needs.values.health >= 50);
+  assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event, 'awakened');
+});
+
+test('le brossage réveille aussi un animal hibernant', () => {
+  const { c, surfaces } = groundedCritter();
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.life.hibernating = true;
+  c.state = State.HIBERNATE;
+  c.brush();
+  assert.equal(c.life.hibernating, false);
+});
+
+test('serialize/restore : la vie est conservée, et une ancienne sauvegarde reste adulte', () => {
+  const a = new Critter({}, { x: 10, y: 10 });
+  a.setLife(Life.create(lifeSeq(0.6, 0.2, 0.8), { growth: false }));
+  const saved = a.serialize();
+  assert.equal(saved.extra.life.trait, 'greedy');
+
+  const b = new Critter({}, { x: 0, y: 0 });
+  b.restore(saved);
+  assert.equal(b.life.trait, 'greedy');
+  assert.equal(b.life.stage, 'adult');
+
+  const old = new Critter({}, { x: 0, y: 0 });
+  old.restore({ x: 5, y: 5, facing: 1, extra: {} });
+  assert.equal(old.life.stage, 'adult');
+});
+
+test('restaurer un œuf ou un hibernant : retombe puis reprend son état', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const egg = new Critter({ random: fixedRandom(0.9) }, { x: 300, y: 100 });
+  egg.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  const restored = new Critter({ random: fixedRandom(0.9) }, { x: 0, y: 0 });
+  restored.restore(egg.serialize());
+  for (let i = 0; i < 300 && restored.state === State.FALL; i++) restored.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(restored.state, State.EGG);
+
+  const sleeper = new Critter({ random: fixedRandom(0.9) }, { x: 300, y: 100 });
+  sleeper.life.hibernating = true;
+  const back = new Critter({ random: fixedRandom(0.9) }, { x: 0, y: 0 });
+  back.restore(sleeper.serialize());
+  for (let i = 0; i < 300 && back.state === State.FALL; i++) back.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(back.state, State.HIBERNATE);
+});
+
+test('le rattrapage hors ligne fait grandir (demi-vitesse) et ne touche pas les besoins d\'un œuf', () => {
+  const egg = new Critter({}, { x: 0, y: 0 });
+  egg.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  const saved = egg.serialize();
+  const back = new Critter({}, { x: 0, y: 0 });
+  back.restore(saved, { elapsedSeconds: 2 * 3600 });
+  assert.equal(back.life.stage, 'baby');
+
+  const eggAgain = new Critter({}, { x: 0, y: 0 });
+  eggAgain.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  const s2 = eggAgain.serialize();
+  const still = new Critter({}, { x: 0, y: 0 });
+  still.restore(s2, { elapsedSeconds: 60 });
+  assert.equal(still.life.stage, 'egg');
+  assert.equal(still.needs.values.satiety, 80);
+});
+
+test('vitesse de croissance et vacances via lifeAgeScale', () => {
+  const { c, surfaces } = groundedCritter({ lifeAgeScale: 1000 });
+  c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  c.tick(1, surfaces, { worldBounds: monitor });
+  assert.ok(c.life.ageSeconds >= 1000);
+
+  const frozen = groundedCritter({ lifeAgeScale: 0 });
+  frozen.c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  frozen.c.tick(100, frozen.surfaces, { worldBounds: monitor });
+  assert.equal(frozen.c.life.ageSeconds, 0);
+
+  frozen.c.setLifeAgeScale(5);
+  frozen.c.tick(10, frozen.surfaces, { worldBounds: monitor });
+  assert.equal(frozen.c.life.ageSeconds, 50);
+});
+
+test("dans l'œuf : aucune interaction (survol, clic, invitation), seul le glisser reste", () => {
+  const { c, surfaces } = groundedCritter();
+  c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  for (let i = 0; i < 200 && c.state !== State.EGG; i++) c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(c.state, State.EGG);
+
+  for (const gesture of ['hover', 'click', 'doubleClick', 'rightClick', 'windowOpened', 'meetCritter']) {
+    c.interact(gesture);
+    assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event, null, gesture);
+  }
+  c.pet();
+  c.proposeChase({ x: 0 });
+  assert.equal(c._chaseInvitation, null);
+  c.brush();
+  assert.equal(c.state, State.EGG);
+  assert.equal(c.needs.values.affection, 80);
+
+  c.startDrag();
+  assert.equal(c.state, State.DRAG, 'le glisser reste possible');
+  c.dragTo(500, 100);
+  c.endDrag();
+  assert.equal(c.snapshot().stage, 'egg');
+  assert.equal(c.snapshot().event, null);
+});
+
+test("un œuf en chute n'a aucun événement visible non plus (atterrissage)", () => {
+  const { c, surfaces } = groundedCritter();
+  c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  const events = [];
+  for (let i = 0; i < 200 && c.state !== State.EGG; i++) events.push(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event);
+  assert.ok(events.every((e) => e === null));
+});
+
+// --- Rythme du monde ---------------------------------------------------------------
+
+function worldCritter(config = {}) {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), walkWeight: 50, sleepWeight: 10, washWeight: 0, followWeight: 0, runWeight: 30,
+      needsRateScale: 0, ...config,
+    },
+    { x: 100, y: monitor.height },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  return { c, surfaces };
+}
+
+function decide(c, surfaces, ambient) {
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  return c.tick(1 / 30, surfaces, { worldBounds: monitor, ambient }).state;
+}
+
+test('la nuit et l\'absence du joueur poussent au sommeil et freinent les activités énergiques', () => {
+  const pick = (ambient) => {
+    const wins = { sleep: 0, run: 0 };
+    for (let r = 0.05; r < 1; r += 0.1) {
+      const { c, surfaces } = worldCritter({ random: () => r });
+      const state = decide(c, surfaces, ambient);
+      if (state === State.SLEEP) wins.sleep += 1;
+      if (state === State.RUN) wins.run += 1;
+    }
+    return wins;
+  };
+  const day = pick({});
+  const night = pick({ night: true });
+  const away = pick({ away: true });
+  assert.ok(night.sleep > day.sleep, `nuit ${night.sleep} > jour ${day.sleep}`);
+  assert.ok(away.sleep >= night.sleep);
+  assert.ok(night.run <= day.run);
+  assert.ok(away.run <= night.run);
+});
+
+test('userReturned : salue et réveille un dormeur ; notification et frappe : curiosité sans réveil', () => {
+  const { c, surfaces } = worldCritter();
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  c.interact('notification');
+  assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event, 'noticed');
+  assert.equal(c.state, State.SLEEP, 'une notification ne réveille pas');
+  c.interact('typing');
+  assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event, 'noticed');
+  assert.equal(c.state, State.SLEEP);
+
+  c.interact('userReturned');
+  assert.notEqual(c.state, State.SLEEP, 'il t\'accueille');
+  assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event, 'greeted');
+});
+
+test('la réaction à la frappe est limitée dans le temps', () => {
+  const { c, surfaces } = worldCritter({ typingCooldown: 20 });
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  c.interact('typing');
+  assert.equal(c.tick(1, surfaces, { worldBounds: monitor }).event, 'noticed');
+  c.interact('typing');
+  assert.equal(c.tick(1, surfaces, { worldBounds: monitor }).event, null, 'trop tôt');
+  c.tick(30, surfaces, { worldBounds: monitor });
+  c.interact('typing');
+  assert.equal(c.tick(1, surfaces, { worldBounds: monitor }).event, 'noticed');
+});
+
+test('rappel de pause : va vers le curseur avec la bulle, arrive, puis un clic acquitte', () => {
+  const { c, surfaces } = worldCritter({ remindDuration: 30 });
+  const pointer = { x: 700, y: 300 };
+  const opts = { worldBounds: monitor, pointer, ambient: { breakReminder: true } };
+  let snap = c.tick(1 / 30, surfaces, opts);
+  assert.equal(snap.state, State.REMIND);
+  assert.equal(snap.bubble, 'break');
+
+  const events = new Set();
+  for (let i = 0; i < 30 * 15; i++) {
+    snap = c.tick(1 / 30, surfaces, opts);
+    if (snap.event) events.add(snap.event);
+  }
+  assert.ok(Math.abs(c.x - 700) < 40, `x = ${c.x}`);
+  assert.ok(events.has('reminded'));
+  assert.equal(c.takeAcknowledgement(), false);
+
+  c.interact('click');
+  assert.equal(c.state, State.IDLE);
+  assert.equal(c.takeAcknowledgement(), true);
+  assert.equal(c.takeAcknowledgement(), false, 'une seule fois');
+  assert.equal(c.snapshot().bubble, null);
+});
+
+test('rappel de pause : se termine à la fin du délai ou quand le rappel est retiré', () => {
+  const { c, surfaces } = worldCritter({ remindDuration: 2 });
+  const pointer = { x: 150, y: 300 };
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, pointer, ambient: { breakReminder: true } });
+  for (let i = 0; i < 30 * 3; i++) c.tick(1 / 30, surfaces, { worldBounds: monitor, pointer, ambient: { breakReminder: true } });
+  assert.notEqual(c.state, State.REMIND);
+
+  const other = worldCritter({ remindDuration: 60 });
+  other.c.tick(1 / 30, other.surfaces, { worldBounds: monitor, pointer, ambient: { breakReminder: true } });
+  assert.equal(other.c.state, State.REMIND);
+  other.c.tick(1 / 30, other.surfaces, { worldBounds: monitor, pointer, ambient: {} });
+  assert.equal(other.c.state, State.IDLE);
+});
+
+test('un poisson vient aussi au curseur pour le rappel de pause', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    { random: fixedRandom(0.5), needsRateScale: 0, supportedSurfaces: new Set([Locomotion.WATER]), swimSpeed: 200, swimWaveAmplitude: 0 },
+    { x: 100, y: 400 },
+  );
+  c._startRoam(State.SWIM);
+  const pointer = { x: 800, y: 100 };
+  for (let i = 0; i < 30 * 15; i++) {
+    c.tick(1 / 30, surfaces, { worldBounds: monitor, pointer, ambient: { breakReminder: true } });
+  }
+  assert.ok(Math.hypot(c.x - 800, c.y - 100) < 40, `(${c.x}, ${c.y})`);
+});
+
+test('œuf et hibernation ignorent tout le contexte du monde', () => {
+  const { c, surfaces } = worldCritter();
+  c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  for (let i = 0; i < 200 && c.state !== State.EGG; i++) c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  for (const gesture of ['notification', 'typing', 'userReturned']) {
+    c.interact(gesture);
+    assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor }).event, null, gesture);
+  }
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, pointer: { x: 500, y: 300 }, ambient: { breakReminder: true } });
+  assert.equal(c.state, State.EGG);
+
+  const sleeper = worldCritter();
+  sleeper.c.life.hibernating = true;
+  sleeper.c.state = State.HIBERNATE;
+  sleeper.c.tick(1 / 30, sleeper.surfaces, { worldBounds: monitor, pointer: { x: 500, y: 300 }, ambient: { breakReminder: true } });
+  assert.equal(sleeper.c.state, State.HIBERNATE);
+});
+
+// --- Compteurs et succès ---------------------------------------------------------------
+
+import { achievementsOverrides } from '../core/achievements.js';
+
+test('les événements alimentent les compteurs (repas, jeu, caresses, brossage)', () => {
+  const { c, surfaces } = worldCritter();
+  c.stateTimer = 1e9;
+  c.pet();
+  c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(c.stats.get('pets'), 1);
+  c.pet();
+  c.pet();
+  c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.ok(c.stats.get('purrs') >= 1 || c.stats.get('pets') >= 2);
+
+  c.lastEvent = null;
+  c.state = State.WASH;
+  c.stateTimer = 0.01;
+  c.brush();
+  for (let i = 0; i < 30 * 5; i++) c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(c.stats.get('brushes'), 1);
+});
+
+test('repas, coups de balle et parties comptent', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces);
+  const c = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  c.needs.values.satiety = 10;
+  run(c, surfaces, [fish], 30, () => fish.consumed && c.state === State.IDLE);
+  assert.equal(c.stats.get('meals'), 1);
+  assert.equal(c.stats.get('mealsFavorite'), 1);
+
+  const ball = settleItem(createItem('toy', 'ball', 400, 50), surfaces);
+  const player = playerOf({ playDuration: [8, 8] }, [ball], surfaces);
+  player.needs.values.stimulation = 5;
+  runPlay(player, surfaces, { items: [ball] }, 30, () => player.lastEvent === 'played');
+  assert.ok(player.stats.get('ballKicks') >= 1);
+  assert.equal(player.stats.get('playSessions'), 1);
+});
+
+test('entrées dans un état : escalade, vol, piqué, course ; plus longue sieste', () => {
+  const { c, surfaces } = worldCritter();
+  for (const state of [State.CLIMB, State.FLY, State.DIVE, State.RUN]) {
+    c.state = State.IDLE;
+    c._trackProgress(0.1, State.IDLE);
+    c.state = state;
+    c._trackProgress(0.1, State.IDLE);
+  }
+  assert.equal(c.stats.get('climbs'), 1);
+  assert.equal(c.stats.get('flights'), 2, 'vol puis piqué depuis IDLE : deux entrées dans le groupe');
+  assert.equal(c.stats.get('dives'), 1);
+  assert.equal(c.stats.get('runs'), 1);
+
+  c.state = State.FLY;
+  c._trackProgress(0.1, State.DIVE);
+  assert.equal(c.stats.get('flights'), 2, 'DIVE -> FLY reste dans le même groupe');
+
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  c._trackProgress(0.1, State.IDLE); // entrée dans la sieste
+  assert.equal(c.stats.get('naps'), 1);
+  for (let i = 0; i < 10; i++) c.tick(60, surfaces, { worldBounds: monitor });
+  assert.ok(c.stats.get('longestSleepSeconds') >= 540);
+  const before = c.stats.get('longestSleepSeconds');
+  c.state = State.IDLE;
+  c.stateTimer = 1e9;
+  c.tick(1, surfaces, { worldBounds: monitor });
+  c.state = State.SLEEP;
+  c.tick(5, surfaces, { worldBounds: monitor });
+  assert.equal(c.stats.get('longestSleepSeconds'), before, 'une sieste plus courte ne bat pas le record');
+});
+
+test('succès : débloqué une seule fois quand la condition est remplie, seulement pour le bon caractère', () => {
+  const defs = achievementsOverrides([
+    { id: 'nap', name: 'Sieste', description: 'd', requires: { trait: 'lazy' }, condition: { stat: 'longestSleepSeconds', atLeast: 100 }, coins: 15 },
+    { id: 'pets', name: 'Câlins', description: 'd', condition: { stat: 'pets', atLeast: 2 } },
+  ]).list;
+  const { c, surfaces } = worldCritter({ achievements: defs });
+  c.setLife(new Life({ trait: 'lazy' }));
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  const got = [];
+  for (let i = 0; i < 3; i++) {
+    c.tick(60, surfaces, { worldBounds: monitor });
+    got.push(...c.takeUnlocked());
+  }
+  assert.deepEqual(got, ['nap']);
+  assert.deepEqual(c.takeUnlocked(), [], 'annoncé une seule fois');
+  for (let i = 0; i < 3; i++) c.tick(60, surfaces, { worldBounds: monitor });
+  assert.deepEqual(c.takeUnlocked(), []);
+
+  const other = worldCritter({ achievements: defs });
+  other.c.setLife(new Life({ trait: 'playful' }));
+  other.c.state = State.SLEEP;
+  other.c.stateTimer = 1e9;
+  for (let i = 0; i < 5; i++) other.c.tick(60, other.surfaces, { worldBounds: monitor });
+  assert.deepEqual(other.c.takeUnlocked(), [], 'pas le bon caractère');
+});
+
+test('compteurs et succès sont sauvegardés et restaurés sans être ré-annoncés', () => {
+  const defs = achievementsOverrides([{ id: 'pets', name: 'C', description: 'd', condition: { stat: 'pets', atLeast: 1 } }]).list;
+  const { c, surfaces } = worldCritter({ achievements: defs });
+  c.stateTimer = 1e9;
+  c.pet();
+  c.tick(2, surfaces, { worldBounds: monitor });
+  assert.deepEqual(c.takeUnlocked(), ['pets']);
+
+  const back = new Critter({ achievements: defs }, { x: 0, y: 0 });
+  back.restore(c.serialize());
+  assert.equal(back.stats.get('pets'), 1);
+  assert.ok(back.unlocked.has('pets'));
+  back.state = State.IDLE;
+  back.stateTimer = 1e9;
+  back.tick(2, surfaces, { worldBounds: monitor });
+  assert.deepEqual(back.takeUnlocked(), []);
+});
+
+test('un œuf ne compte ni ne débloque rien', () => {
+  const defs = achievementsOverrides([{ id: 'x', name: 'X', description: 'd', condition: { stat: 'pets', atLeast: 1 } }]).list;
+  const { c, surfaces } = worldCritter({ achievements: defs });
+  c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  c.interact('click');
+  for (let i = 0; i < 5; i++) c.tick(1, surfaces, { worldBounds: monitor });
+  assert.equal(c.stats.get('pets'), 0);
+  assert.deepEqual(c.takeUnlocked(), []);
+});

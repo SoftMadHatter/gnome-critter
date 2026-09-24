@@ -150,6 +150,13 @@ export class Needs {
     this.values[gauge] = clamp100(this.values[gauge] + delta);
   }
 
+  /** Sortie d'hibernation : les jauges remontent à un niveau moyen. */
+  revive() {
+    for (const g of NEED_GAUGES) this.values[g] = Math.max(this.values[g], 50);
+    this.values.affection = Math.max(this.values.affection, 60);
+    this.values.health = Math.max(this.values.health, 50);
+  }
+
   /** Applique un événement reconnu (voir EVENT_EFFECTS), ignore les autres. */
   apply(event) {
     const effects = EVENT_EFFECTS[event];

@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 import { Locomotion, behaviorOverrides } from '../core/critter.js';
 import { needsOverrides } from '../core/needs.js';
+import { appearanceOverrides } from '../core/colorShift.js';
+import { stagesOverrides } from '../core/life.js';
+import { achievementsOverrides } from '../core/achievements.js';
+import { anchorsOverrides } from '../core/accessories.js';
+import { tricksOverrides } from '../core/tricks.js';
 
 const PACKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs');
 const LOCOMOTIONS = new Set(Object.values(Locomotion));
@@ -69,5 +74,23 @@ for (const id of packIds) {
   test(`pack "${id}" : section needs entièrement reconnue`, () => {
     const { ignored } = needsOverrides(meta.needs);
     assert.deepEqual(ignored, [], `clés ignorées : ${ignored.join(', ')}`);
+  });
+
+  test(`pack "${id}" : sections appearance et stages entièrement reconnues`, () => {
+    assert.deepEqual(appearanceOverrides(meta.appearance).ignored, []);
+    assert.deepEqual(stagesOverrides(meta.stages).ignored, []);
+  });
+
+  test(`pack "${id}" : succès valides`, () => {
+    const { ignored } = achievementsOverrides(meta.achievements);
+    assert.deepEqual(ignored, [], `succès ignorés : ${ignored.join(', ')}`);
+  });
+
+  test(`pack "${id}" : ancrages valides`, () => {
+    assert.deepEqual(anchorsOverrides(meta.anchors).ignored, []);
+  });
+
+  test(`pack "${id}" : tours connus`, () => {
+    assert.deepEqual(tricksOverrides(meta.tricks).ignored, []);
   });
 }

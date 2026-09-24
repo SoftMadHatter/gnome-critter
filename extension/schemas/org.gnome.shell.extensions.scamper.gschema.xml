@@ -34,6 +34,55 @@
       <default>true</default>
       <summary>Icône dans la barre supérieure</summary>
     </key>
+    <key name="growth-enabled" type="b">
+      <default>true</default>
+      <summary>Croissance</summary>
+      <description>Un animal neuf naît d'un œuf et grandit par stades. Désactivée, il naît adulte.</description>
+    </key>
+    <key name="growth-speed" type="d">
+      <range min="1" max="1000"/>
+      <default>1</default>
+      <summary>Vitesse de croissance</summary>
+      <description>Multiplicateur de la vitesse de vieillissement (utile pour essayer les stades sans attendre des jours).</description>
+    </key>
+    <key name="day-night" type="b">
+      <default>true</default>
+      <summary>Cycle jour/nuit</summary>
+      <description>La nuit (23 h à 7 h, heure locale), les animaux dorment davantage et sont légèrement assombris.</description>
+    </key>
+    <key name="away-sleep" type="b">
+      <default>true</default>
+      <summary>Dormir en votre absence</summary>
+    </key>
+    <key name="away-minutes" type="i">
+      <range min="1" max="240"/>
+      <default>10</default>
+      <summary>Minutes d'inactivité avant l'absence</summary>
+    </key>
+    <key name="break-reminder" type="b">
+      <default>false</default>
+      <summary>Rappel de pause</summary>
+    </key>
+    <key name="break-minutes" type="i">
+      <range min="1" max="480"/>
+      <default>60</default>
+      <summary>Minutes d'activité avant le rappel de pause</summary>
+    </key>
+    <key name="react-notifications" type="b">
+      <default>true</default>
+      <summary>Réagir aux notifications</summary>
+      <description>Seul le fait qu'une notification arrive est utilisé, jamais son contenu.</description>
+    </key>
+    <key name="react-typing" type="b">
+      <default>false</default>
+      <summary>Réagir à la frappe</summary>
+      <description>Compte seulement qu'une touche est pressée, jamais laquelle.</description>
+    </key>
+    <key name="saved-player" type="s">
+      <default>''</default>
+      <summary>Pièces, achats et journal (interne)</summary>
+      <description>JSON écrit par l'extension. Ne pas modifier à la main.</description>
+    </key>
     <key name="saved-items" type="s">
       <default>''</default>
       <summary>Objets du bureau sauvegardés (interne)</summary>

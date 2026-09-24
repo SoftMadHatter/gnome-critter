@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 9 terminées ; l'ancienne étape 8 — vol/nage — avait été
+à 9 et sous-étapes 10.1 à 10.5 terminées ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -159,31 +159,32 @@ décision, les jauges modulent les poids), temps réel avec rattrapage
 plafonné, aucune mort (départ doux et réversible), extension limitée à
 l'affichage et aux capteurs, réglages d'espèce dans `pack.json`.
 
-### 10.1 Besoins et humeur — 🧪 à tester
+### 10.1 Besoins et humeur — ✅ fait
 Jauges (faim, énergie, bonheur, propreté, ennui, santé, affection),
 difficulté et mode vacances, effets sur les poids de comportement,
 sauvegarde v2 avec migration, icône de barre avec les jauges, bulles de
 pensée. Voir `docs/needs.md`. « Nourrir » du menu est provisoire (10.2).
 
-### 10.2 Nourrir et objets du bureau — 🧪 à tester
+### 10.2 Nourrir et objets du bureau — ✅ fait
 Framework d'objets (nourriture, gamelle, lit), états de recherche de
 nourriture et de repas, menu contextuel (clic milieu) et menu de l'icône. Voir `docs/needs.md`.
 
-### 10.3 Jouer, ennui, affection — 🧪 à tester
+### 10.3 Jouer, ennui, affection — ✅ fait
 Balle et peluche (physique, lancer à la souris), pointeur laser, état de
 jeu, caresses prolongées, brossage, « Ranger les jouets ». Voir `docs/needs.md`.
 
-### 10.4 Croissance, personnalité, évolution
+### 10.4 Croissance, personnalité, évolution — ✅ fait
 Âge et stades (œuf à senior), personnalité, évolution selon les soins,
 apparence aléatoire à la naissance (rotation de teinte, sauvegardée),
-sprites par stade, départ doux et retour.
+sprites par stade, départ doux et retour. Voir `docs/life.md`.
 
-### 10.5 Rythme du monde
-Jour/nuit, inactivité, rappel de pause, notifications, frappe clavier.
+### 10.5 Rythme du monde — ✅ fait
+Jour/nuit, inactivité, rappel de pause, notifications, frappe clavier. Voir `docs/rhythm.md`.
 
-### 10.6 Progression
+### 10.6 Progression — 🧪 à tester
 Pièces et boutique, succès propres à chaque espèce et à sa personnalité
-(déclarés dans `pack.json`), tours, cadeaux, anniversaires.
+(déclarés dans `pack.json`), boutique et accessoires, tours, cadeaux,
+anniversaires. Voir `docs/progression.md`.
 
 ### 10.7 Mode autonomie
 L'animal couvre lui-même ses besoins (proies, grignotage). À cadrer avec
@@ -195,3 +196,54 @@ la croissance), sources de nourriture, rôle du joueur, conséquences, coût.
 clarifier le moment venu (jauge et rythme, lieu choisi, litière ou objet
 dédié, nettoyage par le joueur, effets sur la propreté et la santé,
 adaptation par espèce, ton visuel).
+
+### 10.9 Noms et menus multi-créatures
+Donner un nom à chaque créature (choisi par le joueur, modifiable, sauvegardé)
+et revoir les menus quand il y a plusieurs créatures : menu de l'icône de
+barre (une section par créature, actions ciblées sur l'une d'elles), menu
+contextuel, affichage des noms. À détailler le moment venu.
+
+## 11. Sprites dédiés pour chaque état
+
+Aujourd'hui beaucoup d'états réutilisent l'animation d'un autre (marche pour
+le suivi, la recherche de mur ou de nourriture ; sommeil pour le lavage ;
+vol pour le piqué ; etc.). Donner une animation propre à chaque état de
+`core/critter.js` (jeu, brossage, hibernation, rappel de pause, repas,
+recherche de nourriture, escalade, plafond, poursuite...) et à chaque
+réaction, pour toutes les espèces, avec le même soin de dessin que la
+passe de l'étape 8.
+
+## 12. Apparence propre à chaque stade de croissance
+
+Remplacer la simple mise à l'échelle des stades (bébé 50 %, jeune 75 %) par
+des sprites différents : proportions de bébé (grosse tête, petits membres),
+silhouette de jeune, adulte, senior (pelage grisonnant, posture voûtée),
+œuf propre à chaque espèce. Format `stages` de `pack.json` étendu pour
+désigner les feuilles par stade, avec repli sur la mise à l'échelle.
+
+## 13. Rendu moins pixellisé
+
+Sortir de l'aspect « gros pixels » : résolution de dessin plus fine (sprites
+64 px ou plus pour un affichage identique), lissage adapté au HiDPI,
+ombrage plus riche, contours plus doux. À trancher au moment de planifier :
+garder un style pixel-art plus détaillé, ou passer à un rendu vectoriel/lissé.
+Impacte le générateur de sprites, le chargeur de packs et le filtre
+d'affichage.
+
+## 14. Objets : visuels et variations
+
+Améliorer le dessin des objets du bureau (nourriture, gamelle, lit, jouets)
+et ajouter des variations : plusieurs modèles de lit et de gamelle, couleurs
+de balle, plus d'aliments et de jouets, états visibles (gamelle qui se vide,
+nourriture entamée), sprites cohérents avec le nouveau rendu de l'étape 13.
+
+## 15. Grande bibliothèque de succès
+
+Définir puis générer une grosse bibliothèque de succès (des dizaines à des
+centaines), propres aux espèces et aux caractères : paliers (10, 50, 200...),
+succès cachés, succès de collection (accessoires, tours, cadeaux), de
+saison et de durée de vie. À trancher au moment de planifier : compteurs
+supplémentaires à suivre dans `core/stats.js`, format des paliers et de la
+génération (gabarits dans les packs plutôt que des listes écrites à la main),
+récompenses, affichage groupé dans le menu, validation automatique de la
+bibliothèque par les tests.

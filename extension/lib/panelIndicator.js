@@ -9,7 +9,9 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { FOOD_LABELS, TOY_LABELS } from './itemActor.js';
+import { foodLabel, TOY_LABELS } from './itemActor.js';
+import { lifeSummary } from './lifeLabels.js';
+import { STAT_LABELS, statValue, formatJournalDate } from './progressLabels.js';
 
 const GAUGES = [
   ['satiety', 'Satiété'],
@@ -38,7 +40,7 @@ function moodIcon(mood) {
 export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
-     * @param {{getCritters: () => import('../core/critter.js').Critter[], title: string, foods: () => string[], dropFood: Function, fillBowl: Function, dropBed: Function, dropToy: Function, setLaser: Function, isLaser: Function, hasToys: Function, clearToys: Function, clearItems: Function}} owner
+     * @param {{getCritters: () => import('../core/critter.js').Critter[], title: string, foods: () => string[], dropFood: Function, fillBowl: Function, dropBed: Function, dropToy: Function, shopList: Function, buyAccessory: Function, setLaser: Function, isLaser: Function, hasToys: Function, clearToys: Function, clearItems: Function}} owner
      * @param {Gio.Settings} settings
      */
     _init(owner, settings) {
@@ -51,6 +53,7 @@ export const CritterIndicator = GObject.registerClass(
       this.add_child(this._icon);
 
       this._buildMenu();
+      this._rebuildProgress();
 
       this._settingsId = settings.connect('changed::vacation-mode', () => {
         this._vacation.setToggleState(settings.get_boolean('vacation-mode'));
@@ -59,6 +62,7 @@ export const CritterIndicator = GObject.registerClass(
         if (open) {
           this._laser.setToggleState(this._owner.isLaser());
           this._tidy.setSensitive(this._owner.hasToys());
+          this._rebuildProgress();
           this.refresh();
         }
       });
@@ -70,10 +74,14 @@ export const CritterIndicator = GObject.registerClass(
     }
 
     _buildMenu() {
+      this._coins = new PopupMenu.PopupMenuItem('', { reactive: false, can_focus: false });
+      this.menu.addMenuItem(this._coins);
       const critters = this._owner.getCritters();
       critters.forEach((critter, index) => {
         const title = critters.length > 1 ? `${this._owner.title} ${index + 1}` : this._owner.title;
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem(title));
+        const summary = new PopupMenu.PopupMenuItem('', { reactive: false, can_focus: false });
+        this.menu.addMenuItem(summary);
 
         const bars = {};
         for (const [gauge, label] of GAUGES) {
@@ -89,10 +97,18 @@ export const CritterIndicator = GObject.registerClass(
           this.menu.addMenuItem(item);
           bars[gauge] = { fill, rest };
         }
-        this._rows.push({ critter, bars });
+        const achievements = new PopupMenu.PopupSubMenuMenuItem('Succès');
+        const stats = new PopupMenu.PopupSubMenuMenuItem('Statistiques');
+        this.menu.addMenuItem(achievements);
+        this.menu.addMenuItem(stats);
+        this._rows.push({ critter, bars, summary, achievements, stats });
       });
 
       this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+      this._shop = new PopupMenu.PopupSubMenuMenuItem('Boutique');
+      this.menu.addMenuItem(this._shop);
+      this._journal = new PopupMenu.PopupSubMenuMenuItem('Journal');
+      this.menu.addMenuItem(this._journal);
       this._vacation = new PopupMenu.PopupSwitchMenuItem(
         'Mode vacances',
         this._settings.get_boolean('vacation-mode'),
@@ -105,9 +121,8 @@ export const CritterIndicator = GObject.registerClass(
         const feed = new PopupMenu.PopupSubMenuMenuItem('Donner à manger');
         const bowl = new PopupMenu.PopupSubMenuMenuItem('Remplir la gamelle');
         for (const kind of foods) {
-          const label = FOOD_LABELS[kind] ?? kind;
-          feed.menu.addAction(label, () => this._owner.dropFood(kind));
-          bowl.menu.addAction(label, () => this._owner.fillBowl(kind));
+          feed.menu.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
+          bowl.menu.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
         }
         this.menu.addMenuItem(feed);
         this.menu.addMenuItem(bowl);
@@ -125,12 +140,67 @@ export const CritterIndicator = GObject.registerClass(
       this.menu.addAction('Retirer les objets', () => this._owner.clearItems());
     }
 
+    /** Recrée les listes de succès, de statistiques et le journal (à l'ouverture du menu). */
+    _rebuildProgress() {
+      const player = this._owner.getPlayer();
+      this._coins.label.text = `Pièces : ${player.coins}`;
+
+      for (const { critter, achievements, stats } of this._rows) {
+        const list = this._owner.achievementsFor(critter);
+        achievements.label.text = `Succès (${list.filter((a) => a.unlocked).length}/${list.length})`;
+        achievements.menu.removeAll();
+        for (const { def, unlocked, progress } of list) {
+          const goal = def.condition.atLeast;
+          const text = unlocked
+            ? `✓ ${def.name} : ${def.description}`
+            : `${def.name} : ${def.description} (${Math.min(progress, goal)}/${goal})`;
+          const item = new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false });
+          if (!unlocked) item.label.opacity = 150;
+          achievements.menu.addMenuItem(item);
+        }
+        if (list.length === 0) {
+          achievements.menu.addMenuItem(new PopupMenu.PopupMenuItem('Aucun succès pour cet animal', { reactive: false }));
+        }
+
+        stats.menu.removeAll();
+        const values = { ...critter.stats.counters, daysAlive: Math.floor(critter.life.ageSeconds / 86400) };
+        for (const [key, label] of Object.entries(STAT_LABELS)) {
+          stats.menu.addMenuItem(
+            new PopupMenu.PopupMenuItem(`${label} : ${statValue(key, values[key] ?? 0)}`, { reactive: false, can_focus: false }),
+          );
+        }
+      }
+
+      this._shop.menu.removeAll();
+      for (const { id, label, price, owned, free } of this._owner.shopList()) {
+        if (owned || free) {
+          const text = owned ? `✓ ${label}` : `${label} (gratuit de saison)`;
+          this._shop.menu.addMenuItem(new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false }));
+        } else {
+          this._shop.menu.addAction(`Acheter : ${label} (${price} pièces)`, () => {
+            this._owner.buyAccessory(id);
+            this._rebuildProgress();
+          });
+        }
+      }
+
+      this._journal.menu.removeAll();
+      const entries = player.journal.slice(-10).reverse();
+      for (const entry of entries) {
+        this._journal.menu.addMenuItem(
+          new PopupMenu.PopupMenuItem(`${formatJournalDate(entry.t)}  ${entry.text}`, { reactive: false, can_focus: false }),
+        );
+      }
+      if (entries.length === 0) this._journal.menu.addMenuItem(new PopupMenu.PopupMenuItem('Rien pour le moment', { reactive: false }));
+    }
+
     refresh() {
       let moodSum = 0;
-      for (const { critter, bars } of this._rows) {
+      for (const { critter, bars, summary } of this._rows) {
         const values = critter.needs.values;
         moodSum += critter.needs.mood;
         if (!this.menu.isOpen) continue;
+        summary.label.text = lifeSummary(critter.life);
         for (const [gauge] of GAUGES) {
           const value = values[gauge];
           const filled = Math.round((BAR_WIDTH * value) / 100);

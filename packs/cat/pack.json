@@ -15,6 +15,54 @@
     "decayPerHour": { "energy": 3, "cleanliness": 2 },
     "diet": { "fish": 60, "meat": 45, "kibble": 30 }
   },
+  "appearance": { "colorizeGrays": true, "graySaturation": 0.4 },
+  "achievements": [
+    {
+      "id": "nap-king",
+      "name": "Roi de la sieste",
+      "description": "Dormir 15 minutes d'affilée",
+      "requires": { "trait": "lazy" },
+      "condition": { "stat": "longestSleepSeconds", "atLeast": 900 },
+      "coins": 15
+    },
+    {
+      "id": "ball-hunter",
+      "name": "Chasseur de balle",
+      "description": "Frapper la balle 50 fois",
+      "requires": { "trait": "playful" },
+      "condition": { "stat": "ballKicks", "atLeast": 50 },
+      "coins": 15
+    },
+    {
+      "id": "gourmet",
+      "name": "Gourmet",
+      "description": "Manger 20 fois son aliment préféré",
+      "requires": { "trait": "greedy" },
+      "condition": { "stat": "mealsFavorite", "atLeast": 20 },
+      "coins": 15
+    },
+    {
+      "id": "cuddle-pro",
+      "name": "Câlin professionnel",
+      "description": "Ronronner 10 fois",
+      "condition": { "stat": "purrs", "atLeast": 10 },
+      "coins": 10
+    },
+    {
+      "id": "old-timer",
+      "name": "Doyen",
+      "description": "Vivre 30 jours",
+      "condition": { "stat": "daysAlive", "atLeast": 30 },
+      "coins": 25
+    }
+  ],
+  "anchors": {
+    "head": { "x": 0.78, "y": 0.2 }
+  },
+  "tricks": [
+    "sit",
+    "roll"
+  ],
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },
@@ -33,7 +81,9 @@
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.06, "loop": true },
     "run": { "file": "sprites/chase.png", "frames": 6, "frameDuration": 0.06, "loop": true },
     "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.18, "loop": true },
-    "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true }
+    "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true },
+    "trick_sit": { "file": "sprites/trick_sit.png", "frames": 2, "frameDuration": 0.3, "loop": true },
+    "trick_roll": { "file": "sprites/trick_roll.png", "frames": 6, "frameDuration": 0.1, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },
@@ -43,6 +93,9 @@
     "startled": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
     "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" },
     "purring": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.4, "sound": "sounds/petted.wav" },
-    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" }
+    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" },
+    "hatched": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
+    "grew": { "file": "sprites/react_tickled.png", "frames": 4, "frameDuration": 0.12, "sound": "sounds/tickled.wav" },
+    "awakened": { "file": "sprites/react_noticed.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/noticed.wav" }
   }
 }
