@@ -12,7 +12,7 @@
   "needs": {
     "diet": { "seeds": 45, "kibble": 20 }
   },
-  "behavior": { "flyWeight": 35, "flyFastWeight": 12, "sleepDuration": [30, 180], "flyDuration": [3, 7], "napSeekMaxDistance": 800 },
+  "behavior": { "flyWeight": 35, "flyFastWeight": 12, "sleepDuration": [30, 180], "flyDuration": [3, 7], "napSeekMaxDistance": 800, "playWeight": 20 },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },
@@ -30,7 +30,8 @@
     "run": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.05, "loop": true },
     "flyFast": { "file": "sprites/fly.png", "frames": 6, "frameDuration": 0.045, "loop": true },
     "dive": { "file": "sprites/dive.png", "frames": 2, "frameDuration": 0.1, "loop": true },
-    "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.15, "loop": true }
+    "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.15, "loop": true },
+    "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },
@@ -38,6 +39,8 @@
     "annoyed": { "file": "sprites/react_annoyed.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/annoyed.wav" },
     "noticed": { "file": "sprites/react_noticed.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/noticed.wav" },
     "startled": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
-    "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" }
+    "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" },
+    "purring": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.4, "sound": "sounds/petted.wav" },
+    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" }
   }
 }

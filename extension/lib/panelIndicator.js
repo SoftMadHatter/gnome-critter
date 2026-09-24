@@ -9,7 +9,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { FOOD_LABELS } from './itemActor.js';
+import { FOOD_LABELS, TOY_LABELS } from './itemActor.js';
 
 const GAUGES = [
   ['satiety', 'Satiété'],
@@ -38,7 +38,7 @@ function moodIcon(mood) {
 export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
-     * @param {{getCritters: () => import('../core/critter.js').Critter[], title: string, foods: () => string[], dropFood: Function, fillBowl: Function, dropBed: Function, clearItems: Function}} owner
+     * @param {{getCritters: () => import('../core/critter.js').Critter[], title: string, foods: () => string[], dropFood: Function, fillBowl: Function, dropBed: Function, dropToy: Function, setLaser: Function, isLaser: Function, hasToys: Function, clearToys: Function, clearItems: Function}} owner
      * @param {Gio.Settings} settings
      */
     _init(owner, settings) {
@@ -56,7 +56,11 @@ export const CritterIndicator = GObject.registerClass(
         this._vacation.setToggleState(settings.get_boolean('vacation-mode'));
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
-        if (open) this.refresh();
+        if (open) {
+          this._laser.setToggleState(this._owner.isLaser());
+          this._tidy.setSensitive(this._owner.hasToys());
+          this.refresh();
+        }
       });
       this._timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, REFRESH_SECONDS, () => {
         this.refresh();
@@ -109,6 +113,15 @@ export const CritterIndicator = GObject.registerClass(
         this.menu.addMenuItem(bowl);
       }
       this.menu.addAction('Poser un lit', () => this._owner.dropBed());
+      const toys = new PopupMenu.PopupSubMenuMenuItem('Poser un jouet');
+      for (const [kind, label] of Object.entries(TOY_LABELS)) {
+        toys.menu.addAction(label, () => this._owner.dropToy(kind));
+      }
+      this.menu.addMenuItem(toys);
+      this._laser = new PopupMenu.PopupSwitchMenuItem('Pointeur laser', this._owner.isLaser());
+      this._laser.connect('toggled', (_item, state) => this._owner.setLaser(state));
+      this.menu.addMenuItem(this._laser);
+      this._tidy = this.menu.addAction('Ranger les jouets', () => this._owner.clearToys());
       this.menu.addAction('Retirer les objets', () => this._owner.clearItems());
     }
 

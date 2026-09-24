@@ -40,6 +40,9 @@ export const EVENT_EFFECTS = Object.freeze({
   annoyed: { affection: -4 },
   startled: { stimulation: 2 },
   greeted: { stimulation: 5, affection: 4 },
+  played: { stimulation: 25, affection: 6 },
+  brushed: { cleanliness: 25, affection: 6 },
+  purring: { affection: 12, stimulation: 2 }, // série de caresses : remplace `petted` (8 + bonus 4)
 });
 
 const clamp100 = (v) => Math.min(100, Math.max(0, v));

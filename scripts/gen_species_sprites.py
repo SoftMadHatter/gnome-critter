@@ -157,6 +157,8 @@ def common_sheets():
         "flee": [pose(**{**p.__dict__, "eyes": "wide", "tail": 2, "mark": "!" if i == 0 else None})
                  for i, p in enumerate(walk_poses(6, stride=3, run=True))],
         "greet": [pose(bob=b, tail=t, eyes="happy") for b, t in [(0, 2), (-1, 3), (0, 2), (-1, 1)]],
+        "play": [pose(bob=-(i % 3), phase=i, stride=4, lift=3, eyes="happy" if i % 2 else "open", mouth=True, tail=[0, 1, 0, -1, 0, 1][i], head=2)
+                 for i in range(6)],
         "react_petted": [pose(eyes="happy", bob=1, mark="heart"), pose(eyes="happy", bob=0, mark="heart", tail=2)],
         "react_tickled": [pose(eyes="happy", squash=1, rot=-6, tail=2), pose(eyes="happy", squash=0, rot=6, tail=-2),
                           pose(eyes="happy", squash=1, rot=-6, tail=2), pose(eyes="happy", squash=0, rot=6, tail=-2)],
@@ -354,7 +356,7 @@ def draw_fish(img, d, p):
 
 def fish_sheets():
     s = common_sheets()
-    for k in ("walk", "chase"):
+    for k in ("walk", "chase", "play"):
         s.pop(k)
     s["idle"] = [pose(bob=b, tail=t, eyes=e, mark=m) for b, t, e, m in
                  [(0, 0, "open", None), (1, 1, "open", "bubble"), (1, 0, "open", None), (0, -1, "blink", None)]]
@@ -452,7 +454,7 @@ SPECIES = {
             "sleep": ("sleep", 0.8), "wash": ("wash", 0.25), "climb": ("climb", 0.12), "ceiling": ("ceiling", 0.1),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekWall": ("walk", 0.09),
             "seekFocus": ("walk", 0.08), "seekNap": ("walk", 0.1), "chase": ("chase", 0.07), "flee": ("flee", 0.06),
-            "run": ("chase", 0.06), "eat": ("eat", 0.18),
+            "run": ("chase", 0.06), "eat": ("eat", 0.18), "play": ("play", 0.09),
         },
     ),
     "bug": dict(
@@ -463,7 +465,7 @@ SPECIES = {
             "idle": ("idle", 0.4), "walk": ("walk", 0.07), "fall": ("fall", 0.1), "drag": ("fall", 0.1),
             "climb": ("climb", 0.08), "ceiling": ("ceiling", 0.07), "follow": ("walk", 0.06),
             "greet": ("greet", 0.15), "seekWall": ("walk", 0.06), "seekFocus": ("walk", 0.06),
-            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04), "eat": ("eat", 0.14),
+            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04), "eat": ("eat", 0.14), "play": ("play", 0.07),
         },
     ),
     "fish": dict(
@@ -471,7 +473,7 @@ SPECIES = {
         draw=draw_fish, flip={},
         states={
             "idle": ("idle", 0.4), "swim": ("swim", 0.12), "fall": ("fall", 0.12), "drag": ("fall", 0.12),
-            "greet": ("greet", 0.2), "flee": ("flee", 0.07), "swimFast": ("swimFast", 0.07),
+            "greet": ("greet", 0.2), "flee": ("flee", 0.07), "swimFast": ("swimFast", 0.07), "play": ("swimFast", 0.07),
         },
     ),
     "bird": dict(
@@ -482,15 +484,17 @@ SPECIES = {
             "fly": ("fly", 0.07), "sleep": ("sleep", 0.8), "wash": ("wash", 0.22),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekFocus": ("walk", 0.09),
             "seekNap": ("walk", 0.1), "chase": ("walk", 0.06), "flee": ("flee", 0.06),
-            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1), "eat": ("eat", 0.15),
+            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1), "eat": ("eat", 0.15), "play": ("play", 0.09),
         },
     ),
 }
 
+# réaction -> (feuille, durée d'une frame, son) ; purring et brushed réutilisent les sons de petted.
 REACTIONS = {
-    "petted": ("react_petted", 0.25), "tickled": ("react_tickled", 0.12),
-    "annoyed": ("react_annoyed", 0.3), "noticed": ("react_noticed", 0.25),
-    "startled": ("react_startled", 0.2), "greeted": ("greet", 0.15),
+    "petted": ("react_petted", 0.25, "petted"), "tickled": ("react_tickled", 0.12, "tickled"),
+    "annoyed": ("react_annoyed", 0.3, "annoyed"), "noticed": ("react_noticed", 0.25, "noticed"),
+    "startled": ("react_startled", 0.2, "startled"), "greeted": ("greet", 0.15, "greeted"),
+    "purring": ("react_petted", 0.4, "petted"), "brushed": ("react_petted", 0.35, "petted"),
 }
 
 
@@ -549,9 +553,9 @@ def write_species(name):
                              "frameDuration": duration, "loop": True}
         used.add(sheet)
     reactions = {}
-    for react, (sheet, duration) in REACTIONS.items():
+    for react, (sheet, duration, sound) in REACTIONS.items():
         reactions[react] = {"file": f"sprites/{sheet}.png", "frames": len(sheets[sheet]),
-                            "frameDuration": duration, "sound": f"sounds/{react}.wav"}
+                            "frameDuration": duration, "sound": f"sounds/{sound}.wav"}
         used.add(sheet)
     meta["animations"] = animations
     meta["reactions"] = reactions

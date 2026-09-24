@@ -279,3 +279,36 @@ export function findCeilingAbove(segments, x, fromY, maxDistance, allowedTypes =
 
   return best;
 }
+
+/** Vrai si le point est dans l'un des moniteurs (bords compris). */
+export function isInsideAnyMonitor(monitors, x, y) {
+  return monitors.some((m) => x >= m.x && x <= m.x + m.width && y >= m.y && y <= m.y + m.height);
+}
+
+/**
+ * Point de réapparition pour quelqu'un qui n'est plus dans aucun moniteur
+ * (changement de résolution, écran débranché ou basculé) : en haut du
+ * moniteur le plus proche, à l'abscisse ramenée dans ses bornes.
+ * @param {{x:number,y:number,width:number,height:number}[]} monitors
+ * @param {number} topOffset décalage sous le bord haut (hauteur du sprite : y désigne les pieds)
+ * @returns {{x:number, y:number}|null} null si aucun moniteur n'est connu
+ */
+export function respawnPoint(monitors, x, y, topOffset = 0, margin = 16) {
+  let best = null;
+  let bestDistance = Infinity;
+  for (const m of monitors) {
+    const cx = Math.min(Math.max(x, m.x), m.x + m.width);
+    const cy = Math.min(Math.max(y, m.y), m.y + m.height);
+    const distance = Math.hypot(x - cx, y - cy);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = m;
+    }
+  }
+  if (!best) return null;
+  const safe = Math.min(margin, best.width / 2);
+  return {
+    x: Math.min(Math.max(x, best.x + safe), best.x + best.width - safe),
+    y: best.y + topOffset,
+  };
+}

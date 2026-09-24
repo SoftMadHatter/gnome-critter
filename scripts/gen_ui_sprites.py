@@ -183,7 +183,35 @@ def bed():
     return outline(img)
 
 
+def ball():
+    img, d = canvas(12, 12)
+    d.ellipse((1, 1, 10, 10), fill=(230, 80, 70, 255))
+    d.rectangle((1, 5, 10, 6), fill=(245, 245, 245, 255))
+    d.ellipse((3, 2, 5, 4), fill=(250, 150, 140, 255))
+    return outline(img)
+
+
+def plush():
+    img, d = canvas(16, 14)
+    d.ellipse((3, 4, 12, 12), fill=(210, 160, 110, 255))
+    d.ellipse((5, 1, 9, 5), fill=(210, 160, 110, 255))
+    d.ellipse((9, 1, 13, 5), fill=(210, 160, 110, 255))
+    d.ellipse((5, 7, 10, 11), fill=(240, 210, 170, 255))
+    d.point((6, 6), fill=(50, 30, 30, 255))
+    d.point((9, 6), fill=(50, 30, 30, 255))
+    d.point((7, 8), fill=(200, 90, 100, 255))
+    return outline(img)
+
+
+def laser():
+    img, d = canvas(8, 8)
+    d.ellipse((1, 1, 6, 6), fill=(255, 50, 50, 255))
+    d.ellipse((2, 2, 4, 4), fill=(255, 190, 190, 255))
+    return img
+
+
 ITEMS = {
+    "ball": ball, "plush": plush, "laser": laser,
     "meat": meat, "fish": fish, "kibble": kibble, "seeds": seeds, "plankton": plankton,
     "bowl_empty": lambda: bowl(False), "bowl_full": lambda: bowl(True), "bed": bed,
 }

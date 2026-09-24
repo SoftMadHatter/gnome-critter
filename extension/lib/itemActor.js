@@ -4,11 +4,19 @@
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { loadImage } from './packLoader.js';
+import { throwItem } from '../core/items.js';
+
+const THROW_WINDOW_US = 100_000; // fenêtre de mesure de la vitesse du glisser
+const MAX_THROW_SPEED = 900; // px/s
 
 /** Taille d'affichage par type d'objet (px, sprites à taille réelle). */
 const SIZES = { food: { width: 16, height: 16 }, bowl: { width: 24, height: 12 }, bed: { width: 32, height: 12 } };
+const TOY_SIZES = { ball: { width: 12, height: 12 }, plush: { width: 16, height: 14 } };
+
+const sizeOf = (item) => (item.type === 'toy' ? TOY_SIZES[item.kind] : SIZES[item.type]);
 
 export const FOOD_LABELS = {
   meat: 'Viande',
@@ -18,7 +26,9 @@ export const FOOD_LABELS = {
   plankton: 'Plancton',
 };
 
-const IMAGE_NAMES = ['meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bed'];
+export const TOY_LABELS = { ball: 'Balle', plush: 'Peluche' };
+
+const IMAGE_NAMES = ['meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bed', 'ball', 'plush', 'laser'];
 
 /**
  * @param {string} dir extension/assets/items
@@ -38,7 +48,7 @@ export function loadItemImages(dir) {
 function imageName(item) {
   if (item.type === 'bed') return 'bed';
   if (item.type === 'bowl') return item.portions > 0 ? 'bowl_full' : 'bowl_empty';
-  return item.kind;
+  return item.kind; // aliments et jouets : le nom du sprite est le `kind`
 }
 
 export class ItemActor {
@@ -52,8 +62,9 @@ export class ItemActor {
     this._grab = null;
     this._imageName = null;
 
-    const size = SIZES[item.type];
+    const size = sizeOf(item);
     this.actor = new Clutter.Actor({ reactive: true, width: size.width, height: size.height });
+    this._samples = []; // derniers points du glisser, pour l'élan au lancer
     this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
     this._setupGestures();
     this.sync();
@@ -76,17 +87,31 @@ export class ItemActor {
       this.item.grabbed = true;
       this.item.surface = null;
       this.item.vy = 0;
+      this.item.vx = 0;
+      this._samples = [];
     });
     pan.connect('pan-update', () => {
       const coords = pan.get_centroid_abs();
-      const size = SIZES[this.item.type];
+      const size = sizeOf(this.item);
       this.item.x = coords.x;
       this.item.y = coords.y + size.height / 2;
+      const now = GLib.get_monotonic_time();
+      this._samples.push({ x: coords.x, y: coords.y, t: now });
+      this._samples = this._samples.filter((s) => now - s.t <= THROW_WINDOW_US);
       this.sync();
     });
     pan.connect('end', () => {
       this._releaseGrab();
       this.item.grabbed = false; // la physique reprend : il retombe
+      // Élan : vitesse moyenne du pointeur sur les derniers instants.
+      const first = this._samples[0];
+      const last = this._samples[this._samples.length - 1];
+      if (first && last && last.t - first.t > 20_000) {
+        const seconds = (last.t - first.t) / 1_000_000;
+        const clampSpeed = (v) => Math.max(-MAX_THROW_SPEED, Math.min(MAX_THROW_SPEED, v));
+        throwItem(this.item, clampSpeed((last.x - first.x) / seconds), clampSpeed((last.y - first.y) / seconds));
+      }
+      this._samples = [];
     });
     this.actor.add_action(pan);
   }
@@ -99,7 +124,7 @@ export class ItemActor {
   }
 
   sync() {
-    const size = SIZES[this.item.type];
+    const size = sizeOf(this.item);
     const name = imageName(this.item);
     if (name !== this._imageName && this._images[name]) {
       this._imageName = name;
@@ -110,6 +135,27 @@ export class ItemActor {
 
   destroy() {
     this._releaseGrab();
+    this.actor.destroy();
+  }
+}
+
+/** Point rouge qui suit le curseur quand le mode pointeur laser est actif.
+ * Non réactif, ajouté à uiGroup sans addChrome : il laisse passer les clics. */
+export class LaserDot {
+  /** @param {St.ImageContent} image */
+  constructor(image) {
+    this.actor = new Clutter.Actor({ reactive: false, width: 8, height: 8, visible: false });
+    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
+    this.actor.content = image;
+    Main.layoutManager.uiGroup.add_child(this.actor);
+  }
+
+  update(pointer, on) {
+    if (on !== this.actor.visible) this.actor.visible = on;
+    if (on) this.actor.set_position(Math.round(pointer.x - 4), Math.round(pointer.y - 4));
+  }
+
+  destroy() {
     this.actor.destroy();
   }
 }

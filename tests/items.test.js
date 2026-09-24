@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createItem, tickItem, edibleFor, consume, fillBowl, isGone, bedsOn,
-  serializeItems, parseSavedItems, BOWL_CAPACITY,
+  serializeItems, parseSavedItems, BOWL_CAPACITY, kick, throwItem, isToy, toysFor,
 } from '../core/items.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 
@@ -165,4 +165,105 @@ test('sauvegarde : objets durables et nourriture fraîche seulement, lecture tol
   assert.equal(kept.length, 1);
   assert.equal(kept[0].x, 1000);
   assert.equal(kept[0].y, 0);
+});
+
+// --- Jouets ------------------------------------------------------------------
+
+test('la balle rebondit à la chute, puis se pose', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ball = createItem('toy', 'ball', 300, 100);
+  let bounced = false;
+  let previousVy = 0;
+  for (let i = 0; i < 60 * 8; i++) {
+    tickItem(ball, 1 / 60, surfaces, bounds);
+    if (previousVy > 100 && ball.vy < 0) bounced = true;
+    previousVy = ball.vy;
+  }
+  assert.ok(bounced, 'elle a rebondi');
+  assert.equal(ball.y, 500);
+  assert.ok(ball.surface, 'puis elle repose sur le sol');
+});
+
+test('la peluche ne rebondit pas', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const plush = createItem('toy', 'plush', 300, 100);
+  let bounced = false;
+  for (let i = 0; i < 60 * 3; i++) {
+    tickItem(plush, 1 / 60, surfaces, bounds);
+    if (plush.vy < 0) bounced = true;
+  }
+  assert.ok(!bounced);
+  assert.ok(plush.surface);
+});
+
+test('une balle frappée roule, ralentit puis s\'arrête', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ball = createItem('toy', 'ball', 300, 100);
+  settle(ball, surfaces, 8);
+  const restX = ball.x;
+  kick(ball, 1);
+  assert.ok(ball.vx > 0 && ball.vy < 0 && !ball.surface);
+  settle(ball, surfaces, 10);
+  assert.ok(ball.x > restX + 20, 'elle a roulé');
+  assert.equal(ball.vx, 0, 'elle s\'est arrêtée');
+  assert.ok(ball.surface);
+});
+
+test('une balle qui roule hors du rebord tombe sur le sol', () => {
+  const win = { id: 'w1', x: 200, y: 200, width: 100, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const ball = createItem('toy', 'ball', 280, 100);
+  settle(ball, surfaces, 6);
+  assert.equal(ball.y, 200);
+  ball.vx = 400;
+  settle(ball, surfaces, 10);
+  assert.equal(ball.y, 500, 'elle a quitté la fenêtre et rejoint le sol');
+  assert.ok(ball.x > 300);
+});
+
+test('la balle rebondit contre les bords de l\'écran', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ball = createItem('toy', 'ball', 900, 100);
+  settle(ball, surfaces, 6);
+  ball.vx = 800;
+  for (let i = 0; i < 30; i++) tickItem(ball, 1 / 60, surfaces, bounds);
+  assert.ok(ball.x <= 1000);
+  assert.ok(ball.vx < 0, 'renvoyée vers la gauche');
+});
+
+test('throwItem lance un objet, qui retombe sans rouler s\'il n\'est pas une balle', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const meat = createItem('food', 'meat', 300, 100);
+  settle(meat, surfaces, 3);
+  const before = meat.x;
+  throwItem(meat, 300, -400);
+  settle(meat, surfaces, 5);
+  assert.ok(meat.x > before + 50);
+  assert.equal(meat.vx, 0);
+  assert.equal(meat.y, 500);
+});
+
+test('toysFor : même surface ou vol, jamais les objets non jouets', () => {
+  const win = { id: 'w1', x: 600, y: 250, width: 300, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const ground = surfaces.segments.find((s) => s.type === 'ground');
+  const onGround = createItem('toy', 'plush', 100, 50);
+  const onWindow = createItem('toy', 'ball', 700, 50);
+  const food = createItem('food', 'meat', 200, 50);
+  for (const i of [onGround, onWindow, food]) settle(i, surfaces, 4);
+
+  const walker = toysFor([onGround, onWindow, food], { x: 300, surfaceId: ground.surfaceId, canFly: false });
+  assert.deepEqual(walker, [onGround]);
+  assert.equal(toysFor([onGround, onWindow, food], { x: 300, surfaceId: ground.surfaceId, canFly: true }).length, 2);
+  assert.ok(isToy(onGround) && !isToy(food));
+});
+
+test('les jouets sont sauvegardés et relus', () => {
+  const ball = createItem('toy', 'ball', 100, 480);
+  const back = parseSavedItems(serializeItems([ball]), { bounds });
+  assert.equal(back.length, 1);
+  assert.equal(back[0].type, 'toy');
+  assert.equal(back[0].kind, 'ball');
+  const bad = JSON.stringify({ version: 1, items: [{ type: 'toy', kind: 'yoyo', x: 1, y: 1 }] });
+  assert.equal(parseSavedItems(bad, { bounds }).length, 0);
 });

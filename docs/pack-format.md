@@ -82,18 +82,23 @@ packs/<species-id>/
     "flyFast":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.05, "loop": true },
     "dive":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
     "eat":      { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.15, "loop": true },
-    "seekFood": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true }
+    "seekFood": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
+    "play":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.08, "loop": true },
+    "brushed":  { "file": "sprites/sleep.png", "frames": 2, "frameDuration": 0.5,  "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
   // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js),
   // sauf les allures rapides qui retombent d'abord sur leur allure normale :
   // "run" et "seekFood" -> "walk", "swimFast" -> "swim", "flyFast" et "dive"
-  // -> "fly", "eat" -> "idle".
+  // -> "fly", "eat" -> "idle", "play" -> "run" puis "walk", "brushed" ->
+  // "wash" puis "idle".
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
   // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
   // "annoyed", "noticed", "startled" (nouvelle fenêtre), "greeted" (a
-  // atteint un autre critter en état GREET), "grabbed", "released",
+  // atteint un autre critter en état GREET), "purring" (3e caresse d'une série),
+  // "brushed" (fin du brossage), "played" (fin d'une session de jeu), "ate",
+  // "grabbed", "released",
   // "landed", "sleep", "wash", ...).
   // "sound" est optionnel : chemin relatif au pack vers un .wav/.ogg joué
   // une fois au déclenchement (rien ne se passe si absent ou si l'utilisateur

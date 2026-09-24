@@ -8,7 +8,7 @@
   ],
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "swim": 50 },
-  "behavior": { "swimDuration": [6, 12], "swimWaveAmplitude": 0.8, "swimRetargetDuration": [6, 12] },
+  "behavior": { "swimDuration": [6, 12], "swimWaveAmplitude": 0.8, "swimRetargetDuration": [6, 12], "playWeight": 0 },
   "needs": {
     "decayPerHour": { "energy": 0, "cleanliness": 0 },
     "diet": { "plankton": 40 }
@@ -20,7 +20,8 @@
     "drag": { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.12, "loop": true },
     "greet": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.2, "loop": true },
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.07, "loop": true },
-    "swimFast": { "file": "sprites/swimFast.png", "frames": 6, "frameDuration": 0.07, "loop": true }
+    "swimFast": { "file": "sprites/swimFast.png", "frames": 6, "frameDuration": 0.07, "loop": true },
+    "play": { "file": "sprites/swimFast.png", "frames": 6, "frameDuration": 0.07, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },
@@ -28,6 +29,8 @@
     "annoyed": { "file": "sprites/react_annoyed.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/annoyed.wav" },
     "noticed": { "file": "sprites/react_noticed.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/noticed.wav" },
     "startled": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
-    "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" }
+    "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" },
+    "purring": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.4, "sound": "sounds/petted.wav" },
+    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" }
   }
 }

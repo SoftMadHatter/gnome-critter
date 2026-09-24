@@ -10,7 +10,7 @@
   ],
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "walk": 45, "climb": 35 },
-  "behavior": { "sleepWeight": 15, "sleepDuration": [120, 900], "washWeight": 15, "followWeight": 20, "climbSeekWeight": 8 },
+  "behavior": { "sleepWeight": 15, "sleepDuration": [120, 900], "washWeight": 15, "followWeight": 20, "climbSeekWeight": 8, "playWeight": 45 },
   "needs": {
     "decayPerHour": { "energy": 3, "cleanliness": 2 },
     "diet": { "fish": 60, "meat": 45, "kibble": 30 }
@@ -32,7 +32,8 @@
     "chase": { "file": "sprites/chase.png", "frames": 6, "frameDuration": 0.07, "loop": true },
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.06, "loop": true },
     "run": { "file": "sprites/chase.png", "frames": 6, "frameDuration": 0.06, "loop": true },
-    "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.18, "loop": true }
+    "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.18, "loop": true },
+    "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },
@@ -40,6 +41,8 @@
     "annoyed": { "file": "sprites/react_annoyed.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/annoyed.wav" },
     "noticed": { "file": "sprites/react_noticed.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/noticed.wav" },
     "startled": { "file": "sprites/react_startled.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/startled.wav" },
-    "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" }
+    "greeted": { "file": "sprites/greet.png", "frames": 4, "frameDuration": 0.15, "sound": "sounds/greeted.wav" },
+    "purring": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.4, "sound": "sounds/petted.wav" },
+    "brushed": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.35, "sound": "sounds/petted.wav" }
   }
 }

@@ -1825,3 +1825,207 @@ test("un oiseau décolle vers un lit posé sur une autre surface", () => {
   c.needs.values.energy = 5;
   assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [bed] }).state, State.FLY);
 });
+
+// --- Jeu, laser, caresses, brossage -----------------------------------------
+
+function playerOf(config, items, surfaces) {
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, runWeight: 0,
+      foodWeight: 0, needsRateScale: 0, ...config,
+    },
+    { x: 100, y: monitor.height },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  return c;
+}
+
+function runPlay(c, surfaces, opts, seconds, stop) {
+  const seen = new Set();
+  for (let i = 0; i < seconds * 30; i++) {
+    const snap = c.tick(1 / 30, surfaces, { worldBounds: monitor, ...opts });
+    seen.add(snap.state);
+    if (snap.event) seen.add(`event:${snap.event}`);
+    if (stop?.(snap)) break;
+  }
+  return seen;
+}
+
+test('un animal qui s\'ennuie joue avec la balle, la frappe, et gagne stimulation et affection', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ball = settleItem(createItem('toy', 'ball', 300, 50), surfaces);
+  const c = playerOf({ playDuration: [4, 4] }, [ball], surfaces);
+  c.needs.values.stimulation = 10;
+  c.needs.values.affection = 50;
+  const startX = ball.x;
+
+  const seen = runPlay(c, surfaces, { items: [ball] }, 30, () => c.lastEvent === 'played');
+  assert.ok(seen.has(State.PLAY));
+  assert.ok(seen.has('event:played'));
+  assert.ok(Math.abs(ball.x - startX) > 5 || ball.vx !== 0, 'la balle a été frappée');
+  assert.ok(c.needs.values.stimulation > 30);
+  assert.ok(c.needs.values.affection > 50);
+});
+
+test('un animal comblé ne joue pas', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ball = settleItem(createItem('toy', 'ball', 300, 50), surfaces);
+  const c = playerOf({ walkWeight: 77 }, [ball], surfaces);
+  c.needs.values.stimulation = 100;
+  assert.ok(!runPlay(c, surfaces, { items: [ball] }, 1).has(State.PLAY));
+});
+
+test('jouer avec une peluche : rejoint puis reste, sans jamais la déplacer', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const plush = settleItem(createItem('toy', 'plush', 300, 50), surfaces);
+  const c = playerOf({ playDuration: [3, 3] }, [plush], surfaces);
+  c.needs.values.stimulation = 5;
+  runPlay(c, surfaces, { items: [plush] }, 20, () => c.lastEvent === 'played');
+  assert.equal(c.lastEvent, 'played');
+  assert.ok(Math.abs(c.x - 300) < 25);
+  assert.equal(plush.vx, 0);
+});
+
+test('jouet retiré en cours de jeu : retour au repos, sans récompense', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const plush = settleItem(createItem('toy', 'plush', 700, 50), surfaces);
+  const c = playerOf({ playDuration: [20, 20] }, [plush], surfaces);
+  c.needs.values.stimulation = 5;
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [plush] });
+  assert.equal(c.state, State.PLAY);
+  plush.removed = true;
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [plush] });
+  assert.equal(c.state, State.IDLE);
+  assert.notEqual(c.lastEvent, 'played');
+});
+
+test('mode laser : il fonce sur le pointeur, même sans jouet, et abandonne si le mode s\'éteint', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = playerOf({ playDuration: [20, 20] }, [], surfaces);
+  const pointer = { x: 600, y: 300 };
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, laser: true, pointer });
+  assert.equal(c.state, State.PLAY);
+  for (let i = 0; i < 30 * 8; i++) c.tick(1 / 30, surfaces, { worldBounds: monitor, laser: true, pointer });
+  assert.ok(Math.abs(c.x - 600) < 25, `x = ${c.x}`);
+  pointer.x = 100;
+  for (let i = 0; i < 30 * 6; i++) c.tick(1 / 30, surfaces, { worldBounds: monitor, laser: true, pointer });
+  assert.ok(Math.abs(c.x - 100) < 25, 'il suit le pointeur');
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, laser: false, pointer });
+  assert.equal(c.state, State.IDLE);
+});
+
+test('un poisson poursuit le pointeur en 2D en mode laser', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    { random: fixedRandom(0.5), needsRateScale: 0, supportedSurfaces: new Set([Locomotion.WATER]), swimSpeed: 200, swimWaveAmplitude: 0, playDuration: [30, 30] },
+    { x: 100, y: 400 },
+  );
+  c._startRoam(State.SWIM);
+  const pointer = { x: 800, y: 100 };
+  const seen = new Set();
+  for (let i = 0; i < 30 * 15; i++) seen.add(c.tick(1 / 30, surfaces, { worldBounds: monitor, laser: true, pointer }).state);
+  assert.ok(seen.has(State.PLAY));
+  assert.ok(Math.hypot(c.x - 800, c.y - 100) < 30, `(${c.x}, ${c.y})`);
+});
+
+test('une série de caresses rapprochées devient un ronronnement, une pause la rompt', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = playerOf({}, [], surfaces);
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  const events = [];
+  for (let i = 0; i < 3; i++) {
+    c.pet();
+    events.push(c.tick(0.5, surfaces, { worldBounds: monitor }).event);
+    c.state = State.SLEEP;
+    c.stateTimer = 1e9;
+  }
+  assert.deepEqual(events, ['petted', 'petted', 'purring']);
+
+  c.tick(5, surfaces, { worldBounds: monitor }); // plus de 3 s de pause
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  c.pet();
+  assert.equal(c.tick(0.5, surfaces, { worldBounds: monitor }).event, 'petted');
+});
+
+test('brosser : immobile, puis propreté et affection montent', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = playerOf({ brushDuration: 2 }, [], surfaces);
+  c.needs.values.cleanliness = 20;
+  c.needs.values.affection = 50;
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  c.brush();
+  assert.equal(c.state, State.BRUSHED, 'réveille un animal endormi');
+  const x = c.x;
+  const seen = new Set();
+  for (let i = 0; i < 30 * 4; i++) {
+    const snap = c.tick(1 / 30, surfaces, { worldBounds: monitor });
+    seen.add(snap.state);
+    if (snap.event) seen.add(`event:${snap.event}`);
+  }
+  assert.ok(seen.has('event:brushed'));
+  assert.equal(c.x, x);
+  assert.ok(c.needs.values.cleanliness >= 44);
+  assert.ok(c.needs.values.affection >= 55);
+});
+
+test('on ne brosse pas un animal en vol ou en chute', () => {
+  const c = new Critter({}, { x: 0, y: 0 });
+  c.state = State.FALL;
+  c.brush();
+  assert.equal(c.state, State.FALL);
+});
+
+// --- Réapparition hors écran ---------------------------------------------------
+
+test('hors de tout moniteur, l\'animal réapparaît en haut du plus proche et retombe', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  const c = new Critter({}, { x: 2500, y: 900 });
+  c.state = State.IDLE;
+  assert.equal(c.ensureVisible(monitors, 32), true);
+  assert.equal(c.state, State.FALL);
+  assert.equal(c.x, 984);
+  assert.equal(c.y, 32);
+  assert.equal(c.currentSurface, null);
+});
+
+test('un animal visible n\'est pas déplacé, ni un animal qu\'on est en train de glisser', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  const inside = new Critter({}, { x: 500, y: 500 });
+  inside.state = State.IDLE;
+  assert.equal(inside.ensureVisible(monitors, 32), false);
+  assert.equal(inside.state, State.IDLE);
+
+  const dragged = new Critter({}, { x: 5000, y: 5000 });
+  dragged.startDrag();
+  assert.equal(dragged.ensureVisible(monitors, 32), false);
+  assert.equal(dragged.state, State.DRAG);
+});
+
+test('deux écrans : réapparaît sur celui qui reste, le plus proche', () => {
+  const left = { x: 0, y: 0, width: 800, height: 600 };
+  const right = { x: 800, y: 0, width: 800, height: 600 };
+  const c = new Critter({}, { x: 1500, y: 300 });
+  c.state = State.IDLE;
+  assert.equal(c.ensureVisible([left, right], 32), false, 'toujours visible');
+  assert.equal(c.ensureVisible([left], 32), true, "l'écran de droite a disparu");
+  assert.ok(c.x <= 800 && c.x >= 700);
+  assert.equal(c.y, 32);
+});
+
+test('un objet hors écran est ramené en haut de l\'écran le plus proche', async () => {
+  const { createItem, rescueItem } = await import('../core/items.js');
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  const item = createItem('toy', 'ball', 3000, 700);
+  item.vx = 50;
+  assert.equal(rescueItem(item, monitors), true);
+  assert.equal(item.x, 984);
+  assert.equal(item.y, 16);
+  assert.equal(item.vx, 0);
+  const ok = createItem('bed', null, 100, 500);
+  assert.equal(rescueItem(ok, monitors), false);
+});

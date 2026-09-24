@@ -181,3 +181,16 @@ test('needsOverrides : régime valide, aliments inconnus ou gains invalides sign
   assert.deepEqual(diet, { fish: 60 });
   assert.deepEqual(ignored.sort(), ['diet.meat', 'diet.pizza', 'diet.seeds']);
 });
+
+test('jeu, brossage et ronronnement ont leurs effets', () => {
+  const n = new Needs();
+  n.values.stimulation = 40;
+  n.values.cleanliness = 40;
+  n.apply('played');
+  assert.equal(n.values.stimulation, 65);
+  n.apply('brushed');
+  assert.equal(n.values.cleanliness, 65);
+  const before = n.values.affection;
+  n.apply('purring');
+  assert.equal(n.values.affection, before + 12 > 100 ? 100 : before + 12);
+});

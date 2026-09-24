@@ -6,17 +6,18 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { FOOD_LABELS } from './itemActor.js';
+import { FOOD_LABELS, TOY_LABELS } from './itemActor.js';
 
 export class CritterMenu {
   /**
    * @param {import('../core/critter.js').Critter} critter
    * @param {{spriteSize: {width:number, height:number}}} pack
-   * @param {{dropFood: Function, fillBowl: Function, dropBed: Function}} owner
+   * @param {{dropFood: Function, fillBowl: Function, dropBed: Function, dropToy: Function, brush: Function, setLaser: Function, isLaser: Function, hasToys: Function, clearToys: Function}} owner
    */
   constructor(critter, pack, owner) {
     this._critter = critter;
     this._pack = pack;
+    this._owner = owner;
 
     this._anchor = new St.Widget({ width: 1, height: 1, reactive: false });
     Main.uiGroup.add_child(this._anchor);
@@ -40,10 +41,23 @@ export class CritterMenu {
       this.menu.addMenuItem(bowl);
     }
     this.menu.addAction('Poser un lit', () => owner.dropBed(critter));
+
+    this.menu.addAction('Brosser', () => owner.brush(critter));
+    const play = new PopupMenu.PopupSubMenuMenuItem('Jouer');
+    for (const [kind, label] of Object.entries(TOY_LABELS)) {
+      play.menu.addAction(label, () => owner.dropToy(kind, critter));
+    }
+    this.menu.addMenuItem(play);
+    this._laser = new PopupMenu.PopupSwitchMenuItem('Pointeur laser', owner.isLaser());
+    this._laser.connect('toggled', (_item, state) => owner.setLaser(state));
+    this.menu.addMenuItem(this._laser);
+    this._tidy = this.menu.addAction('Ranger les jouets', () => owner.clearToys());
   }
 
   open() {
     const size = this._pack.spriteSize;
+    this._laser.setToggleState(this._owner.isLaser());
+    this._tidy.setSensitive(this._owner.hasToys());
     this._anchor.set_position(Math.round(this._critter.x), Math.round(this._critter.y - size.height));
     this.menu.toggle();
   }

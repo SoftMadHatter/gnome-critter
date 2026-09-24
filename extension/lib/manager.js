@@ -16,13 +16,13 @@ import { serializeCritters, parseSavedState } from '../core/persistence.js';
 import { needsOverrides } from '../core/needs.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
-  createItem, fillBowl, tickItem, isGone, serializeItems, parseSavedItems,
+  createItem, fillBowl, tickItem, isGone, isToy, rescueItem, serializeItems, parseSavedItems,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
 import { loadBubbleIcons } from './thoughtBubble.js';
 import { addIndicator } from './panelIndicator.js';
-import { ItemActor, loadItemImages } from './itemActor.js';
+import { ItemActor, LaserDot, loadItemImages } from './itemActor.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
@@ -45,6 +45,8 @@ export class Manager {
     this._items = [];
     this._itemImages = {};
     this._lastSavedItems = null;
+    this._laser = false; // mode pointeur laser, en mémoire seulement (éteint à chaque activation)
+    this._laserDot = null;
     /** @type {{critter: Critter, actor: CritterActor}[]} */
     this._critters = [];
     this._timeoutId = null;
@@ -80,6 +82,7 @@ export class Manager {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
     }
     this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
+    if (this._itemImages.laser) this._laserDot = new LaserDot(this._itemImages.laser);
     const bubbleIcons = loadBubbleIcons(GLib.build_filenamev([this._extensionPath, 'assets', 'bubbles']));
 
     const saved = parseSavedState(this.settings.get_string('saved-state'), {
@@ -176,6 +179,12 @@ export class Manager {
       dropFood: (kind, critter) => this._dropNear('food', kind, critter),
       fillBowl: (kind, critter) => this._fillBowl(kind, critter),
       dropBed: (critter) => this._dropNear('bed', null, critter),
+      dropToy: (kind, critter) => this._dropNear('toy', kind, critter),
+      brush: (critter) => critter.brush(),
+      setLaser: (on) => this.setLaser(on),
+      isLaser: () => this._laser,
+      hasToys: () => this._items.some(({ item }) => isToy(item) && !item.removed),
+      clearToys: () => this.clearToys(),
     };
   }
 
@@ -215,6 +224,15 @@ export class Manager {
 
   clearItems() {
     for (const { item } of this._items) item.removed = true;
+  }
+
+  /** « Ranger les jouets » : retire les jouets seulement (pas la gamelle, le lit ni la nourriture). */
+  clearToys() {
+    for (const { item } of this._items) if (isToy(item)) item.removed = true;
+  }
+
+  setLaser(on) {
+    this._laser = Boolean(on);
   }
 
   _removeGoneItems() {
@@ -284,6 +302,8 @@ export class Manager {
       actor.destroy();
     }
     this._items = [];
+    this._laserDot?.destroy();
+    this._laserDot = null;
   }
 
   _tick() {
@@ -331,15 +351,18 @@ export class Manager {
     const others = this._critters.map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
 
     for (const { item, actor } of this._items) {
+      rescueItem(item, monitors);
       tickItem(item, dt, surfaces, worldBounds);
       actor.sync();
     }
     this._removeGoneItems();
     const items = this._items.map(({ item }) => item);
+    this._laserDot?.update(pointer, this._laser);
 
     this._critters.forEach(({ critter, actor }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
-      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters, focusedWindow, items });
+      critter.ensureVisible(monitors, this.pack.spriteSize.height);
+      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser });
       actor.updateAnimation(dt, snapshot);
     });
   }

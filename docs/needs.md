@@ -12,9 +12,9 @@ instance.
 |---|---|---|
 | `satiety` (satiété) | 5 | manger : gain propre à l'aliment (`needs.diet`) |
 | `energy` | 6 | dormir : +60 par heure |
-| `cleanliness` | 4 | fin d'un lavage : +30 |
-| `stimulation` (contre l'ennui) | 10 | activité physique : +25 par heure ; jeux, réactions |
-| `affection` | 4 | caresse +8, chatouille +3, salutation +4 |
+| `cleanliness` | 4 | fin d'un lavage : +30 ; brossage : +25 |
+| `stimulation` (contre l'ennui) | 10 | activité physique : +25 par heure ; jeu : +25 ; réactions |
+| `affection` | 4 | caresse +8 (ronronnement +12), chatouille +3, salutation +4, jeu +6, brossage +6 |
 | `health` | baisse de 6 par heure quand la moyenne des cinq autres est sous 25 | remonte de 4 par heure au-dessus de 50 |
 
 L'humeur (`mood`) n'est pas stockée : moyenne des cinq besoins pondérée par
@@ -57,6 +57,28 @@ bouge ou disparaît.
   au relâchement), clic droit pour en retirer un, « Retirer les objets »
   pour tout enlever. Gamelles, lits et nourriture fraîche sont conservés au
   redémarrage (clé `saved-items`).
+
+## Jouer, caresser, brosser
+
+- **Jouets** : balle et peluche (« Jouer » dans le menu contextuel de
+  l'animal, « Poser un jouet » dans le menu de l'icône). La balle roule avec
+  du frottement, rebondit, rebondit contre les bords de l'écran et peut
+  tomber du rebord d'une fenêtre ; la peluche reste posée. Un animal qui
+  s'ennuie va jouer (à la course) : il frappe la balle puis la poursuit, ou
+  se colle à la peluche. Une session dure 6 à 12 s et, menée à son terme,
+  donne stimulation +25 et affection +6. Un animal comblé ne joue presque pas.
+- **Lancer à la souris** : les objets se glissent, et partent avec l'élan du
+  pointeur au relâchement (jusqu'à 900 px/s), pour lancer la balle.
+- **Pointeur laser** : interrupteur dans les deux menus. Un point rouge suit
+  le curseur et les animaux se précipitent dessus (le poisson le poursuit
+  aussi, en 2D). Le mode est en mémoire : éteint à chaque activation.
+- **Caresses prolongées** : à partir de la 3e caresse en moins de 3 s d'écart
+  (clics), l'animal ronronne (`purring`, affection +12 au lieu de +8).
+- **Brosser** : dans le menu contextuel ; l'animal reste immobile 4 s
+  (`brushed`), propreté +25, affection +6. Réveille un animal endormi.
+- **Ranger les jouets** : retire tous les jouets d'un coup, sans toucher à la
+  gamelle, au lit ni à la nourriture (« Retirer les objets » enlève tout).
+  Balles et peluches sont conservées au redémarrage.
 
 ## Difficulté et mode vacances
 

@@ -2,7 +2,9 @@
 // GNOME : le Manager les possède et les avance à chaque tick, les critters
 // les lisent (et les consomment) via `options.items`.
 
-import { findSurfaceBelow, findSegmentById, isOnSegment } from './surfaceMap.js';
+import {
+  findSurfaceBelow, findSegmentById, isOnSegment, isInsideAnyMonitor, respawnPoint,
+} from './surfaceMap.js';
 
 /** Aliments connus : durée de vie en secondes, et `floats` pour la
  * nourriture sans gravité (le plancton du poisson). */
@@ -14,19 +16,26 @@ export const FOODS = Object.freeze({
   plankton: { ttl: 600, floats: true },
 });
 
-export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed']);
+/** Jouets : la balle roule et rebondit, la peluche reste posée. */
+export const TOYS = Object.freeze({ ball: {}, plush: {} });
+
+export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy']);
 
 export const BOWL_CAPACITY = 5;
 
 const GRAVITY = 900;
 const TERMINAL_VELOCITY = 800;
 const RESTING_TYPES = new Set(['ground', 'shelf']);
+const ROLL_FRICTION = 2.5; // 1/s : la balle perd cette part de sa vitesse par seconde
+const BOUNCE_RESTITUTION = 0.45;
+const BOUNCE_MIN_SPEED = 140; // en dessous, la balle se pose au lieu de rebondir
+const KICK_SPEED = 260;
 
 let nextId = 1;
 
 /**
- * @param {'food'|'bowl'|'bed'} type
- * @param {string|null} kind aliment (food/bowl), null pour un lit
+* @param {'food'|'bowl'|'bed'|'toy'} type
+ * @param {string|null} kind aliment (food/bowl), jouet (toy), null pour un lit
  */
 export function createItem(type, kind, x, y) {
   const food = type === 'food' ? FOODS[kind] : null;
@@ -36,6 +45,7 @@ export function createItem(type, kind, x, y) {
     kind: type === 'bed' ? null : kind,
     x,
     y,
+    vx: 0, // vitesse horizontale (balle qui roule, objet lancé)
     vy: 0,
     surface: null, // segment sur lequel l'objet repose, une fois posé
     floating: Boolean(food?.floats),
@@ -75,16 +85,29 @@ export function tickItem(item, dt, surfaces, worldBounds) {
   }
   if (item.grabbed || item.floating) return;
 
+  const isBall = item.type === 'toy' && item.kind === 'ball';
   const segments = surfaces.segments ?? [];
+
   if (item.surface) {
+    if (isBall && item.vx !== 0) {
+      item.x += item.vx * dt;
+      bounceOffWorldEdges(item, worldBounds);
+      item.vx *= Math.max(0, 1 - ROLL_FRICTION * dt);
+      if (Math.abs(item.vx) < 4) item.vx = 0;
+    }
     const fresh = findSegmentById(segments, item.surface.surfaceId, item.surface.type);
     if (fresh && isOnSegment(fresh, item.x, item.y, 4)) {
       item.surface = fresh;
       item.y = fresh.y;
       return;
     }
-    item.surface = null;
+    item.surface = null; // fenêtre partie, ou bord dépassé : il tombe (avec son élan)
     item.vy = 0;
+  }
+
+  if (item.vx !== 0) {
+    item.x += item.vx * dt;
+    bounceOffWorldEdges(item, worldBounds);
   }
 
   item.vy = Math.min(item.vy + GRAVITY * dt, TERMINAL_VELOCITY);
@@ -92,15 +115,78 @@ export function tickItem(item, dt, surfaces, worldBounds) {
   const landing = findSurfaceBelow(segments, item.x, nextY, item.vy * dt + 1, RESTING_TYPES);
   if (landing) {
     item.y = landing.y;
+    if (isBall && item.vy > BOUNCE_MIN_SPEED) {
+      item.vy = -item.vy * BOUNCE_RESTITUTION; // rebond : reste en l'air
+      return;
+    }
     item.vy = 0;
     item.surface = landing;
+    if (!isBall) item.vx = 0;
     return;
   }
   item.y = nextY;
   if (worldBounds && item.y > worldBounds.y + worldBounds.height + 200) {
     item.y = worldBounds.y + worldBounds.height; // filet de sécurité : jamais hors de l'écran
     item.vy = 0;
+    item.vx = 0;
   }
+}
+
+function bounceOffWorldEdges(item, worldBounds) {
+  if (!worldBounds || worldBounds.width === undefined) return;
+  const min = worldBounds.x;
+  const max = worldBounds.x + worldBounds.width;
+  if (item.x < min) {
+    item.x = min;
+    item.vx = Math.abs(item.vx) * 0.6;
+  } else if (item.x > max) {
+    item.x = max;
+    item.vx = -Math.abs(item.vx) * 0.6;
+  }
+}
+
+/** Frappe la balle (par un animal) : elle décolle et file dans la direction donnée. */
+export function kick(item, dirX) {
+  if (item.type !== 'toy' || item.kind !== 'ball') return;
+  item.vx = (dirX >= 0 ? 1 : -1) * KICK_SPEED;
+  item.vy = -KICK_SPEED;
+  item.surface = null;
+}
+
+/** Un objet hors de tout moniteur (changement de résolution, écran débranché) réapparaît en haut du plus proche. */
+export function rescueItem(item, monitors) {
+  if (item.grabbed || monitors.length === 0 || isInsideAnyMonitor(monitors, item.x, item.y - 1)) return false;
+  const point = respawnPoint(monitors, item.x, item.y, 16);
+  if (!point) return false;
+  item.x = point.x;
+  item.y = point.y;
+  item.vx = 0;
+  item.vy = 0;
+  item.surface = null;
+  return true;
+}
+
+/** Lance un objet (relâché à la souris avec de l'élan). */
+export function throwItem(item, vx, vy) {
+  item.vx = vx;
+  item.vy = vy;
+  item.surface = null;
+}
+
+/** Vrai pour un jouet (base de « Ranger les jouets »). */
+export function isToy(item) {
+  return item.type === 'toy';
+}
+
+/**
+ * Jouets qu'une espèce qui marche peut rejoindre, du plus proche au plus loin :
+ * sur la même surface, ou n'importe laquelle pour une espèce qui vole.
+ */
+export function toysFor(items, { x, surfaceId, canFly }) {
+  return items
+    .filter((i) => i.type === 'toy' && !i.removed && !i.grabbed && i.surface)
+    .filter((i) => canFly || i.surface.surfaceId === surfaceId)
+    .sort((a, b) => Math.abs(a.x - x) - Math.abs(b.x - x));
 }
 
 /**
@@ -179,7 +265,7 @@ export function parseSavedItems(text, { bounds }) {
   const result = [];
   for (const raw of data.items) {
     if (!raw || !ITEM_TYPES.includes(raw.type) || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) continue;
-    if (raw.type !== 'bed' && !FOODS[raw.kind]) continue;
+    if (raw.type === 'toy' ? !TOYS[raw.kind] : raw.type !== 'bed' && !FOODS[raw.kind]) continue;
     const item = createItem(raw.type, raw.kind, 0, 0);
     item.x = Math.min(Math.max(raw.x, bounds.x), bounds.x + bounds.width);
     item.y = Math.min(Math.max(raw.y, bounds.y), bounds.y + bounds.height);

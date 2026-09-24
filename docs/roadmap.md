@@ -169,8 +169,9 @@ pensée. Voir `docs/needs.md`. « Nourrir » du menu est provisoire (10.2).
 Framework d'objets (nourriture, gamelle, lit), états de recherche de
 nourriture et de repas, menu contextuel (clic milieu) et menu de l'icône. Voir `docs/needs.md`.
 
-### 10.3 Jouer, ennui, affection
-Balle et pointeur laser, état de jeu, caresses prolongées, brossage.
+### 10.3 Jouer, ennui, affection — 🧪 à tester
+Balle et peluche (physique, lancer à la souris), pointeur laser, état de
+jeu, caresses prolongées, brossage, « Ranger les jouets ». Voir `docs/needs.md`.
 
 ### 10.4 Croissance, personnalité, évolution
 Âge et stades (œuf à senior), personnalité, évolution selon les soins,

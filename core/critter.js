@@ -1,6 +1,6 @@
 import { clamp, sign } from './vec2.js';
 import { Needs, needMultiplier } from './needs.js';
-import { edibleFor, consume, bedsOn } from './items.js';
+import { edibleFor, consume, bedsOn, toysFor, kick } from './items.js';
 import {
   findSurfaceBelow,
   isOnSegment,
@@ -10,6 +10,8 @@ import {
   findCeilingAbove,
   findReachableWall,
   findReachableShelf,
+  isInsideAnyMonitor,
+  respawnPoint,
 } from './surfaceMap.js';
 
 /** États possibles. Volontairement une simple union de chaînes : facile à
@@ -38,6 +40,8 @@ export const State = Object.freeze({
   FLEE: 'flee', // s'éloigne d'un poursuivant
   SEEK_FOOD: 'seekFood', // rejoint une nourriture visée
   EAT: 'eat', // mange, immobile
+  PLAY: 'play', // rejoint et joue avec un jouet, ou poursuit le pointeur laser
+  BRUSHED: 'brushed', // se laisse brosser, immobile
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -65,7 +69,7 @@ const INTERACTION_REACTIONS = {
 const ACTIVE_STATES = new Set([
   State.WALK, State.RUN, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
   State.FLY, State.FLY_FAST, State.DIVE, State.FOLLOW, State.GREET, State.SEEK_WALL,
-  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD,
+  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD, State.PLAY,
 ]);
 
 /** Activités idle dont le poids suit la stimulation (l'animal s'ennuie : il bouge). */
@@ -84,6 +88,14 @@ const DEFAULT_CONFIG = {
   eatDuration: [2, 4],
   bedSleepFactor: 1.5, // multiplicateur du gain d'énergie en dormant sur un lit
   bedRadius: 24, // distance sous laquelle on dort « sur » le lit
+  playWeight: 30, // multiplié par l'ennui : un animal qui s'ennuie joue
+  laserWeight: 80, // mode pointeur laser actif : il se précipite dessus
+  playDuration: [6, 12],
+  kickDistance: 18, // distance sous laquelle il « touche » la balle
+  kickInterval: 1.2, // secondes entre deux frappes
+  petStreakWindow: 3, // secondes max entre deux caresses d'une même série
+  petStreakMin: 3, // caresses pour que la série devienne un ronronnement
+  brushDuration: 4,
   walkSpeed: 40, // px/s
   climbSpeed: 30,
   swimSpeed: 25,
@@ -246,6 +258,10 @@ export class Critter {
      * lastEvent en entrée : sans cette file, un événement posé juste avant
      * tick() serait effacé avant d'avoir pu être lu par l'appelant. */
     this._pendingEvent = null;
+    this._clock = 0;
+    this._lastPetAt = -Infinity;
+    this._petStreak = 0;
+    this._playTarget = null;
   }
 
   /** Point d'extension de la persistance : tout ce qui doit survivre à un
@@ -270,6 +286,29 @@ export class Critter {
     this._enterState(State.FALL);
   }
 
+  /**
+   * Après un changement de résolution ou d'écran, l'animal peut se retrouver
+   * hors de tout moniteur : il réapparaît alors en haut du moniteur le plus
+   * proche et retombe. Sans effet pendant un glisser (l'utilisateur le tient).
+   * @param {{x:number,y:number,width:number,height:number}[]} monitors
+   * @param {number} spriteHeight hauteur du sprite (y désigne les pieds)
+   * @returns {boolean} vrai s'il a été replacé
+   */
+  ensureVisible(monitors, spriteHeight) {
+    if (this.state === State.DRAG || monitors.length === 0) return false;
+    // Un pixel au-dessus des pieds : posé sur le bord bas d'un moniteur, il est visible.
+    if (isInsideAnyMonitor(monitors, this.x, this.y - 1)) return false;
+    const point = respawnPoint(monitors, this.x, this.y, spriteHeight);
+    if (!point) return false;
+    this.x = point.x;
+    this.y = point.y;
+    this.vx = 0;
+    this.vy = 0;
+    this.currentSurface = null;
+    this._enterState(State.FALL);
+    return true;
+  }
+
   setNeedsRateScale(scale) {
     this.needs.setRateScale(scale);
   }
@@ -282,6 +321,7 @@ export class Critter {
 
   startDrag() {
     this._releaseFood();
+    this._playTarget = null;
     this.state = State.DRAG;
     this.vx = 0;
     this.vy = 0;
@@ -311,7 +351,14 @@ export class Critter {
    * ce mapping reste modifiable à un seul endroit.
    */
   interact(kind) {
-    const event = INTERACTION_REACTIONS[kind];
+    let event = INTERACTION_REACTIONS[kind];
+    if (kind === 'click') {
+      // Des caresses rapprochées forment une série : à partir de la 3e,
+      // ronronnement (plus d'affection) au lieu d'une simple caresse.
+      this._petStreak = this._clock - this._lastPetAt <= this.config.petStreakWindow ? this._petStreak + 1 : 1;
+      this._lastPetAt = this._clock;
+      if (this._petStreak >= this.config.petStreakMin) event = 'purring';
+    }
     if (event) this._pendingEvent = event;
     // Seul un clic réveille : ni le survol, ni une fenêtre qui s'ouvre. Une
     // surface qui bouge ou disparaît sous l'animal le réveille par la chute
@@ -344,6 +391,7 @@ export class Critter {
     const external = this.lastEvent;
     if (external) this.needs.apply(external);
     this.stateTimer -= dt;
+    this._clock += dt;
     this.needs.advance(dt, {
       sleeping: this.state === State.SLEEP,
       active: ACTIVE_STATES.has(this.state),
@@ -413,6 +461,12 @@ export class Critter {
         break;
       case State.EAT:
         this._tickEat(dt);
+        break;
+      case State.PLAY:
+        this._tickPlay(dt, options);
+        break;
+      case State.BRUSHED:
+        this._tickBrushed(dt);
         break;
       case State.IDLE:
       case State.SLEEP:
@@ -577,6 +631,17 @@ export class Critter {
     const edible = this._edibleTargets(options);
     if (edible.length > 0) candidates.push({ value: 'food', weight: this.config.foodWeight });
 
+    const toys =
+      options.items?.length && this.supports(Locomotion.GROUND) && this.currentSurface
+        ? toysFor(options.items, {
+            x: this.x,
+            surfaceId: this.currentSurface.surfaceId,
+            canFly: this.supports(Locomotion.AIR),
+          })
+        : [];
+    if (toys.length > 0) candidates.push({ value: 'play', weight: this.config.playWeight });
+    if (options.laser && options.pointer) candidates.push({ value: 'laser', weight: this.config.laserWeight });
+
     // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
     // pour un décollage, contrairement aux comportements ci-dessus).
     if (this.supports(Locomotion.GROUND)) {
@@ -614,6 +679,7 @@ export class Critter {
       else if (c.value === 'wash') c.weight *= needMultiplier(levels.cleanliness, { boost: 5, satisfied: 0.3 });
       else if (c.value === 'follow') c.weight *= needMultiplier(levels.affection, { boost: 4, satisfied: 0.5 });
       else if (c.value === 'food') c.weight *= needMultiplier(levels.satiety, { boost: 8, satisfied: 0.05 });
+      else if (c.value === 'play') c.weight *= needMultiplier(levels.stimulation, { boost: 5, satisfied: 0.2 });
       else if (ENERGETIC_ACTIVITIES.has(c.value)) {
         c.weight *= needMultiplier(levels.stimulation, { boost: 3, satisfied: 0.6 });
         if (tired) c.weight *= 0.3;
@@ -635,6 +701,18 @@ export class Critter {
     switch (choice) {
       case 'food':
         this._startSeekFood(edible[0]);
+        return;
+      case 'play': {
+        const toy = toys[0];
+        if (toy.surface.surfaceId !== this.currentSurface.surfaceId) {
+          this._takeOffToward(toy, toy.x);
+          return;
+        }
+        this._startPlay({ item: toy });
+        return;
+      }
+      case 'laser':
+        this._startPlay({ laser: true });
         return;
       case 'sleep': {
         // Un lit passe avant tout, quelle que soit la distance : on s'y rend
@@ -665,10 +743,7 @@ export class Critter {
         }
         if (this.supports(Locomotion.AIR) && beds.length > 0) {
           const bed = beds.sort((a, b) => Math.abs(a.x - this.x) - Math.abs(b.x - this.x))[0];
-          const seg = bed.surface;
-          this._startRoam(State.FLY);
-          const margin = Math.min(8, (seg.x2 - seg.x1) / 2);
-          this._flyTarget = { segment: seg, x: clamp(bed.x, seg.x1 + margin, seg.x2 - margin), y: seg.y };
+          this._takeOffToward(bed);
           return;
         }
         // Sieste ciblée : plutôt que de dormir sur place, cherche d'abord
@@ -949,10 +1024,7 @@ export class Critter {
     if (!item.floating && !sameSurface) {
       // Espèce qui vole, nourriture sur une autre surface : décollage vers
       // cette surface ; une fois posée, la nourriture sera sur sa surface.
-      this._releaseFood();
-      this._startRoam(State.FLY);
-      const margin = Math.min(8, (seg.x2 - seg.x1) / 2);
-      this._flyTarget = { segment: seg, x: clamp(item.x, seg.x1 + margin, seg.x2 - margin), y: seg.y };
+      this._takeOffToward(item);
       return;
     }
 
@@ -1001,10 +1073,7 @@ export class Critter {
         this._startEating();
         return;
       }
-      const speed = this.supports(Locomotion.WATER) ? this.config.swimSpeed : this.config.flySpeed;
-      this.facing = sign(toX) || this.facing;
-      this.x += (toX / distance) * speed * dt;
-      this.y += (toY / distance) * speed * dt;
+      this._approach2D(dt, item.x, item.y, this.supports(Locomotion.WATER) ? this.config.swimSpeed : this.config.flySpeed);
       return;
     }
 
@@ -1040,6 +1109,131 @@ export class Critter {
     if (target.gain >= Math.max(...Object.values(this.config.needsDiet))) this.needs.boost('affection', 5);
     this.lastEvent = 'ate';
     this._giveUpFood();
+  }
+
+  /** Décolle vers la surface d'un objet (espèce qui vole) ; une fois posée,
+   * l'objet sera sur sa surface et pourra être rejoint à pied. */
+  _takeOffToward(item, x = item.x) {
+    const seg = item.surface;
+    this._releaseFood();
+    this._startRoam(State.FLY);
+    const margin = Math.min(8, (seg.x2 - seg.x1) / 2);
+    this._flyTarget = { segment: seg, x: clamp(x, seg.x1 + margin, seg.x2 - margin), y: seg.y };
+  }
+
+  /** Avance vers un point en 2D (espèce sans sol) ; renvoie la distance restante. */
+  _approach2D(dt, targetX, targetY, speed) {
+    const toX = targetX - this.x;
+    const toY = targetY - this.y;
+    const distance = Math.hypot(toX, toY);
+    if (distance < 1e-6) return 0;
+    const step = Math.min(speed * dt, distance);
+    this.facing = sign(toX) || this.facing;
+    this.x += (toX / distance) * step;
+    this.y += (toY / distance) * step;
+    return distance - step;
+  }
+
+  // --- Jeu, caresses, brossage ------------------------------------------------
+
+  _startPlay(target) {
+    this._playTarget = target;
+    this._kickTimer = 0;
+    this.state = State.PLAY;
+    this.stateTimer = randRange(this.config.playDuration, this.config.random);
+  }
+
+  /** Fin d'une session (jouée jusqu'au bout : récompense) ou abandon. */
+  _endPlay(completed) {
+    this._playTarget = null;
+    if (completed) this.lastEvent = 'played';
+    const roam = this._groundlessRoamState();
+    if (roam) this._startRoam(roam);
+    else this._enterState(State.IDLE);
+  }
+
+  _tickPlay(dt, options) {
+    const groundless = !this.supports(Locomotion.GROUND);
+    if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    const target = this._playTarget;
+    if (!target) {
+      this._endPlay(false);
+      return;
+    }
+    if (this.stateTimer <= 0) {
+      this._endPlay(true);
+      return;
+    }
+
+    let tx;
+    let ty;
+    if (target.laser) {
+      if (!options.laser || !options.pointer) {
+        this._endPlay(false);
+        return;
+      }
+      tx = options.pointer.x;
+      ty = options.pointer.y;
+    } else {
+      const toy = target.item;
+      const lost =
+        toy.removed ||
+        toy.grabbed ||
+        (toy.surface && !this.supports(Locomotion.AIR) && toy.surface.surfaceId !== this.currentSurface?.surfaceId);
+      if (lost) {
+        this._endPlay(false);
+        return;
+      }
+      tx = toy.x;
+      ty = toy.y;
+    }
+
+    if (groundless) {
+      const speed = this.supports(Locomotion.WATER)
+        ? this.config.swimSpeed * this.config.swimFastFactor
+        : this.config.flySpeed * this.config.flyFastFactor;
+      this._approach2D(dt, tx, ty, speed);
+      return;
+    }
+
+    if (Math.abs(tx - this.x) >= this.config.kickDistance) {
+      this._chase(dt, tx, this.config.walkSpeed * this.config.runSpeedFactor);
+      return;
+    }
+    this.facing = sign(tx - this.x) || this.facing;
+    if (!target.laser && target.item.kind === 'ball') {
+      this._kickTimer -= dt;
+      if (this._kickTimer <= 0) {
+        kick(target.item, sign(tx - this.x) || this.facing);
+        this._kickTimer = this.config.kickInterval;
+      }
+    }
+  }
+
+  /** Brossage (action du joueur) : immobile quelques secondes, puis propreté et affection en hausse. */
+  brush() {
+    const blocked = [
+      State.DRAG, State.FALL, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
+      State.FLY, State.FLY_FAST, State.DIVE,
+    ];
+    if (!this.currentSurface || blocked.includes(this.state)) return;
+    this._releaseFood();
+    this._playTarget = null;
+    this.state = State.BRUSHED;
+    this.stateTimer = this.config.brushDuration;
+  }
+
+  _tickBrushed() {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    if (this.stateTimer > 0) return;
+    this.lastEvent = 'brushed';
+    this._enterState(State.IDLE);
   }
 
   /** Multiplicateur du gain d'énergie en dormant : plus fort sur un lit. */
@@ -1100,10 +1294,10 @@ export class Critter {
   /** Avance vers `targetX` le long de la surface courante (WALK vise un
    * point fixe une fois pour toutes ; FOLLOW/GREET rappellent ceci chaque
    * tick avec une cible qui peut avoir bougé). */
-  _chase(dt, targetX) {
+  _chase(dt, targetX, speed = this.config.walkSpeed) {
     const dir = sign(targetX - this.x);
     this.facing = dir || this.facing;
-    this.x += dir * this.config.walkSpeed * dt;
+    this.x += dir * speed * dt;
 
     if (this.currentSurface) {
       this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
@@ -1271,6 +1465,10 @@ export class Critter {
       this._foodCheckTimer = (this._foodCheckTimer ?? 0) - dt;
       if (this._foodCheckTimer <= 0) {
         this._foodCheckTimer = 1;
+        if (options.laser && options.pointer) {
+          this._startPlay({ laser: true });
+          return;
+        }
         if (this.needs.values.satiety < 70) {
           const edible = this._edibleTargets(options);
           if (edible.length > 0) {
@@ -1483,6 +1681,7 @@ export class Critter {
 
   _enterState(state) {
     this._releaseFood();
+    this._playTarget = null;
     this.state = state;
     switch (state) {
       case State.IDLE:
