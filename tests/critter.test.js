@@ -1037,18 +1037,67 @@ test("SEEK_NAP retombe en IDLE si aucun rebord n'est à portée", () => {
   assert.equal(snapshot.state, State.IDLE);
 });
 
-test('FLY atterrit (repasse en FALL) une fois stateTimer écoulé, au lieu de voler indéfiniment', () => {
+test('FLY vole jusqu\'à une surface et s\'y pose, sans jamais passer par FALL', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
-  const critter = new Critter({ random: fixedRandom(0.9), flySpeed: 60 }, { x: 500, y: 100 });
+  const critter = new Critter({ random: fixedRandom(0.9), flySpeed: 200 }, { x: 500, y: 100 });
   critter.state = State.FLY;
-  critter.stateTimer = 0.05; // expire après quelques ticks
+  critter.stateTimer = 0.01; // la durée ne compte plus : seule l'arrivée termine le vol
 
+  const seen = new Set();
   let snapshot;
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 600; i++) {
     snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    seen.add(snapshot.state);
+    if (snapshot.state !== State.FLY) break;
   }
 
-  assert.equal(snapshot.state, State.FALL);
+  assert.equal(snapshot.state, State.IDLE);
+  assert.equal(snapshot.event, 'landed');
+  assert.equal(critter.y, monitor.height, 'posé sur le sol');
+  assert.ok(!seen.has(State.FALL));
+});
+
+test('FLY se pose sur un rebord de fenêtre quand il est la cible', () => {
+  const win = { id: 'w1', x: 200, y: 200, width: 300, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const critter = new Critter({ random: fixedRandom(0, 0.5), flySpeed: 300 }, { x: 600, y: 50 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  critter.state = State.FLY;
+  critter._flyTarget = null;
+
+  for (let i = 0; i < 600 && critter.state === State.FLY; i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  }
+
+  assert.equal(critter.state, State.IDLE);
+  assert.equal(critter.y, 200);
+  assert.ok(critter.x >= 200 && critter.x <= 500);
+});
+
+test('FLY change de cible si sa surface disparaît, sans tomber', () => {
+  const win = { id: 'w1', x: 200, y: 200, width: 300, height: 100 };
+  const withWin = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const without = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0, 0.5), flySpeed: 50 }, { x: 600, y: 50 });
+  critter.currentSurface = withWin.segments.find((s) => s.type === 'ground');
+  critter.state = State.FLY;
+
+  critter.tick(1 / 60, withWin, { worldBounds: monitor });
+  assert.equal(critter._flyTarget.segment.type, 'shelf');
+
+  critter.tick(1 / 60, without, { worldBounds: monitor });
+  assert.equal(critter.state, State.FLY, 'toujours en vol');
+  assert.equal(critter._flyTarget.segment.type, 'ground', 'nouvelle cible : le sol');
+});
+
+test('FLY ne change pas de cible sans raison (probabilité nulle)', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.5), flySpeed: 50, flyRetargetChance: 0 }, { x: 500, y: 50 });
+  critter.state = State.FLY;
+  critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  const first = critter._flyTarget;
+  for (let i = 0; i < 30; i++) critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(critter._flyTarget, first);
 });
 
 test('SWIM ondule perpendiculairement à sa trajectoire, contrairement à FLY qui va en ligne droite', () => {
@@ -1067,7 +1116,10 @@ test('SWIM ondule perpendiculairement à sa trajectoire, contrairement à FLY qu
   const swimSnapshot = swimmer.tick(1 / 60, {}, { worldBounds: monitor });
   assert.notEqual(swimSnapshot.y, 500, 'devrait dévier verticalement malgré une cible à la même hauteur');
 
-  const flyer = new Critter({ ...shared, flySpeed: 100 }, { x: 500, y: 500 });
+  const flyer = new Critter(
+    { ...shared, flySpeed: 100, supportedSurfaces: new Set([Locomotion.AIR]) },
+    { x: 500, y: 500 },
+  );
   flyer.state = State.FLY;
   flyer.stateTimer = 10;
   flyer.walkTargetX = 900;
@@ -1254,4 +1306,18 @@ test('une espèce sol + eau retombe normalement en fin de nage (non-régression)
   const snapshot = critter.tick(1 / 60, {}, { worldBounds: monitor });
 
   assert.equal(snapshot.state, State.FALL);
+});
+
+test("fermer la fenêtre de départ pendant un vol ne fait pas tomber l'animal", () => {
+  const win = { id: 'w1', x: 200, y: 200, width: 300, height: 100 };
+  const withWin = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const without = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.5), flySpeed: 50 }, { x: 300, y: 200 });
+  critter.currentSurface = withWin.segments.find((s) => s.type === 'shelf');
+  critter._startRoam(State.FLY);
+
+  critter.tick(1 / 60, withWin, { worldBounds: monitor });
+  critter.tick(1 / 60, without, { worldBounds: monitor });
+
+  assert.equal(critter.state, State.FLY);
 });

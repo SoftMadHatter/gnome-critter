@@ -114,6 +114,15 @@ Le sprite est dessiné face à droite par défaut ; quand `facing === -1`, la
 couche de rendu retourne l'image horizontalement plutôt que de dupliquer les
 frames.
 
+## Vol
+
+Une espèce qui sait marcher au sol et voler (oiseau, pack démo) choisit dès
+le décollage un sol ou un rebord de fenêtre où se poser, y vole en ligne
+droite et s'y pose : elle ne retombe jamais en chute libre. Elle ne change de
+cible que très rarement (`flyRetargetChance`, probabilité par seconde) ou si
+sa surface cible disparaît ou bouge. `flyDuration` ne s'applique donc qu'aux
+espèces purement aériennes (voir ci-dessous).
+
 ## Espèces sans sol
 
 Une espèce dont `supportedSurfaces` ne contient pas `"ground"` mais

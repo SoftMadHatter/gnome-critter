@@ -99,6 +99,7 @@ const DEFAULT_CONFIG = {
   flyDuration: [4, 8],
   swimWeight: 8,
   swimDuration: [4, 8],
+  flyRetargetChance: 0.01, // probabilité PAR SECONDE de changer de cible d'atterrissage en plein vol (très rare)
   roamRetargetDuration: [1, 3], // cadence de reciblage pendant une session FLY/SWIM
   swimWaveFrequency: 4, // rad/s, cadence du battement de nage
   swimWaveAmplitude: 0.6, // fraction de la composante perpendiculaire à la trajectoire directe (< 1 : reste orienté vers la cible)
@@ -310,7 +311,7 @@ export class Critter {
         this._tickSwim(dt, options);
         break;
       case State.FLY:
-        this._tickFly(dt, options);
+        this._tickFly(dt, surfaces, options);
         break;
       case State.FOLLOW:
         this._tickFollow(dt, surfaces, options);
@@ -935,6 +936,11 @@ export class Critter {
     const duration = state === State.SWIM ? this.config.swimDuration : this.config.flyDuration;
     this.stateTimer = randRange(duration, this.config.random);
     this._roamTimer = 0; // force un premier ciblage dès le premier tick
+    this._flyTarget = null; // cible d'atterrissage, choisie au premier tick de vol
+    // En vol on n'est plus attaché à la surface de départ : si sa fenêtre se
+    // ferme, tick() ne doit pas nous faire tomber (cf. _resyncCurrentSurface).
+    this._flyOriginId = this.currentSurface?.surfaceId;
+    this.currentSurface = null;
   }
 
   _tickRoam(dt, options, speed, yRangeFactors, wavy = false) {
@@ -985,8 +991,76 @@ export class Critter {
     this.y += dirY * speed * dt;
   }
 
-  _tickFly(dt, options) {
-    this._tickRoam(dt, options, this.config.flySpeed, [0, 0.5], false); // moitié haute, ligne directe
+  /**
+   * Vol d'une espèce qui sait marcher au sol : on choisit dès le décollage
+   * une surface où se poser (rebord de fenêtre ou sol), on y vole en ligne
+   * droite et on s'y pose, sans jamais retomber en chute libre. La cible ne
+   * change que très rarement (`flyRetargetChance`) ou si sa surface a
+   * disparu ou bougé. Une espèce purement aérienne n'a nulle part où se
+   * poser : elle garde le roaming libre de _tickRoam.
+   */
+  _tickFly(dt, surfaces, options) {
+    if (this._groundlessRoamState() === State.FLY) {
+      this._tickRoam(dt, options, this.config.flySpeed, [0, 0.5], false);
+      return;
+    }
+
+    let target = this._flyTarget;
+    if (target?.segment) {
+      const seg = target.segment;
+      const fresh = findSegmentById(surfaces.segments ?? [], seg.surfaceId, seg.type);
+      if (!fresh || fresh.y !== seg.y || fresh.x1 !== seg.x1 || fresh.x2 !== seg.x2) target = null;
+    }
+    if (target && this.config.random() < this.config.flyRetargetChance * dt) target = null;
+    if (!target) target = this._flyTarget = this._pickFlyTarget(surfaces, options);
+
+    const toX = target.x - this.x;
+    const toY = target.y - this.y;
+    const distance = Math.hypot(toX, toY);
+    const step = this.config.flySpeed * dt;
+    if (distance <= step + 1) {
+      this.x = target.x;
+      this.y = target.y;
+      this._flyTarget = null;
+      if (target.segment) {
+        this.currentSurface = target.segment;
+        this.vy = 0;
+        this._enterState(State.IDLE);
+        this.lastEvent = 'landed';
+      } else {
+        this._enterState(State.FALL); // aucune surface connue : le sol du monde
+      }
+      return;
+    }
+    this.facing = sign(toX) || this.facing;
+    this.x += (toX / distance) * step;
+    this.y += (toY / distance) * step;
+  }
+
+  /** Surface d'atterrissage (sol ou rebord, autre que celle qu'on quitte si
+   * possible) et point d'arrivée dessus ; à défaut, le bas du monde. */
+  _pickFlyTarget(surfaces, options) {
+    const landable = (surfaces.segments ?? []).filter(
+      (seg) => (seg.type === 'ground' || seg.type === 'shelf') && seg.x2 > seg.x1,
+    );
+    const others = landable.filter((seg) => seg.surfaceId !== (this._flyOriginId ?? this.currentSurface?.surfaceId));
+    const pool = others.length > 0 ? others : landable;
+
+    if (pool.length === 0) {
+      const bounds = options.worldBounds ?? { x: 0, y: 0, width: 1920, height: 1080 };
+      return {
+        segment: null,
+        x: randRange([bounds.x, bounds.x + bounds.width], this.config.random),
+        y: bounds.y + bounds.height,
+      };
+    }
+    const segment = pool[Math.min(pool.length - 1, Math.floor(this.config.random() * pool.length))];
+    const margin = Math.min(8, (segment.x2 - segment.x1) / 2);
+    return {
+      segment,
+      x: randRange([segment.x1 + margin, segment.x2 - margin], this.config.random),
+      y: segment.y,
+    };
   }
 
   _tickSwim(dt, options) {
