@@ -22,6 +22,28 @@ function pngSize(path) {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 
+/** États atteignables selon les locomotions du pack, plus un `trick_<nom>` par tour déclaré. */
+const ALWAYS = ['idle', 'fall', 'drag', 'hibernate', 'remind', 'gift', 'play', 'hunt', 'eat', 'seekFood'];
+const BY_LOCOMOTION = {
+  ground: ['walk', 'sleep', 'wash', 'follow', 'greet', 'seekFocus', 'seekNap', 'chase', 'flee', 'run', 'brushed', 'relieve'],
+  wall: ['climb', 'seekWall'],
+  ceiling: ['ceiling'],
+  air: ['fly', 'flyFast', 'dive'],
+  water: ['swim', 'swimFast'],
+};
+function requiredStates(meta) {
+  const states = [...ALWAYS];
+  for (const surface of meta.supportedSurfaces ?? []) states.push(...(BY_LOCOMOTION[surface] ?? []));
+  for (const trick of meta.tricks ?? []) states.push(`trick_${trick}`);
+  return [...new Set(states)];
+}
+
+/** Événements notables qui ont une réaction dédiée. */
+const REQUIRED_REACTIONS = [
+  'petted', 'tickled', 'annoyed', 'noticed', 'startled', 'greeted', 'purring', 'brushed', 'hatched', 'grew',
+  'awakened', 'ate', 'played', 'sick', 'accident', 'relieved', 'trickLearned', 'birthday', 'gift', 'reminded',
+];
+
 const packIds = readdirSync(PACKS_DIR).filter((id) =>
   existsSync(join(PACKS_DIR, id, 'pack.json')),
 );
@@ -100,4 +122,26 @@ for (const id of packIds) {
     assert.deepEqual(ignored, [], `noms ignorés : ${ignored.join(', ')}`);
     assert.ok(list.length >= 8, 'assez de noms pour plusieurs animaux');
   });
+
+  // Couverture : chaque état atteignable a sa propre feuille, chaque événement notable sa réaction.
+  // Le pack de démonstration reste volontairement minimal (il montre les repli).
+  if (id !== 'critter-demo') {
+    test(`pack "${id}" : un état atteignable = sa propre animation`, () => {
+      const required = requiredStates(meta);
+      const missing = required.filter((state) => !meta.animations?.[state]);
+      assert.deepEqual(missing, [], `états sans animation : ${missing.join(', ')}`);
+
+      const owners = new Map();
+      const files = [
+        ...required.map((state) => [state, meta.animations[state].file]),
+        ...REQUIRED_REACTIONS.map((name) => [`réaction ${name}`, meta.reactions?.[name]?.file]),
+      ];
+      const absentReactions = files.filter(([, file]) => !file).map(([name]) => name);
+      assert.deepEqual(absentReactions, [], `réactions absentes : ${absentReactions.join(', ')}`);
+      for (const [name, file] of files) {
+        if (owners.has(file)) assert.fail(`${name} partage sa feuille ${file} avec ${owners.get(file)}`);
+        owners.set(file, name);
+      }
+    });
+  }
 }

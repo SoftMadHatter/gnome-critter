@@ -202,6 +202,27 @@ de nage (ou de vol) elle en enchaîne une autre, et si elle tombe (spawn,
 fin de glisser) elle repart dans son roaming en touchant le sol. C'est le
 cas du poisson (`packs/fish`, `["water"]`).
 
+## Liste de contrôle des états et réactions
+
+Un pack complet donne à **chaque état atteignable sa propre feuille** (pas de
+feuille partagée) ; `tests/packs.test.js` le vérifie pour tous les packs sauf
+`critter-demo`, qui reste volontairement minimal pour montrer les repli.
+
+- **Toujours** : `idle`, `fall`, `drag`, `hibernate`, `remind`, `gift`, `play`,
+  `hunt`, `eat`, `seekFood`.
+- **Sol** (`ground`) : `walk`, `sleep`, `wash`, `follow`, `greet`, `seekFocus`,
+  `seekNap`, `chase`, `flee`, `run`, `brushed`, `relieve`.
+- **Mur** : `climb`, `seekWall` ; **plafond** : `ceiling` ; **air** : `fly`,
+  `flyFast`, `dive` ; **eau** : `swim`, `swimFast`.
+- **Tours** : un `trick_<nom>` par tour déclaré dans `tricks`.
+- **Réactions** : `petted`, `tickled`, `annoyed`, `noticed`, `startled`,
+  `greeted`, `purring`, `brushed`, `hatched`, `grew`, `awakened`, `ate`,
+  `played`, `sick`, `accident`, `relieved`, `trickLearned`, `birthday`, `gift`,
+  `reminded` (le son est facultatif).
+
+`scripts/gen_species_sprites.py` génère toutes ces feuilles pour chat, oiseau,
+insecte et poisson, à partir de recettes de poses par état.
+
 ## Packs fournis
 
 | Dossier | Espèce | Locomotions | Particularités |

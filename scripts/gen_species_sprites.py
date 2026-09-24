@@ -82,18 +82,37 @@ MARKS = {
     "z": ["XXXX", "..X.", ".X..", "XXXX"],
     "heart": [".X.X.", "XXXXX", "XXXXX", ".XXX.", "..X.."],
     "bubble": [".XX.", "X..X", "X..X", ".XX."],
+    "star": [".X.", "XXX", ".X."],
+    "note": ["..XX", "..X.", ".XX.", "XX.."],
+    "sweat": [".X.", "XXX", "XXX", ".X."],
+    "sick": [".XXX", "X...", ".XX.", "...X", "XXX."],
 }
 MARK_COLORS = {
     "!": c(230, 50, 50),
     "z": c(90, 110, 170),
     "heart": c(235, 70, 110),
     "bubble": c(150, 200, 240),
+    "star": c(250, 210, 60),
+    "note": c(120, 90, 200),
+    "sweat": c(110, 180, 240),
+    "sick": c(110, 190, 90),
 }
+CONFETTI = [(1, 1, c(240, 80, 90)), (4, 0, c(80, 180, 240)), (7, 2, c(250, 210, 60)), (2, 4, c(120, 200, 100)), (6, 5, c(200, 100, 220))]
 
 
 def mark(d, kind, x, y):
-    if kind:
+    if kind == "confetti":
+        for dx, dy, color in CONFETTI:
+            d.rectangle((x + dx, y + dy, x + dx + 1, y + dy + 1), fill=color)
+    elif kind:
         px_pattern(d, MARKS[kind], x, y, MARK_COLORS[kind])
+
+
+def carry_item(d, x, y):
+    """Petit cadeau tenu dans la gueule ou le bec."""
+    d.rectangle((x, y, x + 3, y + 3), fill=c(245, 200, 60))
+    d.rectangle((x + 1, y + 1, x + 2, y + 2), fill=c(250, 235, 150))
+    d.point((x + 3, y), fill=c(230, 70, 90))
 
 
 def eye(d, x, y, kind):
@@ -117,7 +136,7 @@ def eye(d, x, y, kind):
 def pose(**kw):
     base = dict(
         bob=0, tail=0, phase=None, stride=3, lift=2, eyes="open", mark=None,
-        squash=0, rot=0, ears="up", kind=None, wing="folded", fin=0, mouth=False, pivot=None, head=0,
+        squash=0, rot=0, ears="up", kind=None, wing="folded", fin=0, mouth=False, pivot=None, head=0, carry=False, blanket=False,
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -153,10 +172,11 @@ def common_sheets():
         "idle": [pose(bob=b, tail=t, eyes=e) for b, t, e in
                  [(0, -1, "open"), (0, 0, "open"), (1, 1, "open"), (0, 0, "blink")]],
         "walk": walk_poses(6),
-        "chase": walk_poses(6, stride=3, run=True),
+        "run": walk_poses(6, stride=3, run=True),
         "flee": [pose(**{**p.__dict__, "eyes": "wide", "tail": 2, "mark": "!" if i == 0 else None})
                  for i, p in enumerate(walk_poses(6, stride=3, run=True))],
         "greet": [pose(bob=b, tail=t, eyes="happy") for b, t in [(0, 2), (-1, 3), (0, 2), (-1, 1)]],
+        "react_greeted": [pose(bob=b, tail=t, eyes="happy", mark="heart" if i % 2 == 0 else None) for i, (b, t) in enumerate([(0, 2), (-1, 3), (0, 2), (-1, 1)])],
         "play": [pose(bob=-(i % 3), phase=i, stride=4, lift=3, eyes="happy" if i % 2 else "open", mouth=True, tail=[0, 1, 0, -1, 0, 1][i], head=2)
                  for i in range(6)],
         "react_petted": [pose(eyes="happy", bob=1, mark="heart"), pose(eyes="happy", bob=0, mark="heart", tail=2)],
@@ -166,6 +186,46 @@ def common_sheets():
         "react_startled": [pose(eyes="wide", bob=-4, kind="jump", ears="up", mark="!", tail=2),
                            pose(eyes="wide", bob=-2, kind="jump", ears="up", tail=2)],
         "react_noticed": [pose(eyes="wide", ears="up"), pose(eyes="open", ears="up", tail=1)],
+    }
+
+
+def legged(stride=3, hop=0):
+    """États d'un animal à pattes (chat, insecte, oiseau au sol) : chacun a sa démarche et son attitude."""
+    bob = lambda i: -(i % 2) * (1 + hop)  # noqa: E731
+    tails = [0, 1, 0, -1, 0, 1]
+    return {
+        "drag": [pose(bob=-4, tail=t, eyes="wide", mouth=True) for t in (-2, 2)],
+        "follow": [pose(bob=bob(i), phase=i, stride=stride, tail=2, head=-2, eyes="wide" if i % 3 == 0 else "open") for i in range(6)],
+        "seekWall": [pose(bob=bob(i), phase=i, stride=max(1, stride - 1), tail=1, head=-3) for i in range(6)],
+        "seekFocus": [pose(bob=bob(i), phase=i, stride=stride, tail=tails[i], head=[0, 0, 1, 1, 0, 0][i]) for i in range(6)],
+        "seekNap": [pose(bob=1, phase=i, stride=max(1, stride - 2), lift=1, tail=-1, head=1, eyes="closed" if i % 3 == 2 else "blink") for i in range(6)],
+        "seekFood": [pose(bob=bob(i), phase=i, stride=max(1, stride - 1), head=3, mouth=i % 2 == 1) for i in range(6)],
+        "chase": [pose(**{**p.__dict__, "eyes": "angry", "mouth": True}) for p in walk_poses(6, stride, run=True)],
+        "hunt": [pose(bob=2, squash=2, phase=i, stride=2, lift=1, ears="back", tail=-1, eyes="wide", head=1) for i in range(6)],
+        "remind": [pose(bob=-(i % 2) * 3, kind="jump", eyes="wide", mark="!", tail=[1, 2, 1, 0][i]) for i in range(4)],
+        "gift": [pose(bob=bob(i), phase=i, stride=max(1, stride - 1), tail=2, head=-1, carry=True, eyes="happy") for i in range(6)],
+        "brushed": [pose(rot=r, pivot=28, eyes="happy", squash=1, mark="heart" if i % 2 == 0 else None) for i, r in enumerate((0, -5, 0, 5))],
+        "hibernate": [pose(kind="sleep", bob=1, blanket=True, mark=m, eyes="closed") for m in (None, "z")],
+    }
+
+
+def common_reactions():
+    """Réactions aux événements : chacune a sa feuille (mêmes poses pour toutes les espèces)."""
+    return {
+        "react_purr": [pose(eyes="closed", bob=b, mark=m, squash=1) for b, m in ((0, "note"), (1, None), (0, "heart"), (1, None))],
+        "react_brushed": [pose(eyes="happy", rot=r, pivot=28, mark="heart") for r in (-4, 0, 4, 0)],
+        "react_grew": [pose(eyes="happy", bob=b, mark=m, squash=q) for b, m, q in ((-2, "star", 0), (0, None, 1), (-3, "star", 0), (0, None, 1))],
+        "react_awakened": [pose(eyes="blink", ears="back", squash=1), pose(eyes="closed", mouth=True, bob=-1), pose(eyes="open", bob=0), pose(eyes="open", mouth=True, bob=-1)],
+        "react_hatched": [pose(eyes="wide", bob=-3, mark="confetti"), pose(eyes="happy", bob=-1, mark="confetti"), pose(eyes="happy", bob=-2, mark="star"), pose(eyes="open")],
+        "react_ate": [pose(eyes="happy", head=h, mouth=m) for h, m in ((3, True), (4, False), (3, True), (0, False))],
+        "react_played": [pose(eyes="happy", bob=-2, mark="star", kind="jump"), pose(eyes="happy", bob=0, mouth=True)],
+        "react_sick": [pose(eyes="closed", rot=r, mark="sick", ears="back", squash=1) for r in (-3, 3)],
+        "react_accident": [pose(eyes="closed", ears="back", mark="sweat", tail=-2, squash=1), pose(eyes="wide", ears="back", mark="sweat", tail=-2)],
+        "react_relieved": [pose(eyes="happy", squash=1), pose(eyes="closed", bob=-1)],
+        "react_trick": [pose(eyes="happy", bob=-3, mark="star", kind="jump"), pose(eyes="happy", bob=-1, mark="star"), pose(eyes="happy", bob=-3, mark="heart", kind="jump"), pose(eyes="happy")],
+        "react_birthday": [pose(eyes="happy", bob=-2, mark="confetti", kind="jump"), pose(eyes="happy", mark="confetti")],
+        "react_gift": [pose(eyes="happy", carry=True, mark="heart", bob=-1), pose(eyes="happy", carry=True)],
+        "react_reminded": [pose(eyes="wide", mark="!", bob=-3, kind="jump"), pose(eyes="open", mark="!")],
     }
 
 
@@ -215,6 +275,8 @@ def draw_cat(img, d, p):
     for x in (9, 13, 17):
         d.line((x, 14 + b + sq, x + 1, 17 + b + sq), fill=CAT_DARK)
     cat_head(d, 18, 6 + b + p.head, p)
+    if p.carry:
+        carry_item(d, 29, 14 + b + p.head)
     mark(d, p.mark, 26, 0)
 
 
@@ -261,6 +323,8 @@ def draw_cat_climb(img, d, p):
 
 def cat_sheets():
     s = common_sheets()
+    s.update(legged(stride=3))
+    s.update(common_reactions())
     s["fall"] = [pose(bob=-1, tail=t, eyes="wide", kind="jump") for t in (2, -2)]
     s["eat"] = [pose(head=h, mouth=m, tail=t) for h, m, t in [(5, False, 0), (6, True, 1), (5, False, 0), (6, True, -1)]]
     s["relieve"] = [pose(bob=2, squash=2, eyes=e) for e in ("closed", "open")]
@@ -301,6 +365,8 @@ def draw_bug(img, d, p):
     h = p.head
     blob(d, (22, 16 + b + h, 30, 25 + b), c(84, 96, 74), c(58, 68, 52), c(120, 136, 104))
     eye(d, 26, 19 + b + h, "open" if p.eyes == "blink" else p.eyes)
+    if p.carry:
+        carry_item(d, 28, 22 + b + h)
     aw = -1 if p.tail < 0 else p.tail
     d.line((27, 16 + b, 29, 11 + b - aw), fill=BUG_LEG)
     d.line((25, 16 + b, 26, 11 + b + aw), fill=BUG_LEG)
@@ -322,14 +388,19 @@ def draw_bug_climb(img, d, p):
 
 def bug_sheets():
     s = common_sheets()
+    s.update(legged(stride=2))
+    s.update(common_reactions())
     s["idle"] = [pose(tail=t, eyes=e) for t, e in [(0, "open"), (1, "open"), (0, "blink"), (-1, "open")]]
     s["walk"] = [pose(bob=-(i % 2), phase=i, tail=[0, 1, 0, -1, 0, 1][i]) for i in range(6)]
-    s.pop("chase")
+    s["run"] = [pose(bob=-(i % 2), phase=i, stride=3, tail=[0, 1, 0, -1, 0, 1][i]) for i in range(6)]
     s["flee"] = [pose(bob=-(i % 2), phase=i, eyes="wide", tail=2, mark="!" if i == 0 else None) for i in range(6)]
     s["fall"] = [pose(bob=0, kind="back", phase=i, tail=i) for i in range(2)]
     s["climb"] = [pose(kind="climb", phase=i, bob=-(i % 2)) for i in range(6)]
     s["eat"] = [pose(head=h, tail=t) for h, t in [(2, 0), (0, 1), (2, 0), (0, -1)]]
     s["relieve"] = [pose(bob=2, eyes=e) for e in ("closed", "open")]
+    s["sleep"] = [pose(bob=3, squash=3, eyes="closed"), pose(bob=3, squash=3, eyes="closed", mark="z")]
+    s["wash"] = [pose(bob=1, head=2, tail=t, eyes="closed") for t in (2, -2, 2, -2)]
+    s["hibernate"] = [pose(bob=3, squash=3, eyes="closed", blanket=True, mark=m) for m in (None, "z")]
     s["trick_roll"] = [pose(rot=-i * 60, pivot=18, eyes="happy") for i in range(6)]
     return s
 
@@ -356,23 +427,34 @@ def draw_fish(img, d, p):
     d.point((26, 19 + b), fill=FISH_DARK)  # bouche
     kind = "wide" if p.eyes == "wide" else p.eyes
     eye(d, 23, 14 + b, kind)
+    if p.mouth:
+        d.rectangle((26, 17 + b, 28, 20 + b), fill=FISH_DARK)  # bouche ouverte
+    if p.carry:
+        carry_item(d, 28, 18 + b)
     mark(d, p.mark, 26, 1)
 
 
 def fish_sheets():
     s = common_sheets()
-    for k in ("walk", "chase", "play"):
+    for k in ("walk", "run", "play", "flee", "greet", "react_greeted"):
         s.pop(k)
+    s.update(common_reactions())
+    s["react_greeted"] = [pose(tail=t, eyes="happy", mark=m) for t, m in [(-1, "heart"), (1, None), (-1, "heart"), (1, None)]]
     s["idle"] = [pose(bob=b, tail=t, eyes=e, mark=m) for b, t, e, m in
                  [(0, 0, "open", None), (1, 1, "open", "bubble"), (1, 0, "open", None), (0, -1, "blink", None)]]
     s["swim"] = [pose(tail=t, bob=b, fin=f) for t, b, f in
                  [(-1, 0, 0), (0, 0, 1), (1, 1, 0), (1, 1, 1), (0, 0, 0), (-1, 0, 1)]]
-    s["flee"] = [pose(tail=t * 2 // 1 if abs(t) < 2 else t, bob=0, eyes="wide", fin=1, mark="!" if i == 0 else None)
-                 for i, t in enumerate([-1, 1, -1, 1, -1, 1])]
-    s["greet"] = [pose(tail=t, eyes="happy", mark=m) for t, m in [(-1, "bubble"), (1, None), (-1, None), (1, "bubble")]]
     s["swimFast"] = [pose(tail=t, fin=f) for t, f in [(-2, 0), (0, 1), (2, 0), (0, 1), (-2, 0), (0, 1)]]
     s["trick_flip"] = [pose(tail=(-1) ** i, rot=-i * 60, pivot=16, eyes="happy") for i in range(6)]
     s["fall"] = [pose(tail=t, rot=r, eyes="wide") for t, r in [(-1, -14), (1, 14)]]
+    s["drag"] = [pose(tail=t, rot=r, eyes="wide", mouth=True) for t, r in [(-2, -28), (2, 28)]]
+    s["seekFood"] = [pose(tail=t, rot=-12, fin=f) for t, f in [(-1, 0), (0, 1), (1, 0), (0, 1)]]
+    s["eat"] = [pose(tail=t, mouth=m, mark="bubble" if m else None) for t, m in [(0, True), (1, False), (0, True), (-1, False)]]
+    s["hunt"] = [pose(tail=t * 2, fin=1, eyes="wide", rot=-8) for t in (-1, 1, -1, 1)]
+    s["play"] = [pose(tail=t, rot=r, eyes="happy", mark=m) for t, r, m in [(-1, -18, "star"), (1, 18, None), (-1, -18, None), (1, 18, "star")]]
+    s["remind"] = [pose(bob=-(i % 2) * 3, eyes="wide", mark="!", tail=[1, 2, 1, 0][i]) for i in range(4)]
+    s["gift"] = [pose(tail=t, fin=f, carry=True, eyes="happy") for t, f in [(-1, 0), (0, 1), (1, 0), (0, 1)]]
+    s["hibernate"] = [pose(rot=-80, pivot=16, eyes="closed", mark=m) for m in (None, "z")]
     return s
 
 
@@ -425,17 +507,23 @@ def draw_bird(img, d, p):
     if p.ears == "back" or p.eyes == "wide":  # huppe dressée
         d.polygon([(hx + 3, hy - 3), (hx + 1, hy - 8), (hx + 6, hy - 4)], fill=BIRD_DARK)
     bird_wing(d, b, p.wing)
+    if p.carry:
+        carry_item(d, hx + 13, hy + 3)
     mark(d, p.mark, 24, 0)
 
 
 def bird_sheets():
     s = common_sheets()
-    for k in ("chase",):
-        s.pop(k)
+    s.update(legged(stride=2, hop=1))
+    s.pop("seekWall")  # l'oiseau ne grimpe pas
+    s.update(common_reactions())
     s["walk"] = [pose(bob=[0, -2, 0, -1, 0, -2][i], phase=i, stride=2, tail=[0, 1, 0, -1, 0, 1][i]) for i in range(6)]
+    s["run"] = [pose(bob=[0, -3, 0, -2, 0, -3][i], phase=i, stride=3, lift=3, tail=[0, 1, 0, -1, 0, 1][i]) for i in range(6)]
     s["fall"] = [pose(bob=0, eyes="wide", kind="fly", wing=w, tail=1) for w in ("up", "mid")]
     s["fly"] = [pose(bob=b, kind="fly", wing=w, tail=1) for b, w in
                 [(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")]]
+    s["flyFast"] = [pose(bob=b, kind="fly", wing=w, tail=2, rot=-6, pivot=18, eyes="wide")
+                    for b, w in [(0, "up"), (1, "mid"), (1, "down"), (0, "mid")]]
     s["flee"] = [pose(bob=b, kind="flee", wing=w, tail=2, eyes="wide", mark="!" if i == 0 else None)
                  for i, (b, w) in enumerate([(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")])]
     s["eat"] = [pose(head=h, tail=t) for h, t in [(7, 0), (3, 1), (7, 0), (3, -1)]]
@@ -444,6 +532,7 @@ def bird_sheets():
     s["dive"] = [pose(kind="fly", wing="folded", rot=-55, pivot=16, eyes="wide", tail=b) for b in (1, 2)]
     s["sleep"] = [pose(kind="sleep", bob=1, eyes="closed"), pose(kind="sleep", bob=1, eyes="closed", mark="z")]
     s["wash"] = [pose(kind="preen", bob=b, eyes="closed") for b in (0, 1, 0, 1)]
+    s["hibernate"] = [pose(kind="sleep", bob=2, eyes="closed", blanket=True, mark=m) for m in (None, "z")]
     s["react_startled"] = [pose(eyes="wide", bob=-4, kind="fly", wing=w, mark=m) for w, m in (("up", "!"), ("mid", None))]
     s["react_tickled"] = [pose(eyes="happy", kind="fly", wing=w, rot=r) for w, r in
                           (("up", -6), ("mid", 6), ("up", -6), ("mid", 6))]
@@ -452,66 +541,76 @@ def bird_sheets():
 
 # --- assemblage ------------------------------------------------------------------
 
+# Durée d'une frame (secondes) par état ; une feuille par état, du même nom.
+DURATIONS = {
+    "idle": 0.5, "walk": 0.1, "fall": 0.12, "drag": 0.12, "sleep": 0.8, "wash": 0.25, "climb": 0.12,
+    "ceiling": 0.1, "follow": 0.09, "greet": 0.2, "seekWall": 0.1, "seekFocus": 0.09, "seekNap": 0.14,
+    "chase": 0.06, "flee": 0.06, "run": 0.06, "seekFood": 0.1, "eat": 0.16, "play": 0.09, "brushed": 0.35,
+    "remind": 0.12, "gift": 0.1, "hunt": 0.08, "relieve": 0.35, "hibernate": 0.9, "fly": 0.07, "flyFast": 0.045,
+    "dive": 0.1, "swim": 0.12, "swimFast": 0.07, "trick_sit": 0.3, "trick_roll": 0.1, "trick_flip": 0.1,
+}
+
+GROUND_STATES = [
+    "idle", "walk", "fall", "drag", "sleep", "wash", "follow", "greet", "seekFocus", "seekNap", "chase", "flee",
+    "run", "seekFood", "eat", "play", "brushed", "remind", "gift", "hunt", "relieve", "hibernate",
+]
+
+
+def make_states(names):
+    """état -> (feuille du même nom, durée de frame)."""
+    return {name: (name, DURATIONS[name]) for name in names}
+
+
 SPECIES = {
     "cat": dict(
         sheets=cat_sheets, out=CAT_OUT,
         draw=lambda img, d, p: {"sleep": draw_cat_sleep, "wash": draw_cat_wash, "climb": draw_cat_climb}.get(p.kind, draw_cat)(img, d, p),
         flip={"ceiling": "walk"},
-        states={
-            "idle": ("idle", 0.5), "walk": ("walk", 0.1), "fall": ("fall", 0.12), "drag": ("fall", 0.12),
-            "sleep": ("sleep", 0.8), "wash": ("wash", 0.25), "climb": ("climb", 0.12), "ceiling": ("ceiling", 0.1),
-            "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekWall": ("walk", 0.09),
-            "seekFocus": ("walk", 0.08), "seekNap": ("walk", 0.1), "chase": ("chase", 0.07), "flee": ("flee", 0.06),
-            "run": ("chase", 0.06), "hunt": ("chase", 0.06), "relieve": ("relieve", 0.35), "eat": ("eat", 0.18), "play": ("play", 0.09),
-            "trick_sit": ("trick_sit", 0.3), "trick_roll": ("trick_roll", 0.1),
-        },
+        states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_sit", "trick_roll"]),
     ),
     "bug": dict(
         sheets=bug_sheets, out=c(20, 34, 22),
         draw=lambda img, d, p: (draw_bug_climb if p.kind == "climb" else draw_bug)(img, d, p),
         flip={"ceiling": "walk"},
-        states={
-            "idle": ("idle", 0.4), "walk": ("walk", 0.07), "fall": ("fall", 0.1), "drag": ("fall", 0.1),
-            "climb": ("climb", 0.08), "ceiling": ("ceiling", 0.07), "follow": ("walk", 0.06),
-            "greet": ("greet", 0.15), "seekWall": ("walk", 0.06), "seekFocus": ("walk", 0.06),
-            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04), "hunt": ("walk", 0.05), "relieve": ("relieve", 0.35), "eat": ("eat", 0.14), "play": ("play", 0.07), "trick_roll": ("trick_roll", 0.1),
-        },
+        states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_roll"]),
     ),
     "fish": dict(
         sheets=fish_sheets, out=c(96, 40, 8),
         draw=draw_fish, flip={},
-        states={
-            "idle": ("idle", 0.4), "swim": ("swim", 0.12), "fall": ("fall", 0.12), "drag": ("fall", 0.12),
-            "greet": ("greet", 0.2), "flee": ("flee", 0.07), "swimFast": ("swimFast", 0.07), "play": ("swimFast", 0.07), "hunt": ("swimFast", 0.07), "trick_flip": ("trick_flip", 0.1),
-        },
+        states=make_states([
+            "idle", "fall", "drag", "swim", "swimFast", "seekFood", "eat", "play", "hunt", "remind", "gift",
+            "hibernate", "trick_flip",
+        ]),
     ),
     "bird": dict(
         sheets=bird_sheets, out=c(16, 30, 64),
         draw=draw_bird, flip={},
-        states={
-            "idle": ("idle", 0.5), "walk": ("walk", 0.1), "fall": ("fall", 0.1), "drag": ("fall", 0.1),
-            "fly": ("fly", 0.07), "sleep": ("sleep", 0.8), "wash": ("wash", 0.22),
-            "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekFocus": ("walk", 0.09),
-            "seekNap": ("walk", 0.1), "chase": ("walk", 0.06), "flee": ("flee", 0.06),
-            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1), "eat": ("eat", 0.15), "hunt": ("walk", 0.06), "relieve": ("relieve", 0.35), "play": ("play", 0.09), "trick_flip": ("trick_flip", 0.1),
-        },
+        states=make_states(GROUND_STATES + ["fly", "flyFast", "dive", "trick_flip"]),
     ),
 }
 
-# réaction -> (feuille, durée d'une frame, son) ; purring et brushed réutilisent les sons de petted.
+# réaction -> (feuille, durée d'une frame, son) ; sans son quand l'événement n'en a pas.
 REACTIONS = {
     "petted": ("react_petted", 0.25, "petted"), "tickled": ("react_tickled", 0.12, "tickled"),
     "annoyed": ("react_annoyed", 0.3, "annoyed"), "noticed": ("react_noticed", 0.25, "noticed"),
-    "startled": ("react_startled", 0.2, "startled"), "greeted": ("greet", 0.15, "greeted"),
-    "purring": ("react_petted", 0.4, "petted"), "brushed": ("react_petted", 0.35, "petted"),
-    "hatched": ("react_startled", 0.2, "startled"), "grew": ("react_tickled", 0.12, "tickled"),
-    "awakened": ("react_noticed", 0.25, "noticed"),
+    "startled": ("react_startled", 0.2, "startled"), "greeted": ("react_greeted", 0.15, "greeted"),
+    "purring": ("react_purr", 0.4, "petted"), "brushed": ("react_brushed", 0.35, "petted"),
+    "hatched": ("react_hatched", 0.2, "startled"), "grew": ("react_grew", 0.15, "tickled"),
+    "awakened": ("react_awakened", 0.25, "noticed"), "ate": ("react_ate", 0.15, None),
+    "played": ("react_played", 0.15, "greeted"), "sick": ("react_sick", 0.3, "annoyed"),
+    "accident": ("react_accident", 0.3, "startled"), "relieved": ("react_relieved", 0.3, None),
+    "trickLearned": ("react_trick", 0.15, "tickled"), "birthday": ("react_birthday", 0.2, "greeted"),
+    "gift": ("react_gift", 0.2, "greeted"), "reminded": ("react_reminded", 0.2, "noticed"),
 }
 
 
 def render(spec, p):
     img, d = new_canvas()
     spec["draw"](img, d, p)
+    if p.blanket:  # hibernation : une couverture sur le bas du corps
+        d.rectangle((3, 21, 28, 30), fill=c(100, 130, 200))
+        for x in range(4, 28, 4):
+            d.line((x, 21, x, 30), fill=c(70, 100, 170))
     if p.rot:
         img = img.rotate(p.rot, resample=Image.NEAREST, center=(G / 2, G - 2 if p.pivot is None else p.pivot))
     outline(img, spec["out"])
@@ -565,8 +664,9 @@ def write_species(name):
         used.add(sheet)
     reactions = {}
     for react, (sheet, duration, sound) in REACTIONS.items():
-        reactions[react] = {"file": f"sprites/{sheet}.png", "frames": len(sheets[sheet]),
-                            "frameDuration": duration, "sound": f"sounds/{sound}.wav"}
+        reactions[react] = {"file": f"sprites/{sheet}.png", "frames": len(sheets[sheet]), "frameDuration": duration}
+        if sound:
+            reactions[react]["sound"] = f"sounds/{sound}.wav"
         used.add(sheet)
     meta["animations"] = animations
     meta["reactions"] = reactions

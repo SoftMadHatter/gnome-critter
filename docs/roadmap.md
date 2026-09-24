@@ -202,7 +202,7 @@ et revoir les menus quand il y a plusieurs créatures : menu de l'icône de
 barre (un bloc par créature, actions ciblées sur l'une d'elles), menu
 contextuel, affichage des noms. Voir `docs/creatures.md`.
 
-## 11. Sprites dédiés pour chaque état
+## 11. Sprites dédiés pour chaque état — ✅ fait
 
 Aujourd'hui beaucoup d'états réutilisent l'animation d'un autre (marche pour
 le suivi, la recherche de mur ou de nourriture ; sommeil pour le lavage ;
@@ -211,6 +211,10 @@ vol pour le piqué ; etc.). Donner une animation propre à chaque état de
 recherche de nourriture, escalade, plafond, poursuite...) et à chaque
 réaction, pour toutes les espèces, avec le même soin de dessin que la
 passe de l'étape 8.
+
+Livré : chat, oiseau, insecte et poisson ont une feuille propre pour chaque état
+atteignable et 20 réactions distinctes (générées par recettes de poses,
+vérifiées par `tests/packs.test.js`). Le pack de démonstration reste minimal.
 
 ## 12. Apparence propre à chaque stade de croissance
 
