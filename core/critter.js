@@ -299,13 +299,13 @@ export class Critter {
         this._tickFall(dt, surfaces, options);
         break;
       case State.WALK:
-        this._tickWalk(dt, surfaces);
+        this._tickWalk(dt);
         break;
       case State.CLIMB:
         this._tickClimb(dt, surfaces);
         break;
       case State.CEILING:
-        this._tickCeiling(dt, surfaces);
+        this._tickCeiling(dt);
         break;
       case State.SWIM:
         this._tickSwim(dt, options);
@@ -314,22 +314,22 @@ export class Critter {
         this._tickFly(dt, surfaces, options);
         break;
       case State.FOLLOW:
-        this._tickFollow(dt, surfaces, options);
+        this._tickFollow(dt, options);
         break;
       case State.GREET:
-        this._tickGreet(dt, surfaces, options);
+        this._tickGreet(dt, options);
         break;
       case State.SEEK_WALL:
         this._tickSeekWall(dt, surfaces);
         break;
       case State.SEEK_FOCUS:
-        this._tickSeekFocus(dt, surfaces, options);
+        this._tickSeekFocus(dt, options);
         break;
       case State.CHASE:
-        this._tickChase(dt, surfaces);
+        this._tickChase(dt);
         break;
       case State.FLEE:
-        this._tickFlee(dt, surfaces);
+        this._tickFlee(dt);
         break;
       case State.SEEK_NAP:
         this._tickSeekNap(dt, surfaces);
@@ -581,11 +581,11 @@ export class Critter {
         this._startRoam(State.SWIM);
         return;
       default:
-        this._startWalkOnCurrentSurface(surfaces);
+        this._startWalkOnCurrentSurface();
     }
   }
 
-  _tickFollow(dt, surfaces, options) {
+  _tickFollow(dt, options) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -601,7 +601,7 @@ export class Critter {
     this._chase(dt, options.pointer.x);
   }
 
-  _tickGreet(dt, surfaces, options) {
+  _tickGreet(dt, options) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -657,7 +657,7 @@ export class Critter {
    * recalculée par proximité à chaque tick : une vraie poursuite suit une
    * cible précise, pas "qui que ce soit de plus proche".
    */
-  _tickChase(dt, surfaces) {
+  _tickChase(dt) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -685,7 +685,7 @@ export class Critter {
     this._chase(dt, this._chaseTarget.x);
   }
 
-  _tickFlee(dt, surfaces) {
+  _tickFlee(dt) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -771,7 +771,7 @@ export class Critter {
     this._chase(dt, wall.x);
   }
 
-  _tickSeekFocus(dt, surfaces, options) {
+  _tickSeekFocus(dt, options) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -806,7 +806,7 @@ export class Critter {
     }
   }
 
-  _startWalkOnCurrentSurface(surfaces) {
+  _startWalkOnCurrentSurface() {
     const surface = this.currentSurface;
     if (!surface) {
       this._enterState(State.IDLE);
@@ -825,7 +825,7 @@ export class Critter {
     this.stateTimer = randRange(this.config.walkDuration, this.config.random);
   }
 
-  _tickWalk(dt, surfaces) {
+  _tickWalk(dt) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -886,7 +886,7 @@ export class Critter {
     }
   }
 
-  _tickCeiling(dt, surfaces) {
+  _tickCeiling(dt) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;

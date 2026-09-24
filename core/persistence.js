@@ -34,7 +34,7 @@ export function parseSavedState(text, { packId, bounds }) {
   } catch {
     return [];
   }
-  if (!data || data.version !== SAVE_VERSION || data.packId !== packId || !Array.isArray(data.critters)) {
+  if (data?.version !== SAVE_VERSION || data.packId !== packId || !Array.isArray(data.critters)) {
     return [];
   }
 
