@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Locomotion, behaviorOverrides } from '../core/critter.js';
+import { needsOverrides } from '../core/needs.js';
 
 const PACKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs');
 const LOCOMOTIONS = new Set(Object.values(Locomotion));
@@ -62,6 +63,11 @@ for (const id of packIds) {
 
   test(`pack "${id}" : section behavior entièrement reconnue`, () => {
     const { ignored } = behaviorOverrides(meta.behavior);
+    assert.deepEqual(ignored, [], `clés ignorées : ${ignored.join(', ')}`);
+  });
+
+  test(`pack "${id}" : section needs entièrement reconnue`, () => {
+    const { ignored } = needsOverrides(meta.needs);
     assert.deepEqual(ignored, [], `clés ignorées : ${ignored.join(', ')}`);
   });
 }

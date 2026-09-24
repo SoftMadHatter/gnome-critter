@@ -159,11 +159,11 @@ décision, les jauges modulent les poids), temps réel avec rattrapage
 plafonné, aucune mort (départ doux et réversible), extension limitée à
 l'affichage et aux capteurs, réglages d'espèce dans `pack.json`.
 
-### 10.1 Besoins et humeur
+### 10.1 Besoins et humeur — 🧪 à tester
 Jauges (faim, énergie, bonheur, propreté, ennui, santé, affection),
 difficulté et mode vacances, effets sur les poids de comportement,
 sauvegarde v2 avec migration, icône de barre avec les jauges, bulles de
-pensée.
+pensée. Voir `docs/needs.md`. « Nourrir » du menu est provisoire (10.2).
 
 ### 10.2 Nourrir et objets du bureau
 Framework d'objets (nourriture, gamelle, lit), états de recherche de

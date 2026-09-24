@@ -1,4 +1,5 @@
 import { clamp, sign } from './vec2.js';
+import { Needs, needMultiplier } from './needs.js';
 import {
   findSurfaceBelow,
   isOnSegment,
@@ -57,11 +58,23 @@ const INTERACTION_REACTIONS = {
   meetCritter: 'greeted', // posé sur LA CIBLE d'un GREET (voir _tickGreet) : arrive entre deux de ses propres ticks, donc via interact()/_pendingEvent comme les autres événements externes -- contrairement à l'initiateur, qui pose this.lastEvent directement puisque ça se passe DANS son propre tick.
 };
 
+/** États où l'animal se dépense (gain de stimulation, cf. Needs.advance). */
+const ACTIVE_STATES = new Set([
+  State.WALK, State.RUN, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
+  State.FLY, State.FLY_FAST, State.DIVE, State.FOLLOW, State.GREET, State.SEEK_WALL,
+  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE,
+]);
+
+/** Activités idle dont le poids suit la stimulation (l'animal s'ennuie : il bouge). */
+const ENERGETIC_ACTIVITIES = new Set(['run', 'fly', 'flyFast', 'swim', 'swimFast', 'climb']);
+
 /** Gestes qui réveillent un animal endormi. */
 const WAKING_GESTURES = new Set(['click', 'doubleClick', 'rightClick']);
 
 const DEFAULT_CONFIG = {
   speciesId: 'unknown',
+  needsRateScale: 1, // difficulté * (vacances ? 0 : 1), voir core/needs.js
+  needsRates: {}, // débits par heure propres à l'espèce (section `needs` du pack, filtrée par needsOverrides)
   walkSpeed: 40, // px/s
   climbSpeed: 30,
   swimSpeed: 25,
@@ -187,6 +200,7 @@ export class Critter {
    */
   constructor(config, initialPosition) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.needs = new Needs({ rates: this.config.needsRates, rateScale: this.config.needsRateScale });
     this.x = initialPosition.x;
     this.y = initialPosition.y;
     this.vx = 0;
@@ -228,16 +242,27 @@ export class Critter {
   /** Point d'extension de la persistance : tout ce qui doit survivre à un
    * redémarrage (le mode compagnon y ajoutera humeur, faim...) va dans `extra`. */
   serialize() {
-    return { x: Math.round(this.x), y: Math.round(this.y), facing: this.facing, extra: {} };
+    return {
+      x: Math.round(this.x),
+      y: Math.round(this.y),
+      facing: this.facing,
+      extra: { needs: this.needs.serialize() },
+    };
   }
 
   /** Repart en chute depuis la position sauvée : les surfaces ayant pu
    * changer, on se repose sur ce qui se trouve dessous. */
-  restore(saved) {
+  restore(saved, { elapsedSeconds = 0 } = {}) {
     this.x = saved.x;
     this.y = saved.y;
     this.facing = saved.facing;
+    this.needs.restore(saved.extra?.needs);
+    this.needs.catchUp(elapsedSeconds);
     this._enterState(State.FALL);
+  }
+
+  setNeedsRateScale(scale) {
+    this.needs.setRateScale(scale);
   }
 
   supports(locomotion) {
@@ -304,7 +329,12 @@ export class Critter {
   tick(dt, surfaces, options = {}) {
     this.lastEvent = this._pendingEvent;
     this._pendingEvent = null;
+    // L'événement venu de l'extérieur agit sur les jauges tout de suite : la
+    // logique du tick peut ensuite écraser lastEvent (ex. 'sleep').
+    const external = this.lastEvent;
+    if (external) this.needs.apply(external);
     this.stateTimer -= dt;
+    this.needs.advance(dt, { sleeping: this.state === State.SLEEP, active: ACTIVE_STATES.has(this.state) });
 
     // La fenêtre/le rebord sur lequel on s'est posé a pu être fermé,
     // déplacé ou redimensionné depuis le tick où `currentSurface` a été
@@ -374,6 +404,8 @@ export class Critter {
         this.stateTimer = randRange(this.config.idleDuration, this.config.random);
     }
 
+    if (this.lastEvent && this.lastEvent !== external) this.needs.apply(this.lastEvent);
+
     return this.snapshot();
   }
 
@@ -384,6 +416,8 @@ export class Critter {
       facing: this.facing,
       state: this.state,
       event: this.lastEvent,
+      urgentNeed: this.needs.urgent(),
+      mood: this.needs.mood,
     };
   }
 
@@ -476,6 +510,7 @@ export class Critter {
     if (this.stateTimer > 0) return;
 
     if (this.state === State.SLEEP || this.state === State.WASH) {
+      if (this.state === State.WASH) this.needs.apply('washed');
       this._enterState(State.IDLE);
       return;
     }
@@ -545,6 +580,20 @@ export class Critter {
       const distance = Math.abs(chaseInvitation.x - this.x);
       const proximity = clamp(1 - distance / this.config.fleeMaxDistance, 0.15, 1);
       candidates.push({ value: 'flee', weight: this.config.fleeWeight * proximity });
+    }
+
+    // Les besoins orientent le choix sans jamais le forcer : un poids
+    // multiplié reste un tirage.
+    const levels = this.needs.values;
+    const tired = levels.health < 30;
+    for (const c of candidates) {
+      if (c.value === 'sleep') c.weight *= needMultiplier(levels.energy, { boost: 6, satisfied: 0.3 });
+      else if (c.value === 'wash') c.weight *= needMultiplier(levels.cleanliness, { boost: 5, satisfied: 0.3 });
+      else if (c.value === 'follow') c.weight *= needMultiplier(levels.affection, { boost: 4, satisfied: 0.5 });
+      else if (ENERGETIC_ACTIVITIES.has(c.value)) {
+        c.weight *= needMultiplier(levels.stimulation, { boost: 3, satisfied: 0.6 });
+        if (tired) c.weight *= 0.3;
+      }
     }
 
     // Anti-répétition : uniquement sur les activités spéciales. "walk" est

@@ -15,6 +15,25 @@
       <default>true</default>
       <summary>Active les effets sonores des réactions</summary>
     </key>
+    <key name="difficulty" type="s">
+      <choices>
+        <choice value="relaxed"/>
+        <choice value="normal"/>
+        <choice value="strict"/>
+      </choices>
+      <default>'normal'</default>
+      <summary>Difficulté</summary>
+      <description>Vitesse à laquelle les besoins de l'animal baissent : détendu (x0,4), normal (x1) ou strict (x2).</description>
+    </key>
+    <key name="vacation-mode" type="b">
+      <default>false</default>
+      <summary>Mode vacances</summary>
+      <description>Fige tous les besoins des animaux.</description>
+    </key>
+    <key name="show-indicator" type="b">
+      <default>true</default>
+      <summary>Icône dans la barre supérieure</summary>
+    </key>
     <key name="saved-state" type="s">
       <default>''</default>
       <summary>État sauvegardé des animaux (interne)</summary>

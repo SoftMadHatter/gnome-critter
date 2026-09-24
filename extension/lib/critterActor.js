@@ -7,6 +7,7 @@ import Clutter from 'gi://Clutter';
 import Graphene from 'gi://Graphene';
 
 import { State } from '../core/critter.js';
+import { ThoughtBubble } from './thoughtBubble.js';
 
 const DRAG_BEGIN_THRESHOLD_PX = 4;
 
@@ -19,8 +20,9 @@ export class CritterActor {
    * @param {import('../../core/critter.js').Critter} critter
    * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
    * @param {Gio.Settings} settings
+   * @param {Record<string, St.ImageContent>} [bubbleIcons] icônes des bulles de pensée (aucune bulle si vide)
    */
-  constructor(critter, pack, settings) {
+  constructor(critter, pack, settings, bubbleIcons = {}) {
     this.critter = critter;
     this.pack = pack;
     this._settings = settings;
@@ -29,6 +31,7 @@ export class CritterActor {
     this._frameElapsed = 0;
     this._reaction = null; // {name, elapsed}
     this._grab = null;
+    this._bubble = Object.keys(bubbleIcons).length > 0 ? new ThoughtBubble(bubbleIcons) : null;
 
     this.actor = new Clutter.Actor({
       reactive: true,
@@ -123,6 +126,27 @@ export class CritterActor {
    * @param {{state: string, event: string|null}} snapshot
    */
   updateAnimation(dt, snapshot) {
+    this._updateSprite(dt, snapshot);
+    this._updateBubble(snapshot);
+  }
+
+  _updateBubble(snapshot) {
+    if (!this._bubble) return;
+    const size = this.pack.spriteSize;
+    const need = snapshot.state === State.DRAG ? null : snapshot.urgentNeed;
+    this._bubble.update(
+      need,
+      {
+        x: this.critter.x - size.width / 2,
+        y: snapshot.state === State.CEILING ? this.critter.y : this.critter.y - size.height,
+        width: size.width,
+        height: size.height,
+      },
+      this.actor.visible,
+    );
+  }
+
+  _updateSprite(dt, snapshot) {
     // La garde sur this._reaction?.name évite qu'un événement répété (ex.
     // 'noticed' au survol, qui peut se redéclencher souvent si le curseur
     // reste immobile pendant que le critter marche dessous) ne redémarre
@@ -193,6 +217,8 @@ export class CritterActor {
   }
 
   destroy() {
+    this._bubble?.destroy();
+    this._bubble = null;
     if (this._grab) {
       this._grab.dismiss();
       this._grab = null;

@@ -3,17 +3,22 @@
 // Le format est versionné et porte un objet `extra` par critter, réservé aux
 // futurs besoins (humeur, faim...) sans casser les sauvegardes existantes.
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
+// La version 1 (position seule, sans horodatage) reste lisible : pas de
+// rattrapage des besoins, `extra` vide.
+const READABLE_VERSIONS = new Set([1, 2]);
 
 /**
  * @param {string} packId
  * @param {{serialize: () => object}[]} critters
+ * @param {number} [nowMs] horloge murale, pour le rattrapage au prochain démarrage
  * @returns {string} JSON
  */
-export function serializeCritters(packId, critters) {
+export function serializeCritters(packId, critters, nowMs = Date.now()) {
   return JSON.stringify({
     version: SAVE_VERSION,
     packId,
+    savedAt: nowMs,
     critters: critters.map((c) => c.serialize()),
   });
 }
@@ -23,20 +28,23 @@ const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 /**
  * Lit une sauvegarde sans jamais lever d'exception.
  * @param {string} text
- * @param {{packId: string, bounds: {x:number,y:number,width:number,height:number}}} context
- * @returns {{x:number, y:number, facing:1|-1, extra:object}[]} vide si la
+ * @param {{packId: string, bounds: {x:number,y:number,width:number,height:number}, nowMs?: number}} context
+ * @returns {{x:number, y:number, facing:1|-1, extra:object, elapsedSeconds:number}[]} vide si la
  *   sauvegarde est absente, invalide, d'une autre version ou d'un autre pack
  */
-export function parseSavedState(text, { packId, bounds }) {
+export function parseSavedState(text, { packId, bounds, nowMs = Date.now() }) {
   let data;
   try {
     data = JSON.parse(text);
   } catch {
     return [];
   }
-  if (data?.version !== SAVE_VERSION || data.packId !== packId || !Array.isArray(data.critters)) {
+  if (!READABLE_VERSIONS.has(data?.version) || data.packId !== packId || !Array.isArray(data.critters)) {
     return [];
   }
+
+  const elapsedSeconds =
+    Number.isFinite(data.savedAt) && nowMs > data.savedAt ? (nowMs - data.savedAt) / 1000 : 0;
 
   const result = [];
   for (const raw of data.critters) {
@@ -46,6 +54,7 @@ export function parseSavedState(text, { packId, bounds }) {
       y: clamp(raw.y, bounds.y, bounds.y + bounds.height),
       facing: raw.facing === -1 ? -1 : 1,
       extra: raw.extra && typeof raw.extra === 'object' && !Array.isArray(raw.extra) ? raw.extra : {},
+      elapsedSeconds,
     });
   }
   return result;

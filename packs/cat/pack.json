@@ -11,6 +11,7 @@
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "walk": 45, "climb": 35 },
   "behavior": { "sleepWeight": 15, "sleepDuration": [120, 900], "washWeight": 15, "followWeight": 20, "climbSeekWeight": 8 },
+  "needs": { "decayPerHour": { "energy": 3, "cleanliness": 2 } },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },

@@ -1532,3 +1532,94 @@ test('une fenêtre déplacée sous les pieds réveille (chute)', () => {
   c.tick(1 / 60, moved, { worldBounds: monitor });
   assert.notEqual(c.state, State.SLEEP);
 });
+
+// --- Besoins ----------------------------------------------------------------
+
+function idleOnGround(config) {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    { random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 10, washWeight: 10, followWeight: 0, runWeight: 0, ...config },
+    { x: 100, y: monitor.height },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  return { c, surfaces };
+}
+
+test('énergie basse : le sommeil est choisi ; énergie pleine : il devient très improbable', () => {
+  const tired = idleOnGround({});
+  tired.c.needs.values.energy = 5;
+  tired.c.needs.values.cleanliness = 95; // lavage écarté
+  assert.equal(tired.c.tick(1 / 60, tired.surfaces, { worldBounds: monitor }).state, State.SLEEP);
+
+  const rested = idleOnGround({});
+  rested.c.needs.values.energy = 100;
+  rested.c.needs.values.cleanliness = 40;
+  assert.equal(rested.c.tick(1 / 60, rested.surfaces, { worldBounds: monitor }).state, State.WASH);
+});
+
+test('propreté basse : le lavage est choisi', () => {
+  const dirty = idleOnGround({ random: fixedRandom(0.9) });
+  dirty.c.needs.values.cleanliness = 0;
+  dirty.c.needs.values.energy = 95;
+  assert.equal(dirty.c.tick(1 / 60, dirty.surfaces, { worldBounds: monitor }).state, State.WASH);
+});
+
+test("la fin d'un lavage remonte la propreté", () => {
+  const { c, surfaces } = idleOnGround({});
+  c.state = State.WASH;
+  c.stateTimer = 0.01;
+  c.needs.values.cleanliness = 20;
+  c.tick(1 / 60, surfaces, { worldBounds: monitor });
+  c.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.ok(c.needs.values.cleanliness >= 49);
+});
+
+test("dormir recharge l'énergie au fil des ticks", () => {
+  const { c, surfaces } = idleOnGround({ needsRateScale: 1 });
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  c.needs.values.energy = 10;
+  for (let i = 0; i < 100; i++) c.tick(60, surfaces, { worldBounds: monitor }); // 100 minutes
+  assert.ok(c.needs.values.energy > 60, `énergie ${c.needs.values.energy}`);
+});
+
+test("une caresse monte l'affection ; les vacances figent les jauges", () => {
+  const { c, surfaces } = idleOnGround({});
+  c.needs.values.affection = 40;
+  c.pet();
+  c.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.ok(c.needs.values.affection >= 47);
+
+  c.setNeedsRateScale(0);
+  const before = c.needs.values.satiety;
+  c.tick(3600, surfaces, { worldBounds: monitor });
+  assert.equal(c.needs.values.satiety, before);
+});
+
+test("snapshot expose le besoin urgent et l'humeur", () => {
+  const { c, surfaces } = idleOnGround({});
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  assert.equal(c.tick(1 / 60, surfaces, { worldBounds: monitor }).urgentNeed, null);
+  c.needs.values.satiety = 5;
+  const snap = c.tick(1 / 60, surfaces, { worldBounds: monitor });
+  assert.equal(snap.urgentNeed, 'satiety');
+  assert.ok(snap.mood > 0);
+});
+
+test('serialize/restore emportent les jauges, avec rattrapage hors ligne', () => {
+  const a = new Critter({}, { x: 10, y: 10 });
+  a.needs.values.satiety = 50;
+  const saved = a.serialize();
+  assert.equal(saved.extra.needs.satiety, 50);
+
+  const b = new Critter({}, { x: 0, y: 0 });
+  b.restore(saved, { elapsedSeconds: 2 * 3600 });
+  assert.ok(b.needs.values.satiety < 50 && b.needs.values.satiety > 40);
+
+  const vacation = new Critter({ needsRateScale: 0 }, { x: 0, y: 0 });
+  vacation.restore(saved, { elapsedSeconds: 2 * 3600 });
+  assert.equal(vacation.needs.values.satiety, 50);
+});

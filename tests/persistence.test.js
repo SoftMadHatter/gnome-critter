@@ -13,7 +13,11 @@ test('aller-retour sérialisation / lecture', () => {
   const text = serializeCritters('cat', [a, new Critter({}, { x: 800, y: 50 })]);
   const back = parseSavedState(text, ctx);
   assert.equal(back.length, 2);
-  assert.deepEqual(back[0], { x: 120, y: 300, facing: -1, extra: {} });
+  assert.deepEqual(
+    { x: back[0].x, y: back[0].y, facing: back[0].facing },
+    { x: 120, y: 300, facing: -1 },
+  );
+  assert.equal(back[0].extra.needs.satiety, 80);
   assert.equal(back[1].x, 800);
 });
 
@@ -60,4 +64,18 @@ test('restore() : position posée, chute puis atterrissage', () => {
   for (let i = 0; i < 200 && c.state === State.FALL; i++) c.tick(0.05, surfaces);
   assert.notEqual(c.state, State.FALL);
   assert.equal(c.y, 500);
+});
+
+test("la version 1 (position seule) reste lisible, sans rattrapage", () => {
+  const text = JSON.stringify({ version: 1, packId: 'cat', critters: [{ x: 10, y: 20, facing: 1 }] });
+  const [c] = parseSavedState(text, ctx);
+  assert.equal(c.x, 10);
+  assert.deepEqual(c.extra, {});
+  assert.equal(c.elapsedSeconds, 0);
+});
+
+test('version 2 : elapsedSeconds vient de savedAt, jamais négatif', () => {
+  const text = serializeCritters('cat', [new Critter({}, { x: 1, y: 1 })], 1_000_000);
+  assert.equal(parseSavedState(text, { ...ctx, nowMs: 1_000_000 + 90_000 })[0].elapsedSeconds, 90);
+  assert.equal(parseSavedState(text, { ...ctx, nowMs: 1_000_000 - 5_000 })[0].elapsedSeconds, 0);
 });

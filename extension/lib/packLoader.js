@@ -43,6 +43,15 @@ function pixbufToImage(pixbuf) {
 }
 
 /**
+ * Charge une image PNG seule (icônes d'interface, hors packs).
+ * @param {string} path chemin absolu
+ * @returns {St.ImageContent}
+ */
+export function loadImage(path) {
+  return pixbufToImage(GdkPixbuf.Pixbuf.new_from_file(path));
+}
+
+/**
  * Découpe un spritesheet (une ligne de frames carrées) en `count` images.
  * @param {Gio.File} baseDir
  * @param {string} relativePath
@@ -78,6 +87,7 @@ function loadFrames(baseDir, relativePath, count) {
  *   supportedSurfaces: Set<string>,
  *   speeds: object,
  *   behavior: object,
+ *   needs: object,
  *   animationFrames: Record<string, St.ImageContent[]>,
  *   animationTiming: Record<string, {frameDuration:number, loop:boolean}>,
  *   reactionFrames: Record<string, St.ImageContent[]>,
@@ -115,6 +125,7 @@ export function loadPack(packDirPath) {
     supportedSurfaces: new Set(meta.supportedSurfaces ?? ['ground']),
     speeds: meta.speeds ?? {},
     behavior: meta.behavior ?? {},
+    needs: meta.needs ?? {},
     animationFrames,
     animationTiming,
     reactionFrames,

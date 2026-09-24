@@ -69,6 +69,39 @@ export default class ScamperPreferences extends ExtensionPreferences {
     settings.bind('sounds-enabled', soundsRow, 'active', 0);
     group.add(soundsRow);
 
+    const difficulties = [
+      ['relaxed', 'Détendue'],
+      ['normal', 'Normale'],
+      ['strict', 'Stricte'],
+    ];
+    const difficultyRow = new Adw.ComboRow({
+      title: 'Difficulté',
+      subtitle: 'Vitesse à laquelle les besoins des animaux baissent.',
+      model: Gtk.StringList.new(difficulties.map(([, label]) => label)),
+    });
+    difficultyRow.selected = Math.max(
+      0,
+      difficulties.findIndex(([id]) => id === settings.get_string('difficulty')),
+    );
+    difficultyRow.connect('notify::selected', () => {
+      settings.set_string('difficulty', difficulties[difficultyRow.selected][0]);
+    });
+    group.add(difficultyRow);
+
+    const vacationRow = new Adw.SwitchRow({
+      title: 'Mode vacances',
+      subtitle: 'Fige tous les besoins des animaux.',
+    });
+    settings.bind('vacation-mode', vacationRow, 'active', 0);
+    group.add(vacationRow);
+
+    const indicatorRow = new Adw.SwitchRow({
+      title: 'Icône dans la barre supérieure',
+      subtitle: 'Humeur et jauges des animaux (effective à la réactivation de l\'extension).',
+    });
+    settings.bind('show-indicator', indicatorRow, 'active', 0);
+    group.add(indicatorRow);
+
     const noteRow = new Adw.ActionRow({
       title: 'Le changement d\'animal ou de nombre demande de désactiver/réactiver l\'extension.',
     });

@@ -106,6 +106,16 @@ packs/<species-id>/
 }
 ```
 
+## Besoins (`needs`)
+
+Section optionnelle pour régler la vitesse à laquelle chaque besoin baisse
+(`decayPerHour`, par jauge : `satiety`, `energy`, `cleanliness`,
+`stimulation`, `affection`). Voir `docs/needs.md`.
+
+```jsonc
+"needs": { "decayPerHour": { "energy": 3, "cleanliness": 2 } }
+```
+
 ## Règle du spritesheet
 
 Chaque fichier PNG référencé est une seule ligne de `frames` images carrées

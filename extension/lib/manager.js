@@ -13,21 +13,30 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // `scripts/build.sh --link`, qui reconstruit dist/<uuid>/ à chaque appel.
 import { Critter, Locomotion, behaviorOverrides } from '../core/critter.js';
 import { serializeCritters, parseSavedState } from '../core/persistence.js';
+import { needsOverrides } from '../core/needs.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
+import { loadBubbleIcons } from './thoughtBubble.js';
+import { addIndicator } from './panelIndicator.js';
 
 const SAVE_INTERVAL_S = 30;
+const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
 const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
 
 export class Manager {
   /**
    * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
    * @param {Gio.Settings} settings
+   * @param {{extensionPath: string, uuid: string}} extension
    */
-  constructor(pack, settings) {
+  constructor(pack, settings, { extensionPath, uuid }) {
     this.pack = pack;
     this.settings = settings;
+    this._extensionPath = extensionPath;
+    this._uuid = uuid;
+    this._indicator = null;
+    this._settingsIds = [];
     /** @type {{critter: Critter, actor: CritterActor}[]} */
     this._critters = [];
     this._timeoutId = null;
@@ -58,6 +67,12 @@ export class Manager {
       );
     }
 
+    const needs = needsOverrides(this.pack.needs);
+    if (needs.ignored.length > 0) {
+      console.warn(`Scamper: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
+    }
+    const bubbleIcons = loadBubbleIcons(GLib.build_filenamev([this._extensionPath, 'assets', 'bubbles']));
+
     const saved = parseSavedState(this.settings.get_string('saved-state'), {
       packId: this.pack.meta.id,
       bounds,
@@ -77,6 +92,8 @@ export class Manager {
           // En premier : les `speeds` et locomotions du pack, posés ensuite,
           // gardent la priorité sur d'éventuelles clés équivalentes.
           ...behavior.config,
+          needsRates: needs.rates,
+          needsRateScale: this._needsRateScale(),
           speciesId: this.pack.meta.id,
           walkSpeed: this.pack.speeds.walk ?? 40,
           climbSpeed: this.pack.speeds.climb ?? 30,
@@ -89,9 +106,9 @@ export class Manager {
         { x: startX, y: startY },
       );
 
-      if (saved[i]) critter.restore(saved[i]);
+      if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
 
-      const actor = new CritterActor(critter, this.pack, this.settings);
+      const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons);
       // GNOME 50 (layout.js) : addChrome() inclut automatiquement l'acteur
       // dans la région d'input selon sa taille/position/visibilité ; le
       // paramètre affectsInputRegion n'existe plus (Params.parse rejette
@@ -100,6 +117,46 @@ export class Manager {
 
       this._critters.push({ critter, actor });
     }
+
+    for (const key of ['difficulty', 'vacation-mode']) {
+      this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyNeedsRateScale()));
+    }
+    this._settingsIds.push(this.settings.connect('changed::show-indicator', () => this._syncIndicator()));
+    this._syncIndicator();
+  }
+
+  /** Difficulté choisie, ou 0 en mode vacances (tout figé). */
+  _needsRateScale() {
+    if (this.settings.get_boolean('vacation-mode')) return 0;
+    return DIFFICULTY_SCALE[this.settings.get_string('difficulty')] ?? 1;
+  }
+
+  _applyNeedsRateScale() {
+    const scale = this._needsRateScale();
+    for (const { critter } of this._critters) critter.setNeedsRateScale(scale);
+  }
+
+  _syncIndicator() {
+    const wanted = this.settings.get_boolean('show-indicator');
+    if (wanted && !this._indicator && this._critters.length > 0) {
+      this._indicator = addIndicator(
+        {
+          getCritters: () => this._critters.map(({ critter }) => critter),
+          feedAll: () => this.feedAll(),
+          title: this.pack.meta.displayName ?? this.pack.meta.id,
+        },
+        this.settings,
+        this._uuid,
+      );
+    } else if (!wanted && this._indicator) {
+      this._indicator.destroy();
+      this._indicator = null;
+    }
+  }
+
+  /** Action provisoire du menu (10.2 la remplacera par de la vraie nourriture). */
+  feedAll() {
+    for (const { critter } of this._critters) critter.needs.apply('fed');
   }
 
   start() {
@@ -139,6 +196,10 @@ export class Manager {
   destroy() {
     if (this._critters.length > 0) this._saveState();
     this.stop();
+    for (const id of this._settingsIds) this.settings.disconnect(id);
+    this._settingsIds = [];
+    this._indicator?.destroy();
+    this._indicator = null;
     for (const { actor } of this._critters) {
       Main.layoutManager.removeChrome(actor.actor);
       actor.destroy();
