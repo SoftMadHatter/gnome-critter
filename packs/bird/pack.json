@@ -96,6 +96,7 @@
     "dive": { "file": "sprites/dive.png", "frames": 2, "frameDuration": 0.1, "loop": true },
     "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.15, "loop": true },
     "hunt": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.06, "loop": true },
+    "relieve": { "file": "sprites/relieve.png", "frames": 2, "frameDuration": 0.35, "loop": true },
     "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.09, "loop": true },
     "trick_flip": { "file": "sprites/trick_flip.png", "frames": 6, "frameDuration": 0.1, "loop": true }
   },

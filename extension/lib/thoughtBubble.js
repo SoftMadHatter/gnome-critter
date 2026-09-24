@@ -11,6 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { loadImage } from './packLoader.js';
 
 const ICON_FOR_NEED = {
+  relief: 'relief',
   break: 'break', // rappel de pause (pas un besoin : vient de snapshot.bubble)
   satiety: 'hungry',
   energy: 'sleepy',

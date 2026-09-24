@@ -3,7 +3,7 @@ import { Needs, needMultiplier, NEED_GAUGES } from './needs.js';
 import { Life, modifiersFor } from './life.js';
 import { Stats } from './stats.js';
 import { newlyUnlocked } from './achievements.js';
-import { edibleFor, consume, bedsOn, toysFor, kick, pickGift } from './items.js';
+import { edibleFor, consume, bedsOn, toysFor, kick, pickGift, litterFor, isDirty, isOldMess } from './items.js';
 import { TrickBook, TRICKS } from './tricks.js';
 import { sanitizeName } from './names.js';
 import { autonomyLevel } from './autonomy.js';
@@ -51,6 +51,7 @@ export const State = Object.freeze({
   PLAY: 'play', // rejoint et joue avec un jouet, ou poursuit le pointeur laser
   BRUSHED: 'brushed', // se laisse brosser, immobile
   TRICK: 'trick', // exécute un tour (assis, roulade...)
+  RELIEVE: 'relieve', // va à la litière (ou au coin) et se soulage
   HUNT: 'hunt', // poursuit une proie (animal autonome)
   GIFT: 'gift', // apporte un cadeau au curseur
   REMIND: 'remind', // vient vers le curseur rappeler au joueur de faire une pause
@@ -146,6 +147,13 @@ const DEFAULT_CONFIG = {
   grazeWeight: 15, // idem, pour les plantes
   huntDuration: 12, // secondes de poursuite au plus
   catchDistance: 14, // distance à laquelle il attrape la proie
+  reliefWeight: 60, // multiplié par l'urgence : un animal pressé y va tout de suite
+  reliefDuration: 3.5, // secondes accroupi
+  accidentBelow: 8, // soulagement sous lequel l'animal se soulage sur place
+  accidentCleanlinessLoss: 15,
+  messRadius: 200, // distance à laquelle une trace le dérange
+  messCleanlinessLoss: 6, // propreté perdue par heure et par trace proche (trois au plus)
+  oldMessHealthLoss: 5, // santé perdue par heure et par vieille trace proche (trois au plus)
   moldSickness: 20, // santé perdue en mangeant de la nourriture moisie
   achievements: [], // succès du pack (section `achievements`, filtrée par achievementsOverrides)
   typingCooldown: 20, // secondes minimales entre deux réactions à la frappe
@@ -324,6 +332,8 @@ export class Critter {
     this._acknowledged = false;
     this.stats = new Stats();
     this.autonomy = 0; // niveau d'autonomie courant (recalculé à chaque tick)
+    this._reliefTarget = null;
+    this._pendingMess = null;
     this._huntTarget = null;
     this.tricks = new TrickBook();
     this._trick = null;
@@ -707,6 +717,9 @@ export class Critter {
       case State.HUNT:
         this._tickHunt(dt);
         break;
+      case State.RELIEVE:
+        this._tickRelieve(dt);
+        break;
       case State.TRICK:
         this._tickTrick();
         break;
@@ -733,6 +746,7 @@ export class Critter {
         this.stateTimer = randRange(this.config.idleDuration, this.config.random);
     }
 
+    this._environment(dt, options);
     if (this.lastEvent && this.lastEvent !== external) {
       this.needs.apply(this.lastEvent);
       this._countEvent(this.lastEvent);
@@ -858,6 +872,12 @@ export class Critter {
       return;
     }
 
+    // Urgence : il ne tient plus, il se soulage sur place (trace, propreté en baisse).
+    if (this.needs.values.relief < this.config.accidentBelow && this.supports(Locomotion.GROUND) && this.currentSurface) {
+      this._accident();
+      return;
+    }
+
     const candidates = [
       { value: 'walk', weight: this.config.walkWeight },
       { value: 'sleep', weight: this.config.sleepWeight },
@@ -917,6 +937,10 @@ export class Critter {
 
     // Autonomie : un animal qui se débrouille chasse et grignote, selon sa faim.
     const prey = this._preyTargets(options);
+    // Envie de se soulager : nulle tant que la jauge est confortable (>= 60), de plus en plus forte ensuite.
+    if (this.supports(Locomotion.GROUND) && this.currentSurface && this.needs.values.relief < 60) {
+      candidates.push({ value: 'relieve', weight: this.config.reliefWeight * 4 * ((60 - this.needs.values.relief) / 60) });
+    }
     if (prey.length > 0) candidates.push({ value: 'hunt', weight: this.config.huntWeight * this.autonomy });
     const plants = this.autonomy > 0 ? this._edibleTargets(options, { plants: true }) : [];
     if (plants.length > 0) candidates.push({ value: 'graze', weight: this.config.grazeWeight * this.autonomy });
@@ -1009,6 +1033,9 @@ export class Critter {
         return;
       case 'gift':
         this._startGift();
+        return;
+      case 'relieve':
+        this._startRelieve(options);
         return;
       case 'hunt':
         this._startHunt(prey[0]);
@@ -1440,6 +1467,98 @@ export class Critter {
       this.lastEvent = 'ate';
     }
     this._giveUpFood();
+  }
+
+  // --- Besoins naturels -----------------------------------------------------------
+
+  /** Trace à déposer, demandée par l'animal (le Manager en fait un objet), ou null. */
+  takeMess() {
+    const mess = this._pendingMess;
+    this._pendingMess = null;
+    return mess;
+  }
+
+  _accident() {
+    this._pendingMess = { x: this.x, y: this.y };
+    this.needs.relieve();
+    this.needs.boost('cleanliness', -this.config.accidentCleanlinessLoss);
+    this.stats.add('accidents');
+    this.lastEvent = 'accident';
+    this._enterState(State.IDLE);
+  }
+
+  /** Va à une litière propre de sa surface, sinon au coin (bord) le plus proche ; en vol, rejoint la surface de la litière. */
+  _startRelieve(options) {
+    const seg = this.currentSurface;
+    const litter =
+      litterFor(options.items ?? [], { x: this.x, surfaceId: seg.surfaceId, canFly: this.supports(Locomotion.AIR) })[0] ?? null;
+    if (litter && litter.surface.surfaceId !== seg.surfaceId) {
+      this._takeOffToward(litter);
+      return;
+    }
+    const corner = Math.abs(this.x - seg.x1) < Math.abs(seg.x2 - this.x) ? seg.x1 + 10 : seg.x2 - 10;
+    this._reliefTarget = { x: clamp(litter ? litter.x : corner, seg.x1 + 4, seg.x2 - 4), litter, acting: false };
+    this.state = State.RELIEVE;
+    this.stateTimer = 20; // trajet : au-delà, il se soulage là où il est
+  }
+
+  _tickRelieve(dt) {
+    if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    const target = this._reliefTarget;
+    if (!target) {
+      this._enterState(State.IDLE);
+      return;
+    }
+    // Litière devenue sale, retirée ou déplacée en chemin : il se rabat sur le coin le plus proche.
+    if (target.litter && (target.litter.removed || target.litter.grabbed || isDirty(target.litter))) {
+      const seg = this.currentSurface;
+      target.litter = null;
+      target.x = clamp(Math.abs(this.x - seg.x1) < Math.abs(seg.x2 - this.x) ? seg.x1 + 10 : seg.x2 - 10, seg.x1 + 4, seg.x2 - 4);
+    }
+
+    if (!target.acting) {
+      if (this.stateTimer <= 0 || Math.abs(target.x - this.x) < 6) {
+        target.acting = true;
+        this.stateTimer = this.config.reliefDuration;
+        return;
+      }
+      this._chase(dt, target.x);
+      return;
+    }
+    if (this.stateTimer > 0) return;
+    this._finishRelieve(target);
+  }
+
+  _finishRelieve(target) {
+    this.needs.relieve();
+    this.stats.add('reliefs');
+    if (target.litter) target.litter.uses += 1;
+    else this._pendingMess = { x: this.x, y: this.y };
+    this.lastEvent = 'relieved';
+    this._enterState(State.IDLE);
+  }
+
+  /**
+   * Traces proches sur la même surface : elles salissent, et les vieilles
+   * (plus de deux heures) rendent malade, sauf pour un animal autonome qui
+   * nettoie derrière lui. Figé en mode vacances.
+   */
+  _environment(dt, options) {
+    if (this._lifeFrozen() || !this.currentSurface || !options.items?.length || this.needs.rateScale <= 0) return;
+    let nearby = 0;
+    let old = 0;
+    for (const item of options.items) {
+      if (item.type !== 'mess' || item.removed || !item.surface) continue;
+      if (item.surface.surfaceId !== this.currentSurface.surfaceId || Math.abs(item.x - this.x) >= this.config.messRadius) continue;
+      nearby += 1;
+      if (isOldMess(item)) old += 1;
+    }
+    const hours = (dt / 3600) * this.needs.rateScale;
+    if (nearby > 0) this.needs.boost('cleanliness', -this.config.messCleanlinessLoss * Math.min(nearby, 3) * hours);
+    if (old > 0) this.needs.boost('health', -this.config.oldMessHealthLoss * Math.min(old, 3) * (1 - this.autonomy) * hours);
   }
 
   // --- Chasse ---------------------------------------------------------------------
@@ -2279,6 +2398,7 @@ export class Critter {
   }
 
   _enterState(state) {
+    this._reliefTarget = null;
     this._releaseFood();
     this._playTarget = null;
     this._huntTarget = null;

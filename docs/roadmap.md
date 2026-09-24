@@ -1,7 +1,7 @@
 # Feuille de route
 
 Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
-à 9 et sous-étapes 10.1 à 10.7 et 10.9 terminées ; l'ancienne étape 8 — vol/nage — avait été
+à 9 et sous-étapes 10.1 à 10.9 terminées ; l'ancienne étape 8 — vol/nage — avait été
 fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
@@ -192,11 +192,9 @@ d'autonomie qui suit la croissance et l'apprentissage, forçable dans les
 réglages ; proies qui fuient, plantes qui repoussent, gamelle qui moisit.
 Voir `docs/autonomy.md`.
 
-### 10.8 Besoins naturels
-« Faire ses besoins » : nouveau besoin et comportements associés. À
-clarifier le moment venu (jauge et rythme, lieu choisi, litière ou objet
-dédié, nettoyage par le joueur, effets sur la propreté et la santé,
-adaptation par espèce, ton visuel).
+### 10.8 Besoins naturels — ✅ fait
+« Faire ses besoins » : jauge de soulagement, litière ou coin, traces à
+nettoyer au clic, propreté et santé en jeu, accidents. Voir `docs/needs.md`.
 
 ### 10.9 Noms et menus multi-créatures — ✅ fait
 Donner un nom à chaque créature (choisi par le joueur, modifiable, sauvegardé)

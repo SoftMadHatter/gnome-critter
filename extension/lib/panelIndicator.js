@@ -22,6 +22,7 @@ const GAUGES = [
   ['cleanliness', 'Propreté'],
   ['stimulation', 'Stimulation'],
   ['affection', 'Affection'],
+  ['relief', 'Soulagement'],
   ['health', 'Santé'],
 ];
 
@@ -147,6 +148,8 @@ export const CritterIndicator = GObject.registerClass(
         }
       }
       section.addAction('Poser un lit', () => this._owner.dropBed());
+      section.addAction('Poser une litière', () => this._owner.dropLitter());
+      section.addAction('Nettoyer les traces', () => this._owner.cleanAll());
       if (this._owner.preyKinds().length > 0) section.addAction('Lâcher une proie', () => this._owner.dropPrey());
       if (this._owner.plantKinds().length > 0) section.addAction('Poser une plante', () => this._owner.dropPlant());
       const toys = expandableRow(section, 'Poser un jouet');

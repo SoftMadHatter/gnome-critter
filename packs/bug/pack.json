@@ -86,6 +86,7 @@
     "flee": { "file": "sprites/flee.png", "frames": 6, "frameDuration": 0.05, "loop": true },
     "run": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.04, "loop": true },
     "hunt": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.05, "loop": true },
+    "relieve": { "file": "sprites/relieve.png", "frames": 2, "frameDuration": 0.35, "loop": true },
     "eat": { "file": "sprites/eat.png", "frames": 4, "frameDuration": 0.14, "loop": true },
     "play": { "file": "sprites/play.png", "frames": 6, "frameDuration": 0.07, "loop": true },
     "trick_roll": { "file": "sprites/trick_roll.png", "frames": 6, "frameDuration": 0.1, "loop": true }

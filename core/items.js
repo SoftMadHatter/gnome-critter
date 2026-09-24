@@ -40,7 +40,12 @@ export function pickGift(random) {
 
 const GIFT_TTL = 1800;
 
-export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift', 'plant', 'prey']);
+/** Litière : sale après ce nombre d'usages, propre de nouveau au nettoyage. */
+export const LITTER_CAPACITY = 3;
+/** Une trace laissée plus longtemps que cela est « vieille » : elle rend malade. */
+export const MESS_OLD_SECONDS = 2 * 3600;
+
+export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift', 'plant', 'prey', 'litter', 'mess']);
 
 export const BOWL_CAPACITY = 5;
 
@@ -74,6 +79,9 @@ export function createItem(type, kind, x, y) {
     surface: null, // segment sur lequel l'objet repose, une fois posé
     floating: Boolean(food?.floats || plant?.floats || prey?.floats),
     portions: plant ? PLANT_MAX_PORTIONS : 0, // gamelle et plante
+    uses: 0, // litière : nombre d'usages depuis le dernier nettoyage
+    age: 0, // trace : secondes depuis qu'elle a été laissée
+    cleaned: false, // clic du joueur sur une litière : remise à zéro au prochain tick
     fillAge: 0, // gamelle : secondes depuis le dernier remplissage (moisissure)
     regrow: 0, // plante : secondes vers la prochaine repousse
     dir: 1, // proie : sens de marche
@@ -98,6 +106,27 @@ export function fillBowl(bowl, kind, portions = BOWL_CAPACITY) {
 /** Vrai quand le Manager doit retirer l'objet. */
 export function isGone(item) {
   return item.removed || ((item.type === 'food' || item.type === 'gift' || item.type === 'prey') && item.consumed);
+}
+
+/** Litière sale : plus personne ne l'utilise. */
+export function isDirty(item) {
+  return item.type === 'litter' && item.uses >= LITTER_CAPACITY;
+}
+
+/** Trace laissée depuis plus de deux heures. */
+export function isOldMess(item) {
+  return item.type === 'mess' && item.age >= MESS_OLD_SECONDS;
+}
+
+/**
+ * Litières propres qu'un animal peut rejoindre, la plus proche d'abord :
+ * sur la même surface, ou n'importe laquelle pour une espèce qui vole.
+ */
+export function litterFor(items, { x, surfaceId, canFly }) {
+  return items
+    .filter((i) => i.type === 'litter' && !i.removed && !i.grabbed && i.surface && !isDirty(i))
+    .filter((i) => canFly || i.surface.surfaceId === surfaceId)
+    .sort((a, b) => Math.abs(a.x - x) - Math.abs(b.x - x));
 }
 
 /** Nourriture de gamelle moisie (rend malade). */
@@ -133,6 +162,11 @@ export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
       item.portions = 0; // la nourriture moisie disparaît
       item.fillAge = 0;
     }
+  }
+  if (item.type === 'mess') item.age += dt;
+  if (item.type === 'litter' && item.cleaned) {
+    item.cleaned = false;
+    item.uses = 0;
   }
   if (item.grabbed || item.caught) return;
   if (item.floating) {
@@ -307,6 +341,8 @@ export function serializeItems(items) {
         y: Math.round(i.y),
         portions: i.portions,
         fillAge: Math.round(i.fillAge ?? 0),
+        uses: i.uses ?? 0,
+        age: Math.round(i.age ?? 0),
         ttl: Number.isFinite(i.ttl) ? Math.round(i.ttl) : null,
       })),
   });
@@ -329,7 +365,7 @@ export function parseSavedItems(text, { bounds }) {
   for (const raw of data.items) {
     if (!raw || !ITEM_TYPES.includes(raw.type) || raw.type === 'prey' || !Number.isFinite(raw.x) || !Number.isFinite(raw.y)) continue;
     const validKind =
-      raw.type === 'gift' ? GIFTS[raw.kind] : raw.type === 'toy' ? TOYS[raw.kind] : raw.type === 'plant' ? PLANTS[raw.kind] : raw.type === 'bed' ? true : FOODS[raw.kind];
+      raw.type === 'gift' ? GIFTS[raw.kind] : raw.type === 'toy' ? TOYS[raw.kind] : raw.type === 'plant' ? PLANTS[raw.kind] : raw.type === 'bed' || raw.type === 'litter' || raw.type === 'mess' ? true : FOODS[raw.kind];
     if (!validKind) continue;
     const item = createItem(raw.type, raw.kind, 0, 0);
     item.x = Math.min(Math.max(raw.x, bounds.x), bounds.x + bounds.width);
@@ -338,6 +374,8 @@ export function parseSavedItems(text, { bounds }) {
       item.portions = Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), BOWL_CAPACITY) : 0;
       item.fillAge = Number.isFinite(raw.fillAge) && raw.fillAge >= 0 ? raw.fillAge : 0;
     }
+    if (item.type === 'litter') item.uses = Number.isFinite(raw.uses) && raw.uses >= 0 ? Math.min(raw.uses, LITTER_CAPACITY) : 0;
+    if (item.type === 'mess') item.age = Number.isFinite(raw.age) && raw.age >= 0 ? raw.age : 0;
     if (item.type === 'plant') {
       item.portions = Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), PLANT_MAX_PORTIONS) : PLANT_MAX_PORTIONS;
     }

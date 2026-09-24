@@ -111,7 +111,7 @@ def break_cup():
     return img
 
 
-ICONS = {"break": break_cup, "hungry": hungry, "sleepy": sleepy, "dirty": dirty, "bored": bored, "heart": heart, "sick": sick}
+ICONS = {"relief": lambda: relief_icon(), "break": break_cup, "hungry": hungry, "sleepy": sleepy, "dirty": dirty, "bored": bored, "heart": heart, "sick": sick}
 
 
 # --- objets du bureau -----------------------------------------------------------
@@ -331,6 +331,34 @@ ACCESSORY_SPRITES = {
 }
 
 
+def litter(dirty):
+    img, d = canvas(24, 10)
+    d.polygon([(1, 4), (22, 4), (20, 9), (3, 9)], fill=(120, 130, 190, 255))
+    d.rectangle((3, 3, 20, 5), fill=(225, 210, 170, 255) if not dirty else (170, 150, 110, 255))
+    if dirty:
+        for x, y in ((6, 2), (11, 1), (16, 2)):
+            d.rectangle((x, y, x + 2, y + 1), fill=(110, 80, 50, 255))
+    return outline(img)
+
+
+def mess(old):
+    img, d = canvas(10, 6)
+    d.ellipse((1, 2, 8, 5), fill=(120, 80, 50, 255) if not old else (90, 100, 50, 255))
+    d.ellipse((3, 0, 6, 3), fill=(140, 95, 60, 255) if not old else (110, 120, 60, 255))
+    if old:
+        d.point((1, 0), fill=(30, 30, 30, 255))
+        d.point((8, 1), fill=(30, 30, 30, 255))
+    return outline(img, (50, 35, 25, 255))
+
+
+def relief_icon():
+    img, d = bubble()
+    d.polygon([(6, 2), (3, 7), (9, 7)], fill=(80, 150, 230, 255))
+    d.ellipse((3, 5, 9, 10), fill=(80, 150, 230, 255))
+    d.point((5, 6), fill=(200, 230, 255, 255))
+    return img
+
+
 PREY_SPRITES = {}
 
 
@@ -417,6 +445,8 @@ def bowl_moldy():
 ITEMS = {
     "ball": ball, "plush": plush, "laser": laser, "coin": coin, "flower": flower, "feather": feather,
     "bowl_moldy": bowl_moldy, **PREY_SPRITES, **PLANT_SPRITES,
+    "litter_clean": lambda: litter(False), "litter_dirty": lambda: litter(True),
+    "mess": lambda: mess(False), "mess_old": lambda: mess(True),
     "meat": meat, "fish": fish, "kibble": kibble, "seeds": seeds, "plankton": plankton,
     "bowl_empty": lambda: bowl(False), "bowl_full": lambda: bowl(True), "bed": bed,
 }

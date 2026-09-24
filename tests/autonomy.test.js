@@ -232,3 +232,198 @@ test('sauvegarde : âge de la gamelle et plantes conservés', () => {
   const bad = JSON.stringify({ version: 1, items: [{ type: 'plant', kind: 'cactus', x: 1, y: 1 }] });
   assert.equal(parseSavedItems(bad, { bounds: monitor }).length, 0);
 });
+
+// --- Besoins naturels ---------------------------------------------------------------
+
+import { litterFor, isDirty, isOldMess, LITTER_CAPACITY, MESS_OLD_SECONDS } from '../core/items.js';
+import { Critter, State, Locomotion } from '../core/critter.js';
+
+test('jauge de soulagement : décroît, baisse en mangeant, remonte en se soulageant', () => {
+  const n = new Needs();
+  n.advance(HOUR);
+  assert.ok(Math.abs(n.values.relief - 72) < 1e-9, 'huit points par heure');
+
+  const eater = new Needs();
+  eater.feed(40);
+  assert.equal(eater.values.relief, 72, 'manger 40 retire 8');
+
+  n.values.relief = 5;
+  n.relieve();
+  assert.equal(n.values.relief, 90);
+  n.values.relief = 40;
+  n.relieve();
+  assert.equal(n.values.relief, 100, 'bornée à 100');
+  n.values.relief = 10;
+  assert.equal(n.urgent(), 'relief');
+});
+
+test('litière : sale après trois usages, nettoyée au clic ; trace : vieille après deux heures', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const litter = createItem('litter', null, 300, 100);
+  for (let i = 0; i < 200; i++) tickItem(litter, 1 / 60, surfaces, monitor);
+  const ground = surfaces.segments.find((s) => s.type === 'ground');
+  const ctx = { x: 0, surfaceId: ground.surfaceId, canFly: false };
+  assert.equal(litterFor([litter], ctx).length, 1);
+  litter.uses = LITTER_CAPACITY;
+  assert.ok(isDirty(litter));
+  assert.equal(litterFor([litter], ctx).length, 0, 'sale : plus utilisée');
+  litter.cleaned = true;
+  tickItem(litter, 1 / 60, surfaces, monitor);
+  assert.equal(litter.uses, 0);
+  assert.ok(!isDirty(litter));
+
+  const mess = createItem('mess', null, 300, 500);
+  tickItem(mess, MESS_OLD_SECONDS - 1, surfaces, monitor);
+  assert.ok(!isOldMess(mess));
+  tickItem(mess, 2, surfaces, monitor);
+  assert.ok(isOldMess(mess));
+  assert.ok(!isGone(mess));
+});
+
+test('litière et trace : sauvegardées avec leur état', () => {
+  const litter = createItem('litter', null, 100, 480);
+  litter.uses = 2;
+  const mess = createItem('mess', null, 200, 480);
+  mess.age = 900;
+  const back = parseSavedItems(serializeItems([litter, mess]), { bounds: monitor });
+  assert.equal(back.find((i) => i.type === 'litter').uses, 2);
+  assert.equal(back.find((i) => i.type === 'mess').age, 900);
+});
+
+function reliefCritter(config = {}) {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const c = new Critter(
+    {
+      random: () => 0.5, walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, runWeight: 0,
+      needsRateScale: 0, autonomyMode: 'off', ...config,
+    },
+    { x: 300, y: monitor.height },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  return { c, surfaces };
+}
+
+function run(c, surfaces, items, seconds, stop) {
+  const seen = new Set();
+  for (let i = 0; i < seconds * 30; i++) {
+    const snap = c.tick(1 / 30, surfaces, { worldBounds: monitor, items });
+    seen.add(snap.state);
+    if (snap.event) seen.add(`event:${snap.event}`);
+    if (stop?.(snap)) break;
+  }
+  return seen;
+}
+
+test('pressé, l’animal va à la litière propre et l’utilise (aucune trace)', () => {
+  const { c, surfaces } = reliefCritter();
+  const litter = createItem('litter', null, 600, 500);
+  litter.surface = surfaces.segments.find((s) => s.type === 'ground');
+  c.needs.values.relief = 20;
+  const seen = run(c, surfaces, [litter], 30, () => c.lastEvent === 'relieved');
+  assert.ok(seen.has(State.RELIEVE));
+  assert.ok(seen.has('event:relieved'));
+  assert.equal(litter.uses, 1);
+  assert.equal(c.takeMess(), null);
+  assert.ok(c.needs.values.relief > 90);
+  assert.equal(c.stats.get('reliefs'), 1);
+});
+
+test('sans litière : va au coin le plus proche et laisse une trace', () => {
+  const { c, surfaces } = reliefCritter();
+  c.x = 900;
+  c.needs.values.relief = 20;
+  run(c, surfaces, [], 30, () => c.lastEvent === 'relieved');
+  const mess = c.takeMess();
+  assert.ok(mess, 'trace demandée');
+  assert.ok(mess.x > 950, `coin droit, x = ${mess.x}`);
+  assert.equal(c.needs.values.relief > 90, true);
+});
+
+test('litière sale évitée : il va au coin et la litière ne bouge pas', () => {
+  const { c, surfaces } = reliefCritter();
+  const litter = createItem('litter', null, 500, 500);
+  litter.surface = surfaces.segments.find((s) => s.type === 'ground');
+  litter.uses = LITTER_CAPACITY;
+  c.needs.values.relief = 20;
+  run(c, surfaces, [litter], 30, () => c.lastEvent === 'relieved');
+  assert.equal(litter.uses, LITTER_CAPACITY);
+  assert.ok(c.takeMess());
+});
+
+test('accident : sous le seuil, il se soulage sur place (trace, propreté en baisse)', () => {
+  const { c, surfaces } = reliefCritter();
+  c.needs.values.relief = 2;
+  const cleanliness = c.needs.values.cleanliness;
+  const snap = c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [] });
+  assert.equal(snap.event, 'accident');
+  const mess = c.takeMess();
+  assert.ok(mess && Math.abs(mess.x - 300) < 2);
+  assert.equal(c.stats.get('accidents'), 1);
+  assert.ok(c.needs.values.cleanliness <= cleanliness - 14);
+  assert.ok(c.needs.values.relief > 80);
+});
+
+test('à l’aise, l’animal ne cherche pas à se soulager', () => {
+  const { c, surfaces } = reliefCritter({ walkWeight: 77 });
+  c.needs.values.relief = 90;
+  assert.ok(!run(c, surfaces, [], 5).has(State.RELIEVE));
+});
+
+test('traces proches : elles salissent, les vieilles rendent malade (moins pour un autonome)', () => {
+  const near = (surfaces, age) => {
+    const m = createItem('mess', null, 320, 500);
+    m.surface = surfaces.segments.find((s) => s.type === 'ground');
+    m.age = age;
+    return m;
+  };
+  const dependent = reliefCritter({ needsRateScale: 1 });
+  dependent.c.state = State.IDLE;
+  dependent.c.stateTimer = 1e9;
+  const fresh = near(dependent.surfaces, 0);
+  dependent.c.tick(3600, dependent.surfaces, { worldBounds: monitor, items: [fresh] });
+  assert.ok(dependent.c.needs.values.cleanliness < 80 - 4 * 0.9, 'une trace salit');
+  assert.equal(dependent.c.needs.values.health, 100, 'jeune trace : pas malade');
+
+  const sick = reliefCritter({ needsRateScale: 1 });
+  sick.c.stateTimer = 1e9;
+  sick.c.tick(3600, sick.surfaces, { worldBounds: monitor, items: [near(sick.surfaces, MESS_OLD_SECONDS + 1)] });
+  assert.ok(sick.c.needs.values.health <= 96, `santé ${sick.c.needs.values.health}`);
+
+  const auto = reliefCritter({ needsRateScale: 1, autonomyMode: 'full' });
+  auto.c.stateTimer = 1e9;
+  auto.c.tick(3600, auto.surfaces, { worldBounds: monitor, items: [near(auto.surfaces, MESS_OLD_SECONDS + 1)] });
+  assert.equal(auto.c.needs.values.health, 100, 'un animal autonome nettoie derrière lui');
+});
+
+test('trace loin ou sur une autre surface : sans effet ; vacances : figé', () => {
+  const far = reliefCritter({ needsRateScale: 1 });
+  const m = createItem('mess', null, 900, 500);
+  m.surface = far.surfaces.segments.find((s) => s.type === 'ground');
+  m.age = MESS_OLD_SECONDS + 1;
+  far.c.stateTimer = 1e9;
+  far.c.tick(3600, far.surfaces, { worldBounds: monitor, items: [m] });
+  assert.equal(far.c.needs.values.health, 100);
+
+  const vacation = reliefCritter({ needsRateScale: 0 });
+  const close = createItem('mess', null, 310, 500);
+  close.surface = vacation.surfaces.segments.find((s) => s.type === 'ground');
+  close.age = MESS_OLD_SECONDS + 1;
+  vacation.c.stateTimer = 1e9;
+  vacation.c.tick(3600, vacation.surfaces, { worldBounds: monitor, items: [close] });
+  assert.equal(vacation.c.needs.values.health, 100);
+});
+
+test('un poisson n’a pas ce besoin', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = new Critter(
+    { random: () => 0.5, needsRateScale: 0, supportedSurfaces: new Set([Locomotion.WATER]), swimSpeed: 200 },
+    { x: 100, y: 300 },
+  );
+  fish._startRoam(State.SWIM);
+  fish.needs.values.relief = 1;
+  for (let i = 0; i < 90; i++) fish.tick(1 / 30, surfaces, { worldBounds: monitor, items: [] });
+  assert.notEqual(fish.state, State.RELIEVE);
+  assert.equal(fish.takeMess(), null);
+});

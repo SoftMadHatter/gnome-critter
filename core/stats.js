@@ -4,7 +4,7 @@
 export const STAT_KEYS = Object.freeze([
   'meals', 'mealsFavorite', 'playSessions', 'ballKicks', 'brushes', 'purrs', 'pets', 'greets',
   'climbs', 'flights', 'dives', 'swims', 'runs', 'naps', 'longestSleepSeconds',
-  'tricksPerformed', 'giftsGiven', 'hunts', 'grazes',
+  'tricksPerformed', 'giftsGiven', 'hunts', 'grazes', 'reliefs', 'accidents',
 ]);
 
 /** Clés utilisables dans une condition de succès : les compteurs et l'âge en jours. */

@@ -15,6 +15,7 @@ instance.
 | `cleanliness` | 4 | fin d'un lavage : +30 ; brossage : +25 |
 | `stimulation` (contre l'ennui) | 10 | activité physique : +25 par heure ; jeu : +25 ; réactions |
 | `affection` | 4 | caresse +8 (ronronnement +12), chatouille +3, salutation +4, jeu +6, brossage +6 |
+| `relief` (soulagement) | 8, et un cinquième du gain de chaque repas | se soulager : +85 |
 | `health` | baisse de 6 par heure quand la moyenne des cinq autres est sous 25 | remonte de 4 par heure au-dessus de 50 |
 
 L'humeur (`mood`) n'est pas stockée : moyenne des cinq besoins pondérée par
@@ -32,6 +33,25 @@ davantage le curseur. Stimulation basse : activités énergiques (course,
 vol, nage rapide, escalade). Une jauge comblée (au-dessus de 90) réduit au
 contraire l'activité correspondante. Sous 30 de santé, les activités
 énergiques sont réduites à 30 %.
+
+## Besoins naturels
+
+L'animal doit se soulager. Sous 60 sa jauge de soulagement lui donne de plus en
+plus envie d'y aller (sous 30 : bulle « urgent »).
+
+- **Où** : une **litière** propre posée sur sa surface (« Bureau… » > « Poser une
+  litière » ; un animal qui vole rejoint sa surface), sinon le **coin** le plus
+  proche (bord de la fenêtre ou de l'écran). Il s'accroupit 3,5 s, puis le
+  soulagement remonte. Le poisson n'a pas ce besoin.
+- **Litière** : sale après 3 usages (et plus utilisée) ; un clic la nettoie.
+- **Trace** : hors litière l'animal laisse une trace ; un **clic** la nettoie (+1
+  pièce), « Nettoyer les traces » dans « Bureau… » les retire toutes. Une trace
+  proche (200 px, même surface) fait baisser la propreté (6 par heure, trois
+  traces au plus) ; **après 2 h** elle vieillit et fait baisser la santé (5 par
+  heure et par trace, trois au plus, atténué par l'autonomie : un animal
+  autonome nettoie derrière lui). Tout est figé en mode vacances.
+- **Accident** : si le soulagement tombe sous 8, il se soulage sur place (trace,
+  propreté -15).
 
 ## Nourriture, gamelle et lit
 

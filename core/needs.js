@@ -7,7 +7,7 @@ import { PREY } from './prey.js';
 import { RELIEF } from './autonomy.js';
 
 /** Jauges stockées (la santé est traitée à part, les cinq premières forment l'humeur). */
-export const NEED_GAUGES = ['satiety', 'energy', 'cleanliness', 'stimulation', 'affection'];
+export const NEED_GAUGES = ['satiety', 'energy', 'cleanliness', 'stimulation', 'affection', 'relief'];
 export const ALL_GAUGES = [...NEED_GAUGES, 'health'];
 
 /** Décroissance par heure en difficulté normale. */
@@ -17,6 +17,7 @@ export const DEFAULT_DECAY_PER_HOUR = {
   cleanliness: 4,
   stimulation: 10,
   affection: 4,
+  relief: 8, // soulagement : baisse aussi quand l'animal mange (voir feed)
 };
 
 export const INITIAL_LEVEL = 80;
@@ -30,6 +31,9 @@ const HEALTH_LOSS_BELOW = 25;
 const HEALTH_GAIN_ABOVE = 50;
 const URGENT_BELOW = 30;
 const URGENT_HEALTH_BELOW = 40;
+
+const RELIEF_COST_OF_EATING = 0.2; // part du gain de satiété retirée au soulagement
+const RELIEF_RESTORED = 85;
 
 const CATCH_UP_CAP_SECONDS = 8 * 3600;
 const CATCH_UP_FACTOR = 0.5;
@@ -159,9 +163,15 @@ export class Needs {
     }
   }
 
-  /** Repas : satiété en plus (bornée). */
+  /** Repas : satiété en plus (bornée) ; manger fait aussi baisser le soulagement. */
   feed(amount) {
     this.boost('satiety', amount);
+    this.boost('relief', -amount * RELIEF_COST_OF_EATING);
+  }
+
+  /** L'animal s'est soulagé : la jauge remonte. */
+  relieve() {
+    this.boost('relief', RELIEF_RESTORED);
   }
 
   boost(gauge, delta) {

@@ -8,7 +8,7 @@ import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { loadImage } from './packLoader.js';
-import { throwItem, isMoldy, PLANTS } from '../core/items.js';
+import { throwItem, isMoldy, isDirty, isOldMess, PLANTS } from '../core/items.js';
 import { PREY } from '../core/prey.js';
 
 const THROW_WINDOW_US = 100_000; // fenêtre de mesure de la vitesse du glisser
@@ -20,6 +20,8 @@ const TOY_SIZES = { ball: { width: 12, height: 12 }, plush: { width: 16, height:
 
 const PREY_SIZES = { mouse: { width: 16, height: 10 }, beetle: { width: 10, height: 8 }, aphid: { width: 6, height: 5 }, krill: { width: 8, height: 6 } };
 const PLANT_SIZE = { width: 16, height: 14 };
+const LITTER_SIZE = { width: 24, height: 10 };
+const MESS_SIZE = { width: 10, height: 6 };
 const PREY_FRAME_SECONDS = 0.18; // cadence des deux frames de marche
 
 const sizeOf = (item) => {
@@ -27,6 +29,8 @@ const sizeOf = (item) => {
   if (item.type === 'gift') return { width: 12, height: 12 };
   if (item.type === 'prey') return PREY_SIZES[item.kind];
   if (item.type === 'plant') return PLANT_SIZE;
+  if (item.type === 'litter') return LITTER_SIZE;
+  if (item.type === 'mess') return MESS_SIZE;
   return SIZES[item.type];
 };
 
@@ -53,7 +57,7 @@ export const PLANT_LABELS = { grass: 'Herbe', berries: 'Baies', leaf: 'Feuille',
 
 const IMAGE_NAMES = [
   'meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bowl_moldy', 'bed', 'ball', 'plush',
-  'laser', 'coin', 'flower', 'feather',
+  'laser', 'coin', 'flower', 'feather', 'litter_clean', 'litter_dirty', 'mess', 'mess_old',
   ...Object.keys(PREY).flatMap((kind) => [`${kind}_0`, `${kind}_1`]),
   ...Object.keys(PLANTS).flatMap((kind) => [0, 1, 2, 3].map((n) => `${kind}_${n}`)),
 ];
@@ -80,6 +84,8 @@ function imageName(item) {
     return item.portions > 0 ? 'bowl_full' : 'bowl_empty';
   }
   if (item.type === 'plant') return `${item.kind}_${item.portions}`;
+  if (item.type === 'litter') return isDirty(item) ? 'litter_dirty' : 'litter_clean';
+  if (item.type === 'mess') return isOldMess(item) ? 'mess_old' : 'mess';
   if (item.type === 'prey') {
     // Deux frames de marche alternées tant que la proie bouge.
     const frame = item.moving ? Math.floor(GLib.get_monotonic_time() / 1_000_000 / PREY_FRAME_SECONDS) % 2 : 0;
@@ -121,6 +127,20 @@ export class ItemActor {
         this.item.removed = true;
       });
       this.actor.add_action(collect);
+    }
+
+    if (this.item.type === 'mess' || this.item.type === 'litter') {
+      // Un clic nettoie : la trace disparaît (+1 pièce), la litière redevient propre.
+      const clean = new Clutter.ClickGesture();
+      clean.connect('recognize', () => {
+        if (this.item.type === 'mess') {
+          this.item.collected = true;
+          this.item.removed = true;
+        } else {
+          this.item.cleaned = true;
+        }
+      });
+      this.actor.add_action(clean);
     }
 
     const remove = new Clutter.ClickGesture({

@@ -353,6 +353,8 @@ export class Manager {
       else if (event === 'grew') this._player.log(`${name} devient ${STAGE_LABELS[snapshot.stage]?.toLowerCase() ?? snapshot.stage}.`, Date.now());
     }
     if (event === 'trickLearned') this._player.log(`${name} a appris un tour.`, Date.now());
+    const mess = critter.takeMess();
+    if (mess) this._addItem(createItem('mess', null, mess.x, mess.y - 4));
     const gift = critter.takeGift();
     if (gift) this._addItem(createItem('gift', gift.kind, gift.x, gift.y));
     for (const id of critter.takeUnlocked()) {
@@ -490,6 +492,8 @@ export class Manager {
       brush: (critter) => critter.brush(),
       preyKinds: () => this._preyKinds(),
       plantKinds: () => this._plantKinds(),
+      dropLitter: () => this._dropNear('litter', null, null),
+      cleanAll: () => this.cleanAll(),
       dropPrey: (kind) => this._dropNear('prey', kind ?? this._preyKinds()[0], null),
       dropPlant: (kind) => this._dropNear('plant', kind ?? this._plantKinds()[0], null),
       wake: (critter) => critter.wake(),
@@ -540,6 +544,14 @@ export class Manager {
   }
 
   /** « Ranger les jouets » : retire les jouets seulement (pas la gamelle, le lit ni la nourriture). */
+  /** « Nettoyer les traces » : retire toutes les traces et remet les litières à zéro (sans pièces). */
+  cleanAll() {
+    for (const { item } of this._items) {
+      if (item.type === 'mess') item.removed = true;
+      else if (item.type === 'litter') item.cleaned = true;
+    }
+  }
+
   clearToys() {
     for (const { item } of this._items) if (isToy(item)) item.removed = true;
   }
@@ -551,10 +563,12 @@ export class Manager {
   _removeGoneItems() {
     this._items = this._items.filter((entry) => {
       if (!isGone(entry.item)) return true;
-      if (entry.item.collected) {
+      if (entry.item.collected && entry.item.type === 'gift') {
         const coins = GIFTS[entry.item.kind]?.coins ?? 0;
         this._player.award('gift', coins, 0);
         this._player.log(`Cadeau ramassé : +${coins} pièces.`, Date.now());
+      } else if (entry.item.collected && entry.item.type === 'mess') {
+        this._player.award('clean', 1, 0); // service rendu : une pièce par trace nettoyée
       }
       Main.layoutManager.removeChrome(entry.actor.actor);
       entry.actor.destroy();
