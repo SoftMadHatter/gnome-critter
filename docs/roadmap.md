@@ -152,6 +152,39 @@ pack est le même.
 
 S'occuper de l'animal, le faire grandir, gérer ses besoins. Le morceau le
 plus gros : capstone qui s'appuie sur les interactions/besoins des étapes
-1-6 et sur la persistance de l'étape 9. Les stades de croissance
-demanderont plusieurs jeux de sprites par animal, d'où sa place après la
-passe graphique de l'étape 8.
+1-6 et sur la persistance de l'étape 9. Découpé en sous-étapes livrables
+séparément, chacune précédée de son propre plan détaillé. Principes
+communs : modèle pur et testable dans `core/` (le critter garde la
+décision, les jauges modulent les poids), temps réel avec rattrapage
+plafonné, aucune mort (départ doux et réversible), extension limitée à
+l'affichage et aux capteurs, réglages d'espèce dans `pack.json`.
+
+### 10.1 Besoins et humeur
+Jauges (faim, énergie, bonheur, propreté, ennui, santé, affection),
+difficulté et mode vacances, effets sur les poids de comportement,
+sauvegarde v2 avec migration, icône de barre avec les jauges, bulles de
+pensée.
+
+### 10.2 Nourrir et objets du bureau
+Framework d'objets (nourriture, gamelle, lit), états de recherche de
+nourriture et de repas, menu contextuel (clic milieu) et menu de l'icône.
+
+### 10.3 Jouer, ennui, affection
+Balle et pointeur laser, état de jeu, caresses prolongées, brossage.
+
+### 10.4 Croissance, personnalité, évolution
+Âge et stades (œuf à senior), personnalité, évolution selon les soins,
+apparence aléatoire à la naissance (rotation de teinte, sauvegardée),
+sprites par stade, départ doux et retour.
+
+### 10.5 Rythme du monde
+Jour/nuit, inactivité, rappel de pause, notifications, frappe clavier.
+
+### 10.6 Progression
+Pièces et boutique, succès propres à chaque espèce et à sa personnalité
+(déclarés dans `pack.json`), tours, cadeaux, anniversaires.
+
+### 10.7 Mode autonomie
+L'animal couvre lui-même ses besoins (proies, grignotage). À cadrer avec
+toi avant tout plan : statut (mode alternatif ou niveau progressif lié à
+la croissance), sources de nourriture, rôle du joueur, conséquences, coût.
