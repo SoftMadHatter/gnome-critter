@@ -56,7 +56,7 @@ export class CritterActor {
     this._grab = null;
     this._eggSheet = eggSheet;
     this._appearanceKey = null;
-    this._frames = pack.framesFor(critter.life.appearance);
+    this._frames = pack.framesFor(critter.life.appearance, critter.life.stage);
     this._eggFrames = eggSheet?.framesFor(critter.life.appearance) ?? null;
     this._scale = critter.life.scale;
     this._stage = critter.life.stage;
@@ -223,10 +223,10 @@ export class CritterActor {
   /** Nouvelle apparence (évolution) : bascule sur le jeu de frames correspondant. */
   _refreshAppearance(snapshot) {
     const { hue, tone, saturation } = snapshot.appearance;
-    const key = `${Math.round(hue)}|${Math.round(tone)}|${saturation}`;
+    const key = `${snapshot.stage}|${Math.round(hue)}|${Math.round(tone)}|${saturation}`;
     if (key === this._appearanceKey) return;
     this._appearanceKey = key;
-    this._frames = this.pack.framesFor(snapshot.appearance);
+    this._frames = this.pack.framesFor(snapshot.appearance, snapshot.stage);
     this._eggFrames = this._eggSheet?.framesFor(snapshot.appearance) ?? null;
   }
 
@@ -276,8 +276,9 @@ export class CritterActor {
     // pendant un glisser, et sans aucune réaction de l'espèce.
     if (snapshot.stage === 'egg') {
       this._reaction = null;
-      if (this._frames.animationFrames.egg) this._applyFrame('egg', dt);
-      else if (this._eggFrames) this._applyEgg(dt, snapshot);
+      const packEgg = this._frames.animationFrames.egg;
+      if (packEgg?.length >= 4) this._applyEgg(dt, snapshot, packEgg);
+      else if (this._eggFrames) this._applyEgg(dt, snapshot, this._eggFrames);
       else this._applyFrame(snapshot.state, dt);
       this.syncPosition();
       return;
@@ -325,8 +326,8 @@ export class CritterActor {
     global.display.get_sound_player().play_from_file(file, `Critter: ${name}`, null);
   }
 
-  /** Œuf générique : se balance, puis se fissure à l'approche de l'éclosion. */
-  _applyEgg(dt, snapshot) {
+  /** Œuf (celui de l'espèce ou le générique) : se balance, puis se fissure à l'approche de l'éclosion. */
+  _applyEgg(dt, snapshot, frames) {
     if (this._animState !== State.EGG) {
       this._animState = State.EGG;
       this._frameIndex = 0;
@@ -339,7 +340,7 @@ export class CritterActor {
     }
     const cracking = snapshot.hatchProgress >= 0.9;
     const sequence = cracking ? [3, 1, 3, 2] : [0, 1, 0, 2];
-    this.actor.content = this._eggFrames[sequence[this._frameIndex]];
+    this.actor.content = frames[sequence[this._frameIndex]];
   }
 
   _applyFrame(state, dt) {

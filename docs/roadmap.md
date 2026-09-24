@@ -216,7 +216,7 @@ Livré : chat, oiseau, insecte et poisson ont une feuille propre pour chaque ét
 atteignable et 20 réactions distinctes (générées par recettes de poses,
 vérifiées par `tests/packs.test.js`). Le pack de démonstration reste minimal.
 
-## 12. Apparence propre à chaque stade de croissance
+## 12. Apparence propre à chaque stade de croissance — ✅ fait
 
 Remplacer la simple mise à l'échelle des stades (bébé 50 %, jeune 75 %) par
 des sprites différents : proportions de bébé (grosse tête, petits membres),

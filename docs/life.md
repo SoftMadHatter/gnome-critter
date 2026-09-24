@@ -60,13 +60,28 @@ des jauges remises à un niveau moyen. Le survol ne le réveille pas.
 
 ```json
 "appearance": { "hueRange": [-35, 35], "colorizeGrays": true, "graySaturation": 0.4 },
-"stages": { "baby": { "scale": 0.5 }, "young": { "scale": 0.75 } }
+"stages": {
+  "baby": { "scale": 1, "folder": "sprites/baby" },
+  "young": { "scale": 0.75 }
+}
 ```
 
 `appearance.enabled: false` supprime la variation de couleur. `stages`
-règle l'échelle d'affichage (0,25 à 2) d'un stade ; les vrais sprites par
-stade viendront plus tard. Les autres clés sont ignorées avec un
-avertissement, et `tests/packs.test.js` valide ces sections.
+règle, par stade, l'échelle d'affichage (0,25 à 2) et/ou un `folder` (chemin
+relatif sûr) de feuilles propres au stade : mêmes noms de fichiers, mêmes
+dimensions que l'adulte, avec repli sur la feuille adulte si l'une manque.
+Avec un dossier l'échelle est facultative (1 : le sprite est déjà dessiné à sa
+taille) ; sans dossier, l'échelle réduit le sprite adulte. Les autres clés
+sont ignorées avec un avertissement, et `tests/packs.test.js` valide ces
+sections.
+
+Les packs `cat`, `bird`, `bug` et `fish` fournissent bébé (grosse tête, petit
+corps), jeune (plus élancé) et senior (poil grisonnant), générés par
+`scripts/gen_species_sprites.py` à partir des frames adultes, plus un œuf
+propre à l'espèce (animation `egg`, 4 frames : posé, deux oscillations,
+fissuré). Le bébé insecte est une larve (chenille) qui reprend les poses de
+l'adulte, donc les mêmes déplacements ; le générateur accepte un dessin
+spécifique par stade (`stage_draw`).
 
 Animations facultatives : `egg` (sinon l'œuf générique de
 `extension/assets/life/egg.png`, teinté comme l'animal) et `hibernate`

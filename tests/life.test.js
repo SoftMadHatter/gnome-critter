@@ -151,5 +151,17 @@ test('stagesOverrides : échelles valides gardées, le reste signalé', () => {
   const { scales, ignored } = stagesOverrides({ baby: { scale: 0.6 }, adult: { scale: 9 }, larve: { scale: 1 }, senior: {} });
   assert.deepEqual(scales, { baby: 0.6 });
   assert.deepEqual(ignored.sort(), ['adult', 'larve', 'senior']);
-  assert.deepEqual(stagesOverrides(undefined), { scales: {}, ignored: [] });
+  assert.deepEqual(stagesOverrides(undefined), { scales: {}, folders: {}, ignored: [] });
+});
+
+test('stagesOverrides : dossier de stade, échelle facultative, chemins dangereux refusés', () => {
+  const { scales, folders, ignored } = stagesOverrides({
+    baby: { folder: 'sprites/baby' },
+    young: { scale: 0.8, folder: 'sprites/young' },
+    senior: { folder: '../evil' },
+    adult: { folder: '/etc' },
+  });
+  assert.deepEqual(folders, { baby: 'sprites/baby', young: 'sprites/young' });
+  assert.deepEqual(scales, { baby: 1, young: 0.8 });
+  assert.deepEqual(ignored.sort(), ['adult', 'senior']);
 });

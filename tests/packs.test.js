@@ -104,6 +104,25 @@ for (const id of packIds) {
     assert.deepEqual(stagesOverrides(meta.stages).ignored, []);
   });
 
+  test(`pack "${id}" : feuilles de stade complètes et de mêmes dimensions`, () => {
+    const { folders } = stagesOverrides(meta.stages);
+    for (const [stage, folder] of Object.entries(folders)) {
+      for (const def of [...Object.values(meta.animations ?? {}), ...Object.values(meta.reactions ?? {})]) {
+        const name = def.file.split('/').pop();
+        if (name === 'egg.png') continue;
+        const staged = join(packDir, folder, name);
+        assert.ok(existsSync(staged), `${stage} : feuille absente ${folder}/${name}`);
+        assert.deepEqual(pngSize(staged), pngSize(join(packDir, def.file)), `${stage} : dimensions de ${name}`);
+      }
+    }
+  });
+
+  test(`pack "${id}" : l'œuf du pack a 4 frames`, () => {
+    const egg = meta.animations?.egg;
+    if (!egg) return;
+    assert.equal(egg.frames, 4);
+  });
+
   test(`pack "${id}" : succès valides`, () => {
     const { ignored } = achievementsOverrides(meta.achievements);
     assert.deepEqual(ignored, [], `succès ignorés : ${ignored.join(', ')}`);

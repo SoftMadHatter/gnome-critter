@@ -103,7 +103,8 @@
     "fly": { "file": "sprites/fly.png", "frames": 6, "frameDuration": 0.07, "loop": true },
     "flyFast": { "file": "sprites/flyFast.png", "frames": 4, "frameDuration": 0.045, "loop": true },
     "dive": { "file": "sprites/dive.png", "frames": 2, "frameDuration": 0.1, "loop": true },
-    "trick_flip": { "file": "sprites/trick_flip.png", "frames": 6, "frameDuration": 0.1, "loop": true }
+    "trick_flip": { "file": "sprites/trick_flip.png", "frames": 6, "frameDuration": 0.1, "loop": true },
+    "egg": { "file": "sprites/egg.png", "frames": 4, "frameDuration": 0.6, "loop": true }
   },
   "reactions": {
     "petted": { "file": "sprites/react_petted.png", "frames": 2, "frameDuration": 0.25, "sound": "sounds/petted.wav" },
@@ -126,5 +127,10 @@
     "birthday": { "file": "sprites/react_birthday.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/greeted.wav" },
     "gift": { "file": "sprites/react_gift.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/greeted.wav" },
     "reminded": { "file": "sprites/react_reminded.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/noticed.wav" }
+  },
+  "stages": {
+    "baby": { "scale": 1, "folder": "sprites/baby" },
+    "young": { "scale": 1, "folder": "sprites/young" },
+    "senior": { "scale": 1, "folder": "sprites/senior" }
   }
 }

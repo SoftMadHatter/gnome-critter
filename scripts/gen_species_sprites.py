@@ -386,6 +386,64 @@ def draw_bug_climb(img, d, p):
     d.line((20, 3 + b, 23, 0 + b), fill=BUG_LEG)
 
 
+# Larve : la chenille du bébé insecte, mêmes poses (donc mêmes déplacements) que l'adulte.
+CAT_BASE = c(150, 214, 96)
+CAT_DARK = c(84, 150, 72)
+CAT_LIGHT = c(214, 242, 150)
+CAT_HEAD = c(236, 170, 70)
+CAT_HEAD_DARK = c(190, 118, 44)
+CAT_HEAD_LIGHT = c(250, 214, 130)
+
+
+def draw_caterpillar(img, d, p):
+    """Cinq anneaux qui ondulent (un pic de bosse parcourt le corps quand `phase` avance) et une tête orangée."""
+    b = p.bob
+    bottom = min(28 + b, 30)
+    height = 7 - (2 if p.squash else 0)
+    xs = (5, 9, 13, 17, 21)
+    lifts = []
+    for i in range(len(xs)):
+        t = (p.phase or 0) / 6 - i / 5
+        lifts.append(max(0, round(2 * math.sin(2 * math.pi * t))) if p.phase is not None else 0)
+    if p.kind == "back":  # sur le dos : anneaux à plat, pattes en l'air
+        lifts = [0] * len(xs)
+        for x in xs:
+            d.line((x, bottom - height, x + 1, bottom - height - 3), fill=BUG_LEG)
+    else:
+        for i, x in enumerate(xs):
+            d.point((x, bottom + 1 if lifts[i] == 0 else bottom), fill=BUG_LEG)
+    for i, x in enumerate(xs):
+        top = bottom - height - lifts[i]
+        blob(d, (x - 3, top, x + 3, bottom - lifts[i]), CAT_BASE, CAT_DARK, CAT_LIGHT)
+        if i % 2 == 1:
+            d.line((x, top + 1, x, bottom - lifts[i] - 1), fill=CAT_DARK)
+    h = p.head
+    top = bottom - height - 1 + h
+    blob(d, (22, top, 30, bottom), CAT_HEAD, CAT_HEAD_DARK, CAT_HEAD_LIGHT)
+    eye(d, 27, top + 3, "open" if p.eyes == "blink" else p.eyes)
+    if p.carry:
+        carry_item(d, 29, top + 5)
+    aw = -1 if p.tail < 0 else p.tail
+    d.line((26, top, 27, top - 3 - aw), fill=BUG_LEG)
+    d.line((24, top, 24, top - 3 + aw), fill=BUG_LEG)
+    mark(d, p.mark, 5, 1)
+
+
+def draw_caterpillar_climb(img, d, p):
+    """Chenille à la verticale : la bosse remonte le long du corps."""
+    b = p.bob
+    ys = (27, 22, 17, 12, 7)
+    for i, y in enumerate(ys):
+        t = (p.phase or 0) / 6 - i / 5
+        dx = round(2 * math.sin(2 * math.pi * t))
+        d.line((11 + dx, y + b, 8 + dx, y + b + 1), fill=BUG_LEG)
+        d.line((21 + dx, y + b, 24 + dx, y + b + 1), fill=BUG_LEG)
+        blob(d, (12 + dx, y - 3 + b, 20 + dx, y + 3 + b), CAT_BASE, CAT_DARK, CAT_LIGHT)
+    blob(d, (12, -1 + b, 20, 5 + b), CAT_HEAD, CAT_HEAD_DARK, CAT_HEAD_LIGHT)
+    d.point((14, 3 + b), fill=INK)
+    d.point((18, 3 + b), fill=INK)
+
+
 def bug_sheets():
     s = common_sheets()
     s.update(legged(stride=2))
@@ -546,7 +604,7 @@ DURATIONS = {
     "idle": 0.5, "walk": 0.1, "fall": 0.12, "drag": 0.12, "sleep": 0.8, "wash": 0.25, "climb": 0.12,
     "ceiling": 0.1, "follow": 0.09, "greet": 0.2, "seekWall": 0.1, "seekFocus": 0.09, "seekNap": 0.14,
     "chase": 0.06, "flee": 0.06, "run": 0.06, "seekFood": 0.1, "eat": 0.16, "play": 0.09, "brushed": 0.35,
-    "remind": 0.12, "gift": 0.1, "hunt": 0.08, "relieve": 0.35, "hibernate": 0.9, "fly": 0.07, "flyFast": 0.045,
+    "remind": 0.12, "gift": 0.1, "hunt": 0.08, "relieve": 0.35, "hibernate": 0.9, "egg": 0.6, "fly": 0.07, "flyFast": 0.045,
     "dive": 0.1, "swim": 0.12, "swimFast": 0.07, "trick_sit": 0.3, "trick_roll": 0.1, "trick_flip": 0.1,
 }
 
@@ -566,26 +624,27 @@ SPECIES = {
         sheets=cat_sheets, out=CAT_OUT,
         draw=lambda img, d, p: {"sleep": draw_cat_sleep, "wash": draw_cat_wash, "climb": draw_cat_climb}.get(p.kind, draw_cat)(img, d, p),
         flip={"ceiling": "walk"},
-        states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_sit", "trick_roll"]),
+        states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_sit", "trick_roll", "egg"]),
     ),
     "bug": dict(
         sheets=bug_sheets, out=c(20, 34, 22),
         draw=lambda img, d, p: (draw_bug_climb if p.kind == "climb" else draw_bug)(img, d, p),
         flip={"ceiling": "walk"},
-        states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_roll"]),
+        stage_draw={"baby": lambda img, d, p: (draw_caterpillar_climb if p.kind == "climb" else draw_caterpillar)(img, d, p)},
+        states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_roll", "egg"]),
     ),
     "fish": dict(
         sheets=fish_sheets, out=c(96, 40, 8),
         draw=draw_fish, flip={},
         states=make_states([
             "idle", "fall", "drag", "swim", "swimFast", "seekFood", "eat", "play", "hunt", "remind", "gift",
-            "hibernate", "trick_flip",
+            "hibernate", "trick_flip", "egg",
         ]),
     ),
     "bird": dict(
         sheets=bird_sheets, out=c(16, 30, 64),
         draw=draw_bird, flip={},
-        states=make_states(GROUND_STATES + ["fly", "flyFast", "dive", "trick_flip"]),
+        states=make_states(GROUND_STATES + ["fly", "flyFast", "dive", "trick_flip", "egg"]),
     ),
 }
 
@@ -604,6 +663,171 @@ REACTIONS = {
 }
 
 
+# --- œufs propres à chaque espèce ------------------------------------------------
+
+EGG_STYLES = {
+    "cat": dict(base=c(226, 218, 204), dark=c(168, 158, 146), light=c(248, 244, 236), pattern="stripes", mark=c(120, 120, 134)),
+    "bird": dict(base=c(164, 206, 240), dark=c(110, 160, 210), light=c(220, 240, 252), pattern="spots", mark=c(60, 110, 190)),
+    "bug": dict(base=c(160, 216, 140), dark=c(100, 170, 100), light=c(230, 250, 210), pattern="pearl", mark=c(60, 120, 70)),
+    "fish": dict(base=c(190, 226, 248), dark=c(120, 170, 220), light=c(240, 250, 255), pattern="bubble", mark=c(240, 140, 50)),
+}
+
+
+def egg_frame(style, out, tilt=0, cracked=False):
+    img, d = new_canvas()
+    box = (8, 5, 23, 29)
+    if style["pattern"] == "bubble":
+        d.ellipse(box, fill=style["base"][:3] + (150,))
+        d.ellipse((10, 7, 14, 11), fill=style["light"][:3] + (220,))  # reflet
+        d.polygon([(13, 19), (19, 16), (19, 22)], fill=style["mark"])  # petit poisson dedans
+        d.polygon([(19, 19), (22, 17), (22, 21)], fill=style["mark"])
+        d.point((14, 18), fill=INK)
+    else:
+        blob(d, box, style["base"], style["dark"], style["light"])
+        if style["pattern"] == "stripes":
+            for y in (10, 14, 18, 22):
+                d.line((10, y, 13, y + 1), fill=style["mark"])
+                d.line((18, y + 1, 21, y), fill=style["mark"])
+        elif style["pattern"] == "spots":
+            for x, y in ((11, 12), (17, 10), (15, 18), (19, 21), (11, 23), (13, 15)):
+                d.rectangle((x, y, x + 1, y + 1), fill=style["mark"])
+        else:  # nacré : reflets pâles
+            for x, y in ((11, 11), (14, 14), (17, 12), (12, 20), (18, 19)):
+                d.line((x, y, x + 2, y + 1), fill=style["light"])
+            for x, y in ((15, 9), (10, 17), (19, 24)):
+                d.point((x, y), fill=style["mark"])
+    if cracked:
+        for (x0, y0), (x1, y1) in (((13, 8), (15, 11)), ((15, 11), (14, 14)), ((14, 14), (18, 16))):
+            d.line((x0, y0, x1, y1), fill=INK)
+    if tilt:
+        img = img.rotate(tilt, resample=Image.NEAREST, center=(16, 28))
+    outline(img, out)
+    return img
+
+
+def species_egg(species, out):
+    """Œuf de l'espèce : posé, deux oscillations, fissuré."""
+    style = EGG_STYLES[species]
+    return [egg_frame(style, out), egg_frame(style, out, tilt=-10), egg_frame(style, out, tilt=10), egg_frame(style, out, cracked=True)]
+
+
+# --- stades de croissance : bébé, jeune, senior ------------------------------------
+
+# Abscisse (grille 32) qui sépare le corps de la tête, sprite tourné vers la droite.
+HEAD_SPLIT = {"cat": 17, "bird": 15, "bug": 21, "fish": 21}
+
+# body/head : facteurs d'échelle du corps et de la tête (bébé : grosse tête, petit corps) ;
+# uniform : réduction des feuilles pivotées ; lighten : éclaircissement ; gray : fondu vers un gris clair (poil grisonnant).
+STAGE_CFG = {
+    "baby": dict(body=0.62, head=1.0, uniform=0.7, lighten=0.10, head_gray=0.0, body_gray=0.0),
+    "young": dict(body=0.86, head=0.94, uniform=0.88, lighten=0.06, head_gray=0.0, body_gray=0.0),
+    "senior": dict(body=1.0, head=1.0, uniform=1.0, lighten=0.0, head_gray=0.45, body_gray=0.22),
+}
+GRAY_HAIR = (215, 215, 225)
+
+
+def _mix(color, target, amount):
+    return tuple(round(color[i] + (target[i] - color[i]) * amount) for i in range(3))
+
+
+def tint_stage(frame, split, cfg):
+    """Éclaircit et/ou grisonne les pixels clairs (les contours sombres restent intacts)."""
+    img = frame.copy()
+    px = img.load()
+    for y in range(G):
+        for x in range(G):
+            r, g, b, a = px[x, y]
+            if a == 0 or 0.3 * r + 0.59 * g + 0.11 * b < 70:
+                continue
+            gray = cfg["head_gray"] if x >= split else cfg["body_gray"]
+            color = (r, g, b)
+            if gray:
+                color = _mix(color, GRAY_HAIR, gray)
+            if cfg["lighten"]:
+                color = _mix(color, (255, 255, 255), cfg["lighten"])
+            px[x, y] = color + (a,)
+    return img
+
+
+def _scaled(img, factor):
+    if factor == 1:
+        return img
+    w, h = img.size
+    return img.resize((max(1, round(w * factor)), max(1, round(h * factor))), Image.NEAREST)
+
+
+def uniform_stage(frame, factor, bbox):
+    """Réduction uniforme du contenu, pieds alignés sur ceux de l'original et centré."""
+    if factor == 1:
+        return frame
+    content = _scaled(frame.crop(bbox), factor)
+    out = Image.new("RGBA", (G, G), (0, 0, 0, 0))
+    cx = (bbox[0] + bbox[2]) // 2
+    out.paste(content, (min(max(cx - content.width // 2, 0), G - content.width), bbox[3] - content.height), content)
+    return out
+
+
+def morph_stage(frame, split, body, head, bbox):
+    """Coupe corps/tête, les met chacun à son échelle, les rejoint : proportions différentes du même animal."""
+    left, right = frame.crop((0, 0, split, G)), frame.crop((split, 0, G, G))
+    lb0, rb0 = left.getbbox(), right.getbbox()
+    if lb0 is None or rb0 is None or (body == 1 and head == 1):
+        return frame
+    left_s, right_s = _scaled(left, body), _scaled(right, head)
+    lb, rb = left_s.getbbox(), right_s.getbbox()
+    feet = bbox[3]
+    canvas = Image.new("RGBA", (G * 2, G * 2), (0, 0, 0, 0))
+    off = G // 2
+    left_y = feet - lb[3]
+    canvas.paste(left_s, (off, left_y + off), left_s)
+    head_bottom = feet - round((feet - rb0[3]) * body)
+    right_x = lb[2] - 1 - rb[0]
+    canvas.paste(right_s, (right_x + off, head_bottom - rb[3] + off), right_s)
+    bb = canvas.getbbox()
+    shift = (bbox[0] + bbox[2]) // 2 - (bb[0] + bb[2]) // 2
+    out = Image.new("RGBA", (G, G), (0, 0, 0, 0))
+    out.paste(canvas, (shift - 0, -off), canvas)
+    return out
+
+
+def is_uniform_sheet(poses):
+    """Feuilles pivotées, endormies ou d'escalade : réduites d'un bloc (pas de coupe corps/tête)."""
+    return any(p.rot or p.kind in ("sleep", "climb") or p.blanket for p in poses)
+
+
+def build_stage(spec, species, poses, sheets, stage):
+    if stage in spec.get("stage_draw", {}):
+        # Stade dessiné à part (larve) : mêmes poses, autre silhouette.
+        alt = dict(spec, draw=spec["stage_draw"][stage])
+        out = {name: [render(alt, p) for p in ps] for name, ps in poses.items()}
+        for name, src in spec["flip"].items():
+            out[name] = [ImageOps.flip(f) for f in out[src]]
+        return out
+    cfg = STAGE_CFG[stage]
+    split = HEAD_SPLIT[species]
+    out = {}
+    for name, frames in sheets.items():
+        if name in spec["flip"] or name == "egg":
+            continue
+        uniform = is_uniform_sheet(poses[name])
+        frames_out = []
+        for frame in frames:
+            bbox = frame.getbbox()
+            if bbox is None:
+                frames_out.append(frame)
+                continue
+            img = tint_stage(frame, split, cfg)
+            if uniform:
+                img = uniform_stage(img, cfg["uniform"], bbox)
+            else:
+                img = morph_stage(img, split, cfg["body"], cfg["head"], bbox)
+            frames_out.append(img)
+        out[name] = frames_out
+    for name, src in spec["flip"].items():
+        out[name] = [ImageOps.flip(f) for f in out[src]]
+    return out
+
+
 def render(spec, p):
     img, d = new_canvas()
     spec["draw"](img, d, p)
@@ -617,13 +841,14 @@ def render(spec, p):
     return img
 
 
-def build_sheets(spec):
-    """nom de feuille -> liste d'images (les feuilles miroir sont dérivées)."""
+def build_sheets(spec, species):
+    """(nom de feuille -> images, nom de feuille -> poses) ; les feuilles miroir sont dérivées."""
     poses = spec["sheets"]()
     sheets = {name: [render(spec, p) for p in ps] for name, ps in poses.items()}
     for name, src in spec["flip"].items():
         sheets[name] = [ImageOps.flip(f) for f in sheets[src]]
-    return sheets
+    sheets["egg"] = species_egg(species, spec["out"])
+    return sheets, poses
 
 
 def save_sheet(path, frames):
@@ -649,7 +874,7 @@ def write_species(name):
     pack_dir = PACKS_DIR / name
     out_dir = pack_dir / "sprites"
     out_dir.mkdir(parents=True, exist_ok=True)
-    sheets = build_sheets(spec)
+    sheets, poses = build_sheets(spec, name)
     for sheet_name, frames in sheets.items():
         save_sheet(out_dir / f"{sheet_name}.png", frames)
         print(f"écrit {name}/sprites/{sheet_name}.png ({len(frames)} frames)")
@@ -670,6 +895,15 @@ def write_species(name):
         used.add(sheet)
     meta["animations"] = animations
     meta["reactions"] = reactions
+
+    # Un dossier par stade (bébé, jeune, senior) : mêmes noms de feuilles, proportions et poil différents.
+    meta["stages"] = {}
+    for stage in STAGE_CFG:
+        stage_dir = out_dir / stage
+        stage_dir.mkdir(exist_ok=True)
+        for sheet_name, frames in build_stage(spec, name, poses, sheets, stage).items():
+            save_sheet(stage_dir / f"{sheet_name}.png", frames)
+        meta["stages"][stage] = {"scale": 1, "folder": f"sprites/{stage}"}
     pack_path.write_text(compact_json(meta), encoding="utf-8")
     for orphan in sorted(set(sheets) - used):
         print(f"  (feuille non référencée : {orphan})")

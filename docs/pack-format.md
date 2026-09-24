@@ -138,8 +138,8 @@ proie (voir `docs/autonomy.md`).
 ## Apparence et stades (`appearance`, `stages`)
 
 Sections optionnelles décrites dans `docs/life.md` : plage de teinte et
-colorisation des gris (`appearance`), échelle d'affichage par stade
-(`stages`). Animations facultatives `egg` et `hibernate` ; réactions
+colorisation des gris (`appearance`), échelle d'affichage et dossier de
+feuilles par stade (`stages`, ex. `"baby": { "folder": "sprites/baby" }`). Animations facultatives `egg` (4 frames) et `hibernate` ; réactions
 `hatched`, `grew`, `awakened`.
 
 ## Progression (`achievements`, `tricks`, `anchors`)

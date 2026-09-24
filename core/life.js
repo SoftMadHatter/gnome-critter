@@ -66,16 +66,25 @@ export function modifiersFor(trait, stage) {
 /** Valide la section `stages` d'un pack.json : échelle d'affichage par stade. */
 export function stagesOverrides(raw = {}) {
   const scales = {};
+  const folders = {};
   const ignored = [];
   for (const [stage, def] of Object.entries(raw ?? {})) {
-    const scale = def?.scale;
-    if (STAGES.includes(stage) && def && typeof def === 'object' && Number.isFinite(scale) && scale >= 0.25 && scale <= 2) {
-      scales[stage] = scale;
-    } else {
+    if (!STAGES.includes(stage) || !def || typeof def !== 'object') {
       ignored.push(stage);
+      continue;
     }
+    const hasFolder = def.folder !== undefined;
+    const folderOk = typeof def.folder === 'string' && /^[\w-]+(\/[\w-]+)*$/.test(def.folder);
+    const scaleOk = Number.isFinite(def.scale) && def.scale >= 0.25 && def.scale <= 2;
+    // Avec un dossier, l'échelle est facultative (1 : les feuilles sont déjà à la bonne taille).
+    if ((hasFolder && !folderOk) || (def.scale !== undefined && !scaleOk) || (!hasFolder && !scaleOk)) {
+      ignored.push(stage);
+      continue;
+    }
+    if (hasFolder) folders[stage] = def.folder;
+    scales[stage] = scaleOk ? def.scale : 1;
   }
-  return { scales, ignored };
+  return { scales, folders, ignored };
 }
 
 export class Life {

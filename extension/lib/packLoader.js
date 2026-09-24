@@ -18,6 +18,7 @@ import St from 'gi://St';
 import Cogl from 'gi://Cogl';
 
 import { shiftPixels, appearanceOverrides } from '../core/colorShift.js';
+import { stagesOverrides } from '../core/life.js';
 
 /**
  * @param {GdkPixbuf.Pixbuf} pixbuf
@@ -142,35 +143,49 @@ export function loadPack(packDirPath) {
     return sheets.get(relativePath);
   };
 
-  const buildFrames = (transform) => {
+  // Dossier de feuilles propre à un stade (bébé, jeune, senior) ; une feuille absente retombe sur l'adulte.
+  const stageFolders = stagesOverrides(meta.stages).folders;
+  const fileFor = (file, stage) => {
+    const folder = stageFolders[stage];
+    if (!folder) return file;
+    const candidate = `${folder}/${file.split('/').pop()}`;
+    return dir.get_child(candidate).query_exists(null) ? candidate : file;
+  };
+
+  const buildFrames = (transform, stage) => {
     const animationFrames = {};
     for (const [state, def] of Object.entries(meta.animations ?? {})) {
-      animationFrames[state] = sliceFrames(sheetOf(def.file), def.file, def.frames, transform);
+      const file = fileFor(def.file, stage);
+      animationFrames[state] = sliceFrames(sheetOf(file), file, def.frames, transform);
     }
     const reactionFrames = {};
     for (const [name, def] of Object.entries(meta.reactions ?? {})) {
-      reactionFrames[name] = sliceFrames(sheetOf(def.file), def.file, def.frames, transform);
+      const file = fileFor(def.file, stage);
+      reactionFrames[name] = sliceFrames(sheetOf(file), file, def.frames, transform);
     }
     return { animationFrames, reactionFrames };
   };
 
-  const base = buildFrames(null);
+  const base = buildFrames(null, null);
   const variants = new Map();
-  const framesFor = (appearance) => {
-    if (!appearanceConfig.enabled || isIdentity(appearance, appearanceConfig.colorizeGrays)) return base;
-    const key = cacheKey(appearance);
+  const framesFor = (appearance, stage = null) => {
+    const stageKey = stageFolders[stage] ? stage : null; // sans dossier, tous les stades partagent le jeu adulte
+    const identity = !appearanceConfig.enabled || isIdentity(appearance, appearanceConfig.colorizeGrays);
+    if (identity && !stageKey) return base;
+    const key = `${stageKey}|${identity ? 'base' : cacheKey(appearance)}`;
     if (!variants.has(key)) {
       variants.set(
         key,
-        buildFrames((pixels) =>
+        identity
+          ? buildFrames(null, stageKey)
+          : buildFrames((pixels) =>
           shiftPixels(pixels, {
             hue: appearance.hue,
             saturation: appearance.saturation,
             colorizeGrays: appearanceConfig.colorizeGrays,
             tone: appearance.tone,
             graySaturation: appearanceConfig.graySaturation,
-          }),
-        ),
+          }), stageKey),
       );
     }
     return variants.get(key);
