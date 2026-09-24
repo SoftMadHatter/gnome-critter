@@ -2667,3 +2667,54 @@ test('autonomie : besoins ralentis, et pas d’hibernation', () => {
   c.tick(1, surfaces, { worldBounds: monitor });
   assert.equal(c.snapshot().autonomy, 0);
 });
+
+// --- Bouchées et nouveaux jouets ------------------------------------------------
+
+test('un animal presque repu mange une bouchée et laisse un reste entamé', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces); // préféré : 2 bouchées de 30
+  const c = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  c.needs.values.satiety = 60;
+  const seen = run(c, surfaces, [fish], 30, (snap) => snap.event === 'ate');
+  assert.ok(seen.has(State.EAT));
+  assert.equal(c.needs.values.satiety, 90);
+  assert.equal(fish.portions, 1);
+  assert.ok(!fish.consumed && fish.claimedBy === null, 'reste entamé, libre pour plus tard');
+  assert.equal(c.stats.get('meals'), 1);
+  assert.equal(c.stats.get('mealsFavorite'), 0, 'le repas du préféré n\'est pas fini');
+});
+
+test('la pelote se frappe comme la balle', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const yarn = settleItem(createItem('toy', 'yarn', 300, 50), surfaces);
+  const c = playerOf({ playDuration: [4, 4] }, [yarn], surfaces);
+  c.needs.values.stimulation = 10;
+  runPlay(c, surfaces, { items: [yarn] }, 30, () => c.lastEvent === 'played');
+  assert.equal(c.lastEvent, 'played');
+  assert.ok(c.stats.get('ballKicks') >= 1);
+});
+
+test("un poisson qui s'ennuie va pousser l'anneau flottant", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ring = createItem('toy', 'ring', 600, 200);
+  const c = new Critter(
+    {
+      random: fixedRandom(0.1), needsRateScale: 0, needsDiet: { plankton: 40 },
+      supportedSurfaces: new Set([Locomotion.WATER]), swimSpeed: 200, swimWaveAmplitude: 0, playDuration: [6, 6],
+    },
+    { x: 100, y: 300 },
+  );
+  c._startRoam(State.SWIM);
+  c.needs.values.stimulation = 10;
+  c.needs.values.satiety = 100;
+  const seen = new Set();
+  let pushed = false;
+  for (let i = 0; i < 30 * 30 && c.lastEvent !== 'played'; i++) {
+    seen.add(c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [ring] }).state);
+    tickItem(ring, 1 / 30, surfaces, monitor);
+    if (ring.vx !== 0 || ring.vy !== 0) pushed = true;
+  }
+  assert.ok(seen.has(State.PLAY));
+  assert.ok(pushed, "l'anneau a été poussé");
+  assert.equal(c.lastEvent, 'played');
+});

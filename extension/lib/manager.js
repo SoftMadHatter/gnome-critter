@@ -26,7 +26,8 @@ import { CONDITION_STATS } from '../core/stats.js';
 import { STAGE_LABELS } from './lifeLabels.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
-  createItem, fillBowl, tickItem, PLANTS, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
+  createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
+  pickVariant, toyFits,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
@@ -59,7 +60,7 @@ export class Manager {
     this._settingsIds = [];
     /** @type {{item: object, actor: ItemActor}[]} */
     this._items = [];
-    this._itemImages = {};
+    this._itemImages = { get: () => null }; // remplacé au chargement des sprites
     this._lastSavedItems = null;
     this._eggSheet = null;
     this._preySpawner = new PreySpawner();
@@ -118,7 +119,8 @@ export class Manager {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "anchors" ignorées : ${anchors.ignored.join(', ')}`);
     }
     this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
-    if (this._itemImages.laser) this._laserDot = new LaserDot(this._itemImages.laser);
+    const laser = this._itemImages.get('laser');
+    if (laser) this._laserDot = new LaserDot(laser);
     try {
       this._eggSheet = loadVariantSheet(GLib.build_filenamev([this._extensionPath, 'assets', 'life', 'egg.png']));
     } catch (e) {
@@ -294,7 +296,10 @@ export class Manager {
 
   /** Bouton « Nourrir » : l'aliment gratuit que l'espèce préfère (à défaut le moins cher), qui tombe près d'elle. */
   quickFeed(critter) {
-    const kinds = Object.entries(critter.config.needsDiet).sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
+    const kinds = Object.entries(critter.config.needsDiet)
+      .filter(([kind]) => FOODS[kind]) // les plantes du régime ne se posent pas comme un aliment
+      .sort((a, b) => b[1] - a[1])
+      .map(([kind]) => kind);
     const kind = kinds.find((k) => !(FOOD_PRICES[k] > 0)) ?? kinds.sort((a, b) => (FOOD_PRICES[a] ?? 0) - (FOOD_PRICES[b] ?? 0))[0];
     if (kind && this._pay(FOOD_PRICES[kind] ?? 0)) this._dropNear('food', kind, critter);
   }
@@ -487,8 +492,10 @@ export class Manager {
       equip: (critter, id) => critter.equip(id),
       shopList: () => shopList(new Date(), this._player.owned),
       buyAccessory: (id) => this.buyAccessory(id),
-      dropBed: (critter) => this._dropNear('bed', null, critter),
-      dropToy: (kind, critter) => this._dropNear('toy', kind, critter),
+      dropBed: (critter, model) => this._dropNear('bed', null, critter, model),
+      dropBowl: (critter, model) => this._dropNear('bowl', null, critter, model),
+      dropToy: (kind, critter) => this._dropNear('toy', kind, critter, pickVariant(kind)),
+      toyKinds: () => this._toyKinds(),
       brush: (critter) => critter.brush(),
       preyKinds: () => this._preyKinds(),
       plantKinds: () => this._plantKinds(),
@@ -504,13 +511,22 @@ export class Manager {
     };
   }
 
-  /** Aliments que connaissent les animaux affichés, le plus apprécié d'abord. */
+  /** Aliments que connaissent les animaux affichés (sans les plantes, posées à part), le plus apprécié d'abord. */
   _foods() {
     const diet = {};
     for (const { critter } of this._critters) {
-      for (const [kind, gain] of Object.entries(critter.config.needsDiet)) diet[kind] = Math.max(diet[kind] ?? 0, gain);
+      for (const [kind, gain] of Object.entries(critter.config.needsDiet)) {
+        if (FOODS[kind]) diet[kind] = Math.max(diet[kind] ?? 0, gain);
+      }
     }
     return Object.entries(diet).sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
+  }
+
+  /** Jouets adaptés à l'espèce affichée : flottants pour une espèce sans sol, posés sinon. */
+  _toyKinds() {
+    const critter = this._critters[0]?.critter;
+    const groundless = critter ? !critter.supports(Locomotion.GROUND) : false;
+    return Object.keys(TOYS).filter((kind) => toyFits(kind, groundless));
   }
 
   _addItem(item) {
@@ -520,14 +536,14 @@ export class Manager {
     return item;
   }
 
-  /** Lâche un objet juste à côté (au-dessus) de l'animal, il retombe. */
-  _dropNear(type, kind, critter) {
+  /** Lâche un objet juste à côté (au-dessus) de l'animal, il retombe ; `model` : modèle ou variante. */
+  _dropNear(type, kind, critter, model = null) {
     const bounds = computeWorldBounds(getMonitors());
     // Sans animal précis (menu global) : tombe en haut de l'écran, à l'abscisse du curseur.
     const anchor = critter ?? { x: getPointer().x, y: bounds.y + 110, facing: 0 };
     const x = Math.min(Math.max(anchor.x + anchor.facing * 48, bounds.x + 16), bounds.x + bounds.width - 16);
     const y = Math.max(bounds.y + 20, anchor.y - 90);
-    return this._addItem(createItem(type, kind, x, y));
+    return this._addItem(createItem(type, kind, x, y, model));
   }
 
   _fillBowl(kind, critter) {

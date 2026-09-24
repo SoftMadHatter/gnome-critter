@@ -132,8 +132,9 @@ Section optionnelle pour régler la vitesse à laquelle chaque besoin baisse
 }
 ```
 
-`diet` : aliments que l'espèce mange (`meat`, `fish`, `kibble`, `seeds`,
-`plankton`) et plantes qu'elle grignote (`grass`, `berries`, `leaf`, `algae`),
+`diet` : aliments que l'espèce mange (`meat`, `fish`, `pate`, `kibble`,
+`seeds`, `mealworms`, `apple`, et les flottants `plankton`, `flakes`) et
+plantes qu'elle grignote (`grass`, `berries`, `leaf`, `algae`),
 avec le gain de satiété de chacun ; un aliment absent est ignoré. `prey` : proies
 qu'elle chasse (`mouse`, `beetle`, `aphid`, `krill`) et gain de satiété par
 proie (voir `docs/autonomy.md`).

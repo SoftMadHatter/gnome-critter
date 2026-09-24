@@ -13,7 +13,7 @@
   "behavior": { "sleepWeight": 15, "sleepDuration": [120, 900], "washWeight": 15, "followWeight": 20, "climbSeekWeight": 8, "playWeight": 45 },
   "needs": {
     "decayPerHour": { "energy": 3, "cleanliness": 2 },
-    "diet": { "fish": 60, "meat": 45, "kibble": 30, "grass": 8 },
+    "diet": { "fish": 60, "pate": 50, "meat": 45, "kibble": 30, "grass": 8 },
     "prey": { "mouse": 40 }
   },
   "appearance": { "colorizeGrays": true, "graySaturation": 0.4 },

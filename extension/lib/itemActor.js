@@ -8,38 +8,23 @@ import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { loadImage } from './packLoader.js';
-import { throwItem, isMoldy, isDirty, isOldMess, PLANTS } from '../core/items.js';
-import { PREY } from '../core/prey.js';
+import { throwItem } from '../core/items.js';
+import { spriteName, spriteSize } from '../core/itemLooks.js';
 
 const THROW_WINDOW_US = 100_000; // fenêtre de mesure de la vitesse du glisser
 const MAX_THROW_SPEED = 900; // px/s
-
-/** Taille d'affichage par type d'objet (px, sprites à taille réelle). */
-const SIZES = { food: { width: 16, height: 16 }, bowl: { width: 24, height: 12 }, bed: { width: 32, height: 12 } };
-const TOY_SIZES = { ball: { width: 12, height: 12 }, plush: { width: 16, height: 14 } };
-
-const PREY_SIZES = { mouse: { width: 16, height: 10 }, beetle: { width: 10, height: 8 }, aphid: { width: 6, height: 5 }, krill: { width: 8, height: 6 } };
-const PLANT_SIZE = { width: 16, height: 14 };
-const LITTER_SIZE = { width: 24, height: 10 };
-const MESS_SIZE = { width: 10, height: 6 };
 const PREY_FRAME_SECONDS = 0.18; // cadence des deux frames de marche
-
-const sizeOf = (item) => {
-  if (item.type === 'toy') return TOY_SIZES[item.kind];
-  if (item.type === 'gift') return { width: 12, height: 12 };
-  if (item.type === 'prey') return PREY_SIZES[item.kind];
-  if (item.type === 'plant') return PLANT_SIZE;
-  if (item.type === 'litter') return LITTER_SIZE;
-  if (item.type === 'mess') return MESS_SIZE;
-  return SIZES[item.type];
-};
 
 export const FOOD_LABELS = {
   meat: 'Viande',
   fish: 'Poisson',
+  pate: 'Pâtée',
   kibble: 'Croquettes',
   seeds: 'Graines',
+  mealworms: 'Vers de farine',
+  apple: 'Pomme',
   plankton: 'Plancton',
+  flakes: 'Flocons',
 };
 
 import { FOOD_PRICES } from '../core/accessories.js';
@@ -50,54 +35,41 @@ export function foodLabel(kind, portions = 1) {
   return `${FOOD_LABELS[kind] ?? kind}${price > 0 ? ` (${price} pièces)` : ''}`;
 }
 
-export const TOY_LABELS = { ball: 'Balle', plush: 'Peluche' };
+export const TOY_LABELS = { ball: 'Balle', yarn: 'Pelote de laine', plush: 'Peluche', ring: 'Anneau flottant' };
+export const BED_LABELS = { cushion: 'Coussin', basket: 'Panier', cradle: 'Couffin' };
+export const BOWL_LABELS = { ceramic: 'Céramique', steel: 'Inox', wood: 'Bois' };
 
 export const PREY_LABELS = { mouse: 'Souris', beetle: 'Scarabée', aphid: 'Puceron', krill: 'Krill' };
 export const PLANT_LABELS = { grass: 'Herbe', berries: 'Baies', leaf: 'Feuille', algae: 'Algue' };
 
-const IMAGE_NAMES = [
-  'meat', 'fish', 'kibble', 'seeds', 'plankton', 'bowl_empty', 'bowl_full', 'bowl_moldy', 'bed', 'ball', 'plush',
-  'laser', 'coin', 'flower', 'feather', 'litter_clean', 'litter_dirty', 'mess', 'mess_old',
-  ...Object.keys(PREY).flatMap((kind) => [`${kind}_0`, `${kind}_1`]),
-  ...Object.keys(PLANTS).flatMap((kind) => [0, 1, 2, 3].map((n) => `${kind}_${n}`)),
-];
-
 /**
+ * Sprites d'objets (noms : core/itemLooks.js), chargés à la première demande
+ * puis gardés en cache ; un sprite absent n'est signalé qu'une fois.
  * @param {string} dir extension/assets/items
- * @returns {Record<string, St.ImageContent>} vide si le chargement échoue
+ * @returns {{get: (name: string) => St.ImageContent|null}}
  */
 export function loadItemImages(dir) {
-  const images = {};
-  try {
-    for (const name of IMAGE_NAMES) images[name] = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
-  } catch (e) {
-    console.warn(`Scamper : sprites d'objets indisponibles (${e.message})`);
-    return {};
-  }
-  return images;
-}
-
-function imageName(item) {
-  if (item.type === 'bed') return 'bed';
-  if (item.type === 'bowl') {
-    if (isMoldy(item)) return 'bowl_moldy';
-    return item.portions > 0 ? 'bowl_full' : 'bowl_empty';
-  }
-  if (item.type === 'plant') return `${item.kind}_${item.portions}`;
-  if (item.type === 'litter') return isDirty(item) ? 'litter_dirty' : 'litter_clean';
-  if (item.type === 'mess') return isOldMess(item) ? 'mess_old' : 'mess';
-  if (item.type === 'prey') {
-    // Deux frames de marche alternées tant que la proie bouge.
-    const frame = item.moving ? Math.floor(GLib.get_monotonic_time() / 1_000_000 / PREY_FRAME_SECONDS) % 2 : 0;
-    return `${item.kind}_${frame}`;
-  }
-  return item.kind; // aliments et jouets : le nom du sprite est le `kind`
+  const cache = new Map();
+  return {
+    get(name) {
+      if (!cache.has(name)) {
+        let image = null;
+        try {
+          image = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
+        } catch (e) {
+          console.warn(`Scamper : sprite d'objet « ${name} » indisponible (${e.message})`);
+        }
+        cache.set(name, image);
+      }
+      return cache.get(name);
+    },
+  };
 }
 
 export class ItemActor {
   /**
    * @param {ReturnType<typeof import('../core/items.js').createItem>} item
-   * @param {Record<string, St.ImageContent>} images
+   * @param {ReturnType<typeof loadItemImages>} images
    */
   constructor(item, images) {
     this.item = item;
@@ -105,7 +77,7 @@ export class ItemActor {
     this._grab = null;
     this._imageName = null;
 
-    const size = sizeOf(item);
+    const size = spriteSize(item);
     this.actor = new Clutter.Actor({
       reactive: true,
       width: size.width,
@@ -113,7 +85,8 @@ export class ItemActor {
       pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
     });
     this._samples = []; // derniers points du glisser, pour l'élan au lancer
-    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
+    // Sprites dessinés au double de la taille d'affichage : réduction lissée, nette en HiDPI.
+    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
     this._setupGestures();
     this.sync();
   }
@@ -164,7 +137,7 @@ export class ItemActor {
     });
     pan.connect('pan-update', () => {
       const coords = pan.get_centroid_abs();
-      const size = sizeOf(this.item);
+      const size = spriteSize(this.item);
       this.item.x = coords.x;
       this.item.y = coords.y + size.height / 2;
       const now = GLib.get_monotonic_time();
@@ -196,11 +169,19 @@ export class ItemActor {
   }
 
   sync() {
-    const size = sizeOf(this.item);
-    const name = imageName(this.item);
-    if (name !== this._imageName && this._images[name]) {
-      this._imageName = name;
-      this.actor.content = this._images[name];
+    const size = spriteSize(this.item);
+    // Proie : deux frames de marche alternées tant qu'elle bouge.
+    const frame =
+      this.item.type === 'prey' && this.item.moving
+        ? Math.floor(GLib.get_monotonic_time() / 1_000_000 / PREY_FRAME_SECONDS) % 2
+        : 0;
+    const name = spriteName(this.item, frame);
+    if (name !== this._imageName) {
+      const image = this._images.get(name);
+      if (image) {
+        this._imageName = name;
+        this.actor.content = image;
+      }
     }
     this.actor.set_position(Math.round(this.item.x - size.width / 2), Math.round(this.item.y - size.height));
     if (this.item.type === 'prey') this.actor.scale_x = this.item.dir < 0 ? -1 : 1;
@@ -218,7 +199,7 @@ export class LaserDot {
   /** @param {St.ImageContent} image */
   constructor(image) {
     this.actor = new Clutter.Actor({ reactive: false, width: 8, height: 8, visible: false });
-    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
+    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
     this.actor.content = image;
     Main.layoutManager.uiGroup.add_child(this.actor);
   }

@@ -11,7 +11,7 @@
   "behavior": { "swimDuration": [6, 12], "swimWaveAmplitude": 0.8, "swimRetargetDuration": [6, 12], "playWeight": 0 },
   "needs": {
     "decayPerHour": { "energy": 0, "cleanliness": 0, "relief": 0 },
-    "diet": { "plankton": 40, "algae": 8 },
+    "diet": { "plankton": 40, "flakes": 35, "algae": 8 },
     "prey": { "krill": 25 }
   },
   "achievements": [

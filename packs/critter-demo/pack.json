@@ -13,7 +13,7 @@
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "walk": 40, "climb": 30, "swim": 25, "fly": 60 },
   "needs": {
-    "diet": { "kibble": 30, "seeds": 30, "meat": 30, "grass": 8 },
+    "diet": { "kibble": 30, "seeds": 30, "meat": 30, "pate": 30, "grass": 8 },
     "prey": { "mouse": 40 }
   },
   "tricks": [

@@ -13,7 +13,7 @@
   "behavior": { "idleDuration": [0.5, 1.5], "sleepWeight": 1, "sleepDuration": [5, 20], "washWeight": 2, "climbSeekWeight": 30, "playWeight": 12 },
   "needs": {
     "decayPerHour": { "stimulation": 16, "satiety": 8 },
-    "diet": { "seeds": 30, "meat": 25, "leaf": 10 },
+    "diet": { "seeds": 30, "meat": 25, "apple": 20, "leaf": 10 },
     "prey": { "aphid": 25 }
   },
   "achievements": [

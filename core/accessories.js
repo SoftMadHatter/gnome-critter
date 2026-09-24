@@ -12,7 +12,7 @@ export const ACCESSORIES = Object.freeze({
 });
 
 /** Prix en pièces d'un aliment premium (les autres sont gratuits). */
-export const FOOD_PRICES = Object.freeze({ meat: 2, fish: 3 });
+export const FOOD_PRICES = Object.freeze({ meat: 2, fish: 3, pate: 2 });
 
 export function inSeason(id, date) {
   const months = ACCESSORIES[id]?.months;

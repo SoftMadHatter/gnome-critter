@@ -36,15 +36,19 @@ Affection ██████   Santé ███████
 - **Sélecteur** : un bouton par animal ; la fiche affiche l'animal choisi.
 - **Fiche** : nom, stade, caractère ; six jauges sur deux colonnes.
 - **Actions rapides** (elles ne referment pas le menu) : « Nourrir » dépose
-  l'aliment gratuit que l'espèce préfère, « Jouer » une balle, « Brosser »,
+  l'aliment gratuit que l'espèce préfère, « Jouer » une balle (l'anneau
+  flottant pour le poisson), « Brosser »,
   « Câlin » (une caresse, qui réveille un animal hibernant). Grisées pour un
   œuf ; seul « Câlin » reste actif pour un hibernant.
 - **Plus…** : toutes les actions de l'animal choisi (renommer, aliments au
-  choix, gamelle, lit, jouets, tours, accessoires, réveiller), plus « Succès (n/m) »
-  et « Statistiques », qui ouvrent la fenêtre de progression.
-- **Bureau…** : mode vacances, pointeur laser, poser de la nourriture, une
-  gamelle, un lit ou un jouet (ils tombent en haut de l'écran, à l'abscisse du
-  curseur), ranger les jouets, retirer les objets.
+  choix, remplir ou poser une gamelle, lit, jouets, tours, accessoires,
+  réveiller), plus « Succès (n/m) » et « Statistiques », qui ouvrent la
+  fenêtre de progression. « Poser un lit » et « Poser une gamelle » se
+  déplient sur leurs modèles (coussin, panier, couffin ; céramique, inox,
+  bois) ; « Jouer » ne propose que les jouets adaptés à l'espèce.
+- **Bureau…** : mode vacances, pointeur laser, poser de la nourriture, remplir
+  ou poser une gamelle, un lit ou un jouet (ils tombent en haut de l'écran, à
+  l'abscisse du curseur), ranger les jouets, retirer les objets.
 - **Pièces : N** : la boutique (dépliante) et « Journal » (fenêtre de progression).
 - **Réglages…** : ouvre la fenêtre de réglages.
 

@@ -47,8 +47,8 @@ poser d'autres (« Poser une plante »). Petit gain de satiété défini dans
 
 ## Gamelle moisie
 
-Une gamelle dont la nourriture n'est pas renouvelée moisit après **24 h** (sprite
-verdâtre) : la manger fait perdre 20 points de santé (et l'animal a un aspect
+Une gamelle dont la nourriture n'est pas renouvelée moisit après **24 h** (tas
+verdâtre et duveteux, au niveau restant) : la manger fait perdre 20 points de santé (et l'animal a un aspect
 malade) ; **6 h plus tard**, le contenu disparaît (la gamelle reste). La remplir
 remet le compteur à zéro. Un animal autonome (niveau 0,5 et plus) évite la
 nourriture moisie ; un animal qui dépend de toi la mange.

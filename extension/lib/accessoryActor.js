@@ -39,7 +39,8 @@ export class AccessoryActor {
     this._anchors = anchors;
     this._id = null;
     this.actor = new Clutter.Actor({ reactive: false, visible: false, pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }) });
-    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
+    // Accessoires dessinés au double de leur taille d'affichage : réduction lissée.
+    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
     Main.layoutManager.uiGroup.add_child(this.actor);
   }
 

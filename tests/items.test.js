@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createItem, tickItem, edibleFor, consume, fillBowl, isGone, bedsOn,
-  serializeItems, parseSavedItems, BOWL_CAPACITY, kick, throwItem, isToy, toysFor,
+  serializeItems, parseSavedItems, BOWL_CAPACITY, kick, push, throwItem, isToy, toysFor, toyFits,
+  pickVariant, bowlLevel,
 } from '../core/items.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 
@@ -124,11 +125,69 @@ test('gamelle : remplissage, portions, un seul aliment', () => {
   assert.ok(!isGone(bowl));
 });
 
-test('consume marque la nourriture mangée et libère sa réclamation', () => {
-  const food = createItem('food', 'meat', 0, 0);
+test('consume : un aliment se mange en bouchées puis disparaît, la réclamation est libérée', () => {
+  const food = createItem('food', 'meat', 0, 0); // 2 bouchées
+  assert.equal(food.portions, 2);
   food.claimedBy = {};
-  consume(food);
-  assert.ok(food.consumed && !food.claimedBy);
+  assert.deepEqual(consume(food), { sick: false, fraction: 0.5, finished: false });
+  assert.ok(!food.consumed && !food.claimedBy && !isGone(food), 'reste entamé');
+  assert.deepEqual(consume(food), { sick: false, fraction: 0.5, finished: true });
+  assert.ok(food.consumed && isGone(food));
+  assert.equal(consume(createItem('food', 'kibble', 0, 0)).fraction, 1 / 3);
+  const bowl = createItem('bowl', 'kibble', 0, 0);
+  fillBowl(bowl, 'kibble');
+  assert.deepEqual(consume(bowl), { sick: false, fraction: 1, finished: true }, 'une portion de gamelle est un repas');
+});
+
+test("gamelle : jamais d'aliment flottant, posée vide, niveaux visibles", () => {
+  const bowl = createItem('bowl', null, 0, 0);
+  assert.equal(bowl.kind, null);
+  assert.equal(bowl.model, 'ceramic');
+  fillBowl(bowl, 'plankton');
+  assert.equal(bowl.portions, 0, 'le plancton flotte : pas dans une gamelle');
+  assert.equal(createItem('bowl', 'flakes', 0, 0).kind, null);
+  fillBowl(bowl, 'pate');
+  assert.equal(bowl.portions, BOWL_CAPACITY);
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map(bowlLevel), [0, 1, 1, 2, 2, 3]);
+});
+
+test('modèles : validés à la création, variante de jouet tirée au hasard', () => {
+  assert.equal(createItem('bed', null, 0, 0, 'basket').model, 'basket');
+  assert.equal(createItem('bed', null, 0, 0, 'hamac').model, 'cushion', 'modèle inconnu : celui par défaut');
+  assert.equal(createItem('bowl', 'kibble', 0, 0).model, 'ceramic');
+  assert.equal(createItem('food', 'meat', 0, 0, 'wood').model, null, 'pas de modèle pour un aliment');
+  assert.equal(pickVariant('ball', () => 0), 'red');
+  assert.equal(pickVariant('ball', () => 0.999), 'green');
+  assert.equal(pickVariant('nope', () => 0.5), null);
+  assert.equal(createItem('toy', 'plush', 0, 0, pickVariant('plush', () => 0.5)).model, 'rabbit');
+});
+
+test('sauvegarde : modèles, bouchées restantes et anciens formats', () => {
+  const bed = createItem('bed', null, 10, 480, 'cradle');
+  const bowl = createItem('bowl', null, 20, 480, 'wood');
+  const ball = createItem('toy', 'ball', 30, 480, 'blue');
+  const leftover = createItem('food', 'apple', 40, 480);
+  consume(leftover);
+  const back = parseSavedItems(serializeItems([bed, bowl, ball, leftover]), { bounds });
+  assert.deepEqual(back.map((i) => i.model), ['cradle', 'wood', 'blue', null]);
+  assert.equal(back[1].kind, null, 'gamelle posée vide');
+  assert.equal(back[3].portions, 2, 'reste entamé');
+
+  const old = JSON.stringify({
+    version: 1,
+    items: [
+      { type: 'bed', kind: null, x: 1, y: 1 },
+      { type: 'food', kind: 'meat', x: 1, y: 1, portions: 0, ttl: 100 },
+      { type: 'bowl', kind: 'plankton', x: 1, y: 1, portions: 4 },
+      { type: 'toy', kind: 'ball', x: 1, y: 1, model: 'plaid' },
+    ],
+  });
+  const [oldBed, oldMeat, oldBowl, oldBall] = parseSavedItems(old, { bounds });
+  assert.equal(oldBed.model, 'cushion');
+  assert.equal(oldMeat.portions, 2, 'aliment sans bouchées enregistrées : entier');
+  assert.equal(oldBowl.kind, null);
+  assert.equal(oldBowl.portions, 0, 'ancienne gamelle de plancton : vidée');
+  assert.equal(oldBall.model, 'red');
 });
 
 test('bedsOn : lits de la surface, du plus proche au plus loin', () => {
@@ -266,4 +325,58 @@ test('les jouets sont sauvegardés et relus', () => {
   assert.equal(back[0].kind, 'ball');
   const bad = JSON.stringify({ version: 1, items: [{ type: 'toy', kind: 'yoyo', x: 1, y: 1 }] });
   assert.equal(parseSavedItems(bad, { bounds }).length, 0);
+});
+
+test('la pelote rebondit moins et roule moins loin que la balle', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const bounces = (item) => {
+    let n = 0;
+    for (let i = 0; i < 300; i++) {
+      const before = item.vy;
+      tickItem(item, 1 / 60, surfaces, bounds);
+      if (before > 0 && item.vy < 0) n++;
+    }
+    return n;
+  };
+  const ball = createItem('toy', 'ball', 300, 100);
+  const yarn = createItem('toy', 'yarn', 600, 100);
+  assert.ok(bounces(yarn) < bounces(ball));
+  assert.ok(kick(ball, 1) && kick(yarn, 1));
+  settle(ball, surfaces, 6);
+  settle(yarn, surfaces, 6);
+  assert.ok(yarn.x - 600 < ball.x - 300, `pelote ${yarn.x - 600} px, balle ${ball.x - 300} px`);
+  assert.equal(kick(createItem('toy', 'plush', 0, 0), 1), false, 'la peluche ne se frappe pas');
+});
+
+test("l'anneau flotte, file quand on le pousse, ralentit et rebondit sur les bords", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ring = createItem('toy', 'ring', 500, 200);
+  assert.ok(ring.floating);
+  settle(ring, surfaces, 1);
+  assert.deepEqual([ring.x, ring.y], [500, 200], 'sans gravité');
+  assert.ok(push(ring, 1, 0));
+  settle(ring, surfaces, 0.5);
+  assert.ok(ring.x > 520);
+  settle(ring, surfaces, 10);
+  assert.deepEqual([ring.vx, ring.vy], [0, 0], "finit par s'arrêter");
+
+  const edge = createItem('toy', 'ring', 990, 20);
+  push(edge, 1, -1);
+  settle(edge, surfaces, 1);
+  assert.ok(edge.x <= 1000 && edge.vx <= 0, 'rebond sur le bord droit');
+  assert.ok(edge.y >= 16 && edge.vy >= 0, 'rebond en haut, sprite gardé dans l\'écran');
+  assert.equal(push(createItem('toy', 'ball', 0, 0), 1, 0), false);
+});
+
+test('toysFor : le poisson ne voit que les jouets flottants, les autres les jouets posés', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const ground = surfaces.segments.find((s) => s.type === 'ground');
+  const ring = createItem('toy', 'ring', 400, 200);
+  const far = createItem('toy', 'ring', 900, 400);
+  const ball = createItem('toy', 'ball', 450, 50);
+  settle(ball, surfaces, 4);
+  assert.deepEqual(toysFor([far, ball, ring], { x: 380, y: 210, floating: true }), [ring, far]);
+  assert.deepEqual(toysFor([far, ball, ring], { x: 380, surfaceId: ground.surfaceId, canFly: false }), [ball]);
+  assert.ok(toyFits('ring', true) && !toyFits('ring', false));
+  assert.ok(toyFits('yarn', false) && !toyFits('yarn', true) && !toyFits('nope', false));
 });

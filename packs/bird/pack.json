@@ -10,7 +10,7 @@
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "walk": 30, "fly": 110 },
   "needs": {
-    "diet": { "seeds": 45, "kibble": 20, "berries": 12 },
+    "diet": { "seeds": 45, "mealworms": 40, "kibble": 20, "apple": 15, "berries": 12 },
     "prey": { "beetle": 30 }
   },
   "behavior": { "flyWeight": 35, "flyFastWeight": 12, "sleepDuration": [30, 180], "flyDuration": [3, 7], "napSeekMaxDistance": 800, "playWeight": 20 },

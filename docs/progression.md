@@ -59,9 +59,9 @@ l'échelle du stade, et disparaît dans l'œuf. Le point d'ancrage de la tête
 est réglable par pack : `"anchors": { "head": { "x": 0.78, "y": 0.2 } }`
 (fractions du sprite tourné vers la droite).
 
-Les aliments premium coûtent des pièces à chaque don : poisson 3, viande 2
-(x5 pour remplir une gamelle). Croquettes, graines, plancton, jouets, gamelle
-et lit restent gratuits.
+Les aliments premium coûtent des pièces à chaque don : poisson 3, viande 2,
+pâtée 2 (x5 pour remplir une gamelle). Croquettes, graines, vers de farine,
+pomme, plancton, flocons, jouets, gamelles et lits restent gratuits.
 
 ## Anniversaires
 

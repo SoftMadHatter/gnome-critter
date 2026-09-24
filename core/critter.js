@@ -3,7 +3,7 @@ import { Needs, needMultiplier, NEED_GAUGES } from './needs.js';
 import { Life, modifiersFor } from './life.js';
 import { Stats } from './stats.js';
 import { newlyUnlocked } from './achievements.js';
-import { edibleFor, consume, bedsOn, toysFor, kick, pickGift, litterFor, isDirty, isOldMess } from './items.js';
+import { edibleFor, consume, bedsOn, toysFor, kick, push, pickGift, litterFor, isDirty, isOldMess } from './items.js';
 import { TrickBook, TRICKS } from './tricks.js';
 import { sanitizeName } from './names.js';
 import { autonomyLevel } from './autonomy.js';
@@ -118,7 +118,8 @@ const DEFAULT_CONFIG = {
   needsDiet: {}, // aliment -> gain de satiété (section `needs.diet` du pack) ; un aliment absent est ignoré
   foodWeight: 40, // multiplié par la faim : un affamé préfère manger, un rassasié ignore
   foodSeekDuration: [6, 12], // temps maximal pour rejoindre une nourriture
-  eatDuration: [2, 4],
+  eatDuration: [2, 4], // durée d'une bouchée
+  eatMoreBelow: 80, // satiété sous laquelle il enchaîne la bouchée suivante ; au-dessus, il laisse un reste
   bedSleepFactor: 1.5, // multiplicateur du gain d'énergie en dormant sur un lit
   bedRadius: 24, // distance sous laquelle on dort « sur » le lit
   playWeight: 30, // multiplié par l'ennui : un animal qui s'ennuie joue
@@ -126,6 +127,8 @@ const DEFAULT_CONFIG = {
   playDuration: [6, 12],
   kickDistance: 18, // distance sous laquelle il « touche » la balle
   kickInterval: 1.2, // secondes entre deux frappes
+  floatingPlayChance: 0.2, // espèce sans sol qui s'ennuie : chance par seconde d'aller jouer avec un jouet flottant
+  floatingPlayBelow: 60, // stimulation sous laquelle elle s'ennuie assez pour y aller
   petStreakWindow: 3, // secondes max entre deux caresses d'une même série
   petStreakMin: 3, // caresses pour que la série devienne un ronronnement
   brushDuration: 4,
@@ -1452,14 +1455,21 @@ export class Critter {
     if (this.stateTimer > 0) return;
 
     const { item, gain } = target;
-    const { sick } = consume(item);
-    this.needs.feed(gain);
+    const { sick, fraction, finished } = consume(item);
+    this.needs.feed(gain * fraction);
     if (sick) {
       // Nourriture moisie : un petit coup de santé, une bulle « malade » à soigner.
       this.needs.boost('health', -this.config.moldSickness);
       this.lastEvent = 'sick';
     } else {
-      if (item.type === 'food' && gain >= Math.max(...Object.values(this.config.needsDiet))) {
+      // Encore faim et un reste : bouchée suivante, sans lâcher l'aliment ;
+      // sinon il laisse le reste entamé (pour plus tard, ou un autre).
+      if (!finished && this.needs.values.satiety < this.config.eatMoreBelow) {
+        item.claimedBy = this;
+        this.stateTimer = randRange(this.config.eatDuration, this.config.random);
+        return;
+      }
+      if (finished && item.type === 'food' && gain >= Math.max(...Object.values(this.config.needsDiet))) {
         this.needs.boost('affection', 5);
         this.stats.add('mealsFavorite');
       }
@@ -1710,7 +1720,15 @@ export class Critter {
       const speed = this.supports(Locomotion.WATER)
         ? this.config.swimSpeed * this.config.swimFastFactor
         : this.config.flySpeed * this.config.flyFastFactor;
-      this._approach2D(dt, tx, ty, speed);
+      const remaining = this._approach2D(dt, tx, ty, speed);
+      // Jouet flottant à portée : un coup de museau le pousse plus loin.
+      if (!target.laser && remaining < this.config.kickDistance) {
+        this._kickTimer -= dt;
+        if (this._kickTimer <= 0) {
+          this._kickTimer = this.config.kickInterval;
+          push(target.item, tx - this.x || this.facing, ty - this.y);
+        }
+      }
       return;
     }
 
@@ -1719,12 +1737,12 @@ export class Critter {
       return;
     }
     this.facing = sign(tx - this.x) || this.facing;
-    if (!target.laser && target.item.kind === 'ball') {
+    // Jouet qui roule (balle, pelote) : un coup de patte de temps en temps ; la peluche ne bouge pas.
+    if (!target.laser) {
       this._kickTimer -= dt;
       if (this._kickTimer <= 0) {
-        kick(target.item, sign(tx - this.x) || this.facing);
-        this.stats.add('ballKicks');
         this._kickTimer = this.config.kickInterval;
+        if (kick(target.item, sign(tx - this.x) || this.facing)) this.stats.add('ballKicks');
       }
     }
   }
@@ -2191,6 +2209,14 @@ export class Critter {
           const plants = this.autonomy > 0 ? this._edibleTargets(options, { plants: true }) : [];
           if (plants.length > 0) {
             this._startSeekFood(plants[0]);
+            return;
+          }
+        }
+        // Il s'ennuie et un jouet flotte (l'anneau) : il va le pousser.
+        if (this.needs.values.stimulation < this.config.floatingPlayBelow && options.items?.length) {
+          const toy = toysFor(options.items, { x: this.x, y: this.y, floating: true })[0];
+          if (toy && this.config.random() < this.config.floatingPlayChance) {
+            this._startPlay({ item: toy });
             return;
           }
         }

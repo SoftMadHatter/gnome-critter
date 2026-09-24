@@ -21,7 +21,7 @@ const ICON_FOR_NEED = {
   health: 'sick',
 };
 
-const DISPLAY_SIZE = 24; // icônes de 12 px affichées en x2
+const DISPLAY_SIZE = 24; // icônes dessinées à 48 px, affichées à 24 (nettes en HiDPI)
 const FADE_MS = 250;
 const GAP_PX = 2;
 
@@ -56,7 +56,7 @@ export class ThoughtBubble {
       opacity: 0,
       visible: false,
     });
-    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.NEAREST, Clutter.ScalingFilter.NEAREST);
+    this.actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
     Main.layoutManager.uiGroup.add_child(this.actor);
   }
 

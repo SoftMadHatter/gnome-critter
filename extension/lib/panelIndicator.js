@@ -11,7 +11,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { foodLabel, TOY_LABELS } from './itemActor.js';
+import { foodLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from './itemActor.js';
+import { isBowlFood } from '../core/items.js';
 import { buildCritterActions } from './critterActions.js';
 import { lifeSummary } from './lifeLabels.js';
 import { buttonRow, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
@@ -38,7 +39,7 @@ export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
      * @param {object} owner API du Manager : getCritters, getPlayer, achievementsFor, shopList, buyAccessory, foods,
-     *   dropFood, fillBowl, dropBed, dropToy, setLaser, isLaser, hasToys, clearToys, clearItems, openSettings, pet,
+     *   dropFood, fillBowl, dropBed, dropBowl, dropToy, toyKinds, setLaser, isLaser, hasToys, clearToys, clearItems, openSettings, pet,
      *   quickFeed, et les actions d'un animal (rename, brush, train, perform, equip, equippable, wake)
      * @param {Gio.Settings} settings
      */
@@ -111,7 +112,8 @@ export const CritterIndicator = GObject.registerClass(
       // Actions rapides : elles ne referment pas le menu, on peut les enchaîner.
       this._quick = buttonRow([
         { label: 'Nourrir', onClick: () => this._owner.quickFeed(this._critter()) },
-        { label: 'Jouer', onClick: () => this._owner.dropToy('ball', this._critter()) },
+        // Le premier jouet adapté : la balle, ou l'anneau flottant pour le poisson.
+        { label: 'Jouer', onClick: () => this._owner.dropToy(this._owner.toyKinds()[0] ?? 'ball', this._critter()) },
         { label: 'Brosser', onClick: () => this._owner.brush(this._critter()) },
         { label: 'Câlin', onClick: () => this._owner.pet(this._critter()) },
       ]);
@@ -141,21 +143,23 @@ export const CritterIndicator = GObject.registerClass(
       const foods = this._owner.foods();
       if (foods.length > 0) {
         const feed = expandableRow(section, 'Poser de la nourriture');
-        const bowl = expandableRow(section, 'Remplir une gamelle');
-        for (const kind of foods) {
-          feed.section.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
-          bowl.section.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
-        }
+        for (const kind of foods) feed.section.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
       }
-      section.addAction('Poser un lit', () => this._owner.dropBed());
+      const bowlFoods = foods.filter(isBowlFood); // la nourriture flottante ne va pas dans une gamelle
+      if (bowlFoods.length > 0) {
+        const bowl = expandableRow(section, 'Remplir une gamelle');
+        for (const kind of bowlFoods) bowl.section.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
+        const bowls = expandableRow(section, 'Poser une gamelle');
+        for (const [model, label] of Object.entries(BOWL_LABELS)) bowls.section.addAction(label, () => this._owner.dropBowl(null, model));
+      }
+      const beds = expandableRow(section, 'Poser un lit');
+      for (const [model, label] of Object.entries(BED_LABELS)) beds.section.addAction(label, () => this._owner.dropBed(null, model));
       section.addAction('Poser une litière', () => this._owner.dropLitter());
       section.addAction('Nettoyer les traces', () => this._owner.cleanAll());
       if (this._owner.preyKinds().length > 0) section.addAction('Lâcher une proie', () => this._owner.dropPrey());
       if (this._owner.plantKinds().length > 0) section.addAction('Poser une plante', () => this._owner.dropPlant());
       const toys = expandableRow(section, 'Poser un jouet');
-      for (const [kind, label] of Object.entries(TOY_LABELS)) {
-        toys.section.addAction(label, () => this._owner.dropToy(kind));
-      }
+      for (const kind of this._owner.toyKinds()) toys.section.addAction(TOY_LABELS[kind], () => this._owner.dropToy(kind));
       this._tidy = section.addAction('Ranger les jouets', () => this._owner.clearToys());
       section.addAction('Retirer les objets', () => this._owner.clearItems());
     }

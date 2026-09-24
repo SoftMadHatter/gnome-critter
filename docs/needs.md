@@ -61,32 +61,53 @@ bouge ou disparaît.
 
 - **Donner à manger** : clic milieu sur l'animal (menu contextuel) ou menu de
   l'icône de barre. L'aliment tombe à côté de l'animal. Aliments : viande,
-  poisson, croquettes, graines, plancton (flottant, pour le poisson). Une
-  nourriture non mangée expire (15 min, plancton 10 min).
+  poisson, pâtée, croquettes, graines, vers de farine, pomme, et pour le
+  poisson plancton et flocons (flottants). Une nourriture non mangée expire
+  (15 min, plancton et flocons 10 min). Les plantes du régime ne s'y trouvent
+  pas : elles se posent avec « Poser une plante ».
 - **Régime** : chaque espèce ne mange que les aliments de son `needs.diet`,
   avec un gain de satiété par aliment ; l'aliment au gain maximal fait aussi
   plaisir (affection +5). Un animal rassasié ignore la nourriture, un affamé
   la préfère à tout. Il la rejoint en marchant, en volant vers un autre
-  rebord (oiseau) ou en nageant (poisson et plancton), puis mange quelques
-  secondes (état `eat`).
-- **Gamelle** : « Remplir la gamelle » la crée au besoin et y met 5 portions
-  d'un aliment ; elle reste sur le bureau et se vide portion par portion.
-- **Lit** : « Poser un lit ». Quand un animal veut dormir et qu'un lit est
-  sur sa surface, il s'y rend, et récupère 1,5 fois plus vite dessus.
+  rebord (oiseau) ou en nageant (poisson et plancton), puis mange (état `eat`).
+- **Bouchées et restes** : un aliment se mange en plusieurs bouchées (viande,
+  poisson, pâtée, plancton, flocons : 2 ; croquettes, graines, vers, pomme :
+  3), de quelques secondes chacune, et chaque bouchée apporte sa part du gain.
+  Tant que la satiété reste sous 80, l'animal enchaîne ; au-delà, il laisse un
+  **reste entamé** (os à moitié rongé, arêtes, tas qui a diminué...), qu'il
+  finira plus tard ou qu'un autre mangera. Le reste se voit et se sauvegarde.
+  La réaction « a mangé », l'affection et le compteur `mealsFavorite` viennent
+  à la fin du repas (pour le préféré : repas fini).
+- **Gamelle** : « Poser une gamelle » en pose une vide, au choix en céramique,
+  inox ou bois ; « Remplir la gamelle » remplit la plus proche (ou en crée
+  une en céramique) avec 5 portions d'un aliment. Elle se vide portion par
+  portion et son contenu se voit : l'aliment choisi, en tas plein, à moitié
+  ou au fond. La nourriture flottante ne va pas en gamelle (le menu ne la
+  propose pas).
+- **Lit** : « Poser un lit », au choix coussin, panier en osier ou couffin.
+  Quand un animal veut dormir et qu'un lit est sur sa surface, il s'y rend,
+  et récupère 1,5 fois plus vite dessus.
 - **Déplacer / retirer** : les objets se glissent à la souris (ils retombent
   au relâchement), clic droit pour en retirer un, « Retirer les objets »
-  pour tout enlever. Gamelles, lits et nourriture fraîche sont conservés au
-  redémarrage (clé `saved-items`).
+  pour tout enlever. Gamelles, lits, jouets et nourriture fraîche (restes
+  compris) sont conservés au redémarrage avec leur modèle (clé `saved-items`).
 
 ## Jouer, caresser, brosser
 
-- **Jouets** : balle et peluche (« Jouer » dans le menu contextuel de
-  l'animal, « Poser un jouet » dans le menu de l'icône). La balle roule avec
-  du frottement, rebondit, rebondit contre les bords de l'écran et peut
-  tomber du rebord d'une fenêtre ; la peluche reste posée. Un animal qui
-  s'ennuie va jouer (à la course) : il frappe la balle puis la poursuit, ou
-  se colle à la peluche. Une session dure 6 à 12 s et, menée à son terme,
-  donne stimulation +25 et affection +6. Un animal comblé ne joue presque pas.
+- **Jouets** : balle, pelote de laine et peluche pour les espèces qui
+  marchent, anneau flottant pour le poisson (« Jouer » dans le menu de
+  l'animal, « Poser un jouet » dans le menu de l'icône, qui ne proposent que
+  les jouets adaptés). La balle prend une couleur au hasard (rouge, bleue,
+  jaune, verte), la pelote aussi (rose, bleue, jaune), la peluche un modèle
+  (ours, lapin, grenouille). La balle roule avec du frottement, rebondit,
+  rebondit contre les bords de l'écran et peut tomber du rebord d'une
+  fenêtre ; la pelote roule de même mais freine vite et rebondit à peine ;
+  la peluche reste posée. Un animal qui s'ennuie va jouer (à la course) : il
+  frappe la balle ou la pelote puis la poursuit, ou se colle à la peluche.
+  L'anneau flotte sans gravité : un poisson qui s'ennuie le rejoint et le
+  pousse du museau, l'anneau file, ralentit et rebondit sur les bords de
+  l'écran. Une session dure 6 à 12 s et, menée à son terme, donne
+  stimulation +25 et affection +6. Un animal comblé ne joue presque pas.
 - **Lancer à la souris** : les objets se glissent, et partent avec l'élan du
   pointeur au relâchement (jusqu'à 900 px/s), pour lancer la balle.
 - **Pointeur laser** : interrupteur dans les deux menus. Un point rouge suit
@@ -98,7 +119,7 @@ bouge ou disparaît.
   (`brushed`), propreté +25, affection +6. Réveille un animal endormi.
 - **Ranger les jouets** : retire tous les jouets d'un coup, sans toucher à la
   gamelle, au lit ni à la nourriture (« Retirer les objets » enlève tout).
-  Balles et peluches sont conservées au redémarrage.
+  Les jouets sont conservés au redémarrage.
 
 ## Difficulté et mode vacances
 

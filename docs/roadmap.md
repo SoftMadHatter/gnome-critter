@@ -240,12 +240,25 @@ ombrage en dégradé, contour doux, yeux et marques fins ; `"smooth": true` dans
 bulles restent en pixel-art (étape 14). Corrigé au passage : le chat était vert
 (constantes de la chenille qui écrasaient celles du chat).
 
-## 14. Objets : visuels et variations
+## 14. Objets : visuels et variations — à tester
 
 Améliorer le dessin des objets du bureau (nourriture, gamelle, lit, jouets)
 et ajouter des variations : plusieurs modèles de lit et de gamelle, couleurs
 de balle, plus d'aliments et de jouets, états visibles (gamelle qui se vide,
 nourriture entamée), sprites cohérents avec le nouveau rendu de l'étape 13.
+
+Livré : tous les sprites d'interface (objets, proies, plantes, cadeaux,
+litière, traces, laser, accessoires, bulles, œuf commun) passent au rendu fin
+de l'étape 13 (`scripts/finedraw.py`, partagé avec les créatures), au double
+de leur taille d'affichage. Lits (coussin, panier, couffin) et gamelles
+(céramique, inox, bois) choisis dans un sous-menu ; balle, pelote et peluche
+tirent une variante au hasard. Aliments en bouchées : un animal repu laisse un
+reste entamé, visible et sauvegardé ; la gamelle montre son aliment et son
+niveau. Nouveaux aliments (pâtée, vers de farine, pomme, flocons) et jouets
+(pelote de laine, anneau flottant pour le poisson). Noms et tailles des
+sprites dans `core/itemLooks.js`, vérifiés contre les fichiers par
+`tests/itemLooks.test.js`. Corrigé au passage : les menus « Donner à manger »
+proposaient les plantes du régime, qui posaient un aliment invisible.
 
 ## 15. Grande bibliothèque de succès
 
