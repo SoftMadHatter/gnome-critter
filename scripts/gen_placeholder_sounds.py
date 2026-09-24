@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
-"""Génère des bips *placeholder* pour les réactions de packs/critter-demo/.
+"""Génère des bips *placeholder* pour les réactions des packs d'animaux.
 
 Pas des sons définitifs : juste de quoi entendre une différence entre
-réactions tout de suite. Aucune dépendance externe (module stdlib `wave`
-uniquement, PCM 16 bits écrit directement).
+réactions (et entre espèces) tout de suite. Aucune dépendance externe
+(module stdlib `wave` uniquement, PCM 16 bits écrit directement).
 
-Usage : python3 scripts/gen_placeholder_sounds.py
+Usage : python3 scripts/gen_placeholder_sounds.py [espèce ...]
+        (toutes les espèces par défaut : critter-demo, cat, bug, fish, bird)
 """
 
 import math
 import struct
+import sys
 import wave
 from pathlib import Path
 
 RATE = 44100
-OUT_DIR = Path(__file__).resolve().parent.parent / "packs" / "critter-demo" / "sounds"
+PACKS_DIR = Path(__file__).resolve().parent.parent / "packs"
+
+# Facteur de hauteur appliqué à toutes les fréquences d'une espèce : les
+# mêmes 6 réactions, transposées (1.0 = sons d'origine du pack démo).
+SPECIES_PITCH = {
+    "critter-demo": 1.0,
+    "cat": 0.85,
+    "bug": 2.2,  # très aigu, petit insecte
+    "fish": 0.55,  # grave, façon bulles
+    "bird": 1.7,  # gazouillis
+}
 
 
 def envelope(i, n, attack=0.05, release=0.3):
@@ -73,24 +85,30 @@ def write_wav(path, samples):
 
 SOUNDS = {
     # Petit chirp montant, agréable : caresse.
-    "petted.wav": lambda: chirp(500, 900, 0.15),
+    "petted.wav": lambda p: chirp(500 * p, 900 * p, 0.15),
     # Deux petits chirps montants rapprochés : double-clic.
-    "tickled.wav": lambda: concat(chirp(600, 1000, 0.08), chirp(600, 1000, 0.08)),
+    "tickled.wav": lambda p: concat(chirp(600 * p, 1000 * p, 0.08), chirp(600 * p, 1000 * p, 0.08)),
     # Buzz grave descendant, dents de scie : agacement.
-    "annoyed.wav": lambda: chirp(300, 150, 0.25, wave_fn=sawtooth, amplitude=0.3),
+    "annoyed.wav": lambda p: chirp(300 * p, 150 * p, 0.25, wave_fn=sawtooth, amplitude=0.3),
     # Bip court et doux : remarqué.
-    "noticed.wav": lambda: tone(700, 0.1, amplitude=0.3),
+    "noticed.wav": lambda p: tone(700 * p, 0.1, amplitude=0.3),
     # Chirp montant bref et aigu : sursaut (nouvelle fenêtre).
-    "startled.wav": lambda: chirp(700, 1400, 0.1, amplitude=0.45),
+    "startled.wav": lambda p: chirp(700 * p, 1400 * p, 0.1, amplitude=0.45),
     # Deux notes amicales, la seconde plus haute : salutation entre critters.
-    "greeted.wav": lambda: concat(tone(600, 0.08, amplitude=0.35), tone(800, 0.1, amplitude=0.35)),
+    "greeted.wav": lambda p: concat(tone(600 * p, 0.08, amplitude=0.35), tone(800 * p, 0.1, amplitude=0.35)),
 }
 
 
 def main():
-    for filename, gen in SOUNDS.items():
-        write_wav(OUT_DIR / filename, gen())
-        print(f"==> {OUT_DIR / filename}")
+    requested = sys.argv[1:] or list(SPECIES_PITCH)
+    unknown = [s for s in requested if s not in SPECIES_PITCH]
+    if unknown:
+        sys.exit(f"espèce(s) inconnue(s) : {', '.join(unknown)} (connues : {', '.join(SPECIES_PITCH)})")
+    for species in requested:
+        out_dir = PACKS_DIR / species / "sounds"
+        for filename, gen in SOUNDS.items():
+            write_wav(out_dir / filename, gen(SPECIES_PITCH[species]))
+            print(f"==> {out_dir / filename}")
 
 
 if __name__ == "__main__":

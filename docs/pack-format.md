@@ -31,7 +31,8 @@ packs/<species-id>/
   // "ground" (sol + rebords de fenêtres), "wall", "ceiling", "water", "air".
   "supportedSurfaces": ["ground"],
 
-  // Taille d'affichage à l'écran, en pixels logiques (avant mise à l'échelle HiDPI).
+  // Taille d'affichage à l'écran, en pixels logiques (avant mise à l'échelle
+  // HiDPI). Libre : l'insecte (packs/bug) utilise 16x16.
   "spriteSize": { "width": 32, "height": 32 },
 
   // Vitesses en px/s, reprises telles quelles par core/critter.js.
@@ -40,6 +41,19 @@ packs/<species-id>/
     "climb": 30,
     "swim": 25,
     "fly": 60
+  },
+
+  // Optionnel : surcharge du caractère de l'espèce. Toute clé de
+  // DEFAULT_CONFIG (core/critter.js) de type nombre ou intervalle [min, max]
+  // est acceptée : poids des activités idle (sleepWeight, washWeight,
+  // followWeight, greetWeight, climbSeekWeight, seekFocusWeight, flyWeight,
+  // swimWeight...), durées (idleDuration, sleepDuration, flyDuration...),
+  // ondulation de nage (swimWaveAmplitude, swimWaveFrequency), etc. Les
+  // autres clés sont ignorées avec un avertissement dans le journal de
+  // GNOME Shell. Les vitesses de "speeds" gardent la priorité.
+  "behavior": {
+    "sleepWeight": 15,
+    "idleDuration": [1, 3]
   },
 
   // Une entrée par état du cœur (voir core/critter.js State). "frameDuration"
@@ -97,14 +111,40 @@ Le sprite est dessiné face à droite par défaut ; quand `facing === -1`, la
 couche de rendu retourne l'image horizontalement plutôt que de dupliquer les
 frames.
 
+## Espèces sans sol
+
+Une espèce dont `supportedSurfaces` ne contient pas `"ground"` mais
+contient `"water"` (ou `"air"`) ne se pose jamais : à la fin d'une session
+de nage (ou de vol) elle en enchaîne une autre, et si elle tombe (spawn,
+fin de glisser) elle repart dans son roaming en touchant le sol. C'est le
+cas du poisson (`packs/fish`, `["water"]`).
+
+## Packs fournis
+
+| Dossier | Espèce | Locomotions | Particularités |
+|---|---|---|---|
+| `critter-demo` | Critter (démo) | toutes | pack de référence |
+| `cat` | Chat | sol, murs, plafond | dort et se lave souvent, suit le curseur |
+| `bug` | Insecte | sol, murs, plafond | 16 px, rapide, grimpe sans arrêt |
+| `fish` | Poisson | eau seulement | nage ondulante en continu |
+| `bird` | Oiseau | sol, air | vole souvent, se pose sur les rebords |
+
+Leurs sprites et sons sont des placeholders générés par
+`scripts/gen_placeholder_sprites.py` et `scripts/gen_placeholder_sounds.py`
+(une espèce en argument pour n'en régénérer qu'une). `tests/packs.test.js`
+vérifie automatiquement chaque pack (fichiers présents, découpage des
+spritesheets, sons, clés `behavior`).
+
 ## Ajouter une nouvelle espèce
 
 1. Copier `packs/critter-demo/` sous un nouveau `<species-id>`.
 2. Remplacer les spritesheets par les tiens (même convention de découpage).
 3. Ajuster `supportedSurfaces` et `speeds` selon ce que l'animal doit savoir
-   faire (un poisson : `["water"]` avec un `waterZones` déclaré dans les
-   réglages de l'extension ; un oiseau : `["ground", "air"]`, etc.).
-4. Aucun changement de code n'est nécessaire pour un comportement standard,
+   faire (un poisson : `["water"]` ; un oiseau : `["ground", "air"]`, etc.),
+   puis donner du caractère à l'espèce via `behavior`.
+4. Lancer `npm test` : `tests/packs.test.js` signale tout fichier manquant
+   ou spritesheet mal découpé.
+5. Aucun changement de code n'est nécessaire pour un comportement standard,
    y compris les activités idle automatiques déjà câblées (suivre le
    curseur, se laver, sursauter à l'ouverture d'une fenêtre) : elles
    marchent pour toute espèce, avec ou sans animation dédiée dans le pack.

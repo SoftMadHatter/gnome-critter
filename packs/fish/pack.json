@@ -1,0 +1,30 @@
+{
+  "id": "fish",
+  "displayName": "Poisson",
+  "version": "0.1.0",
+  "author": "toi",
+  "supportedSurfaces": ["water"],
+  "spriteSize": { "width": 32, "height": 32 },
+  "speeds": {
+    "swim": 50
+  },
+  "behavior": {
+    "swimDuration": [6, 12],
+    "swimWaveAmplitude": 0.8,
+    "roamRetargetDuration": [2, 4]
+  },
+  "animations": {
+    "idle": { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.4,  "loop": true },
+    "swim": { "file": "sprites/swim.png", "frames": 4, "frameDuration": 0.15, "loop": true },
+    "fall": { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.12, "loop": true },
+    "drag": { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.12, "loop": true }
+  },
+  "reactions": {
+    "petted":   { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/petted.wav" },
+    "tickled":  { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/tickled.wav" },
+    "annoyed":  { "file": "sprites/fall.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/annoyed.wav" },
+    "noticed":  { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/noticed.wav" },
+    "startled": { "file": "sprites/fall.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/startled.wav" },
+    "greeted":  { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/greeted.wav" }
+  }
+}

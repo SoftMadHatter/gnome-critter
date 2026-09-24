@@ -1,0 +1,42 @@
+{
+  "id": "bug",
+  "displayName": "Insecte",
+  "version": "0.1.0",
+  "author": "toi",
+  "supportedSurfaces": ["ground", "wall", "ceiling"],
+  "spriteSize": { "width": 16, "height": 16 },
+  "speeds": {
+    "walk": 70,
+    "climb": 60
+  },
+  "behavior": {
+    "idleDuration": [0.5, 1.5],
+    "sleepWeight": 1,
+    "washWeight": 2,
+    "climbSeekWeight": 30
+  },
+  "animations": {
+    "idle":      { "file": "sprites/idle.png",  "frames": 2, "frameDuration": 0.3,  "loop": true },
+    "walk":      { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "fall":      { "file": "sprites/fall.png",  "frames": 2, "frameDuration": 0.1,  "loop": true },
+    "drag":      { "file": "sprites/fall.png",  "frames": 2, "frameDuration": 0.1,  "loop": true },
+    "sleep":     { "file": "sprites/idle.png",  "frames": 1, "frameDuration": 1,    "loop": false },
+    "climb":     { "file": "sprites/climb.png", "frames": 4, "frameDuration": 0.06, "loop": true },
+    "ceiling":   { "file": "sprites/climb.png", "frames": 4, "frameDuration": 0.06, "loop": true },
+    "follow":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "greet":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "seekWall":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "seekFocus": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "seekNap":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
+    "chase":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.04, "loop": true },
+    "flee":      { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.04, "loop": true }
+  },
+  "reactions": {
+    "petted":   { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/petted.wav" },
+    "tickled":  { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/tickled.wav" },
+    "annoyed":  { "file": "sprites/idle.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/annoyed.wav" },
+    "noticed":  { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.2, "sound": "sounds/noticed.wav" },
+    "startled": { "file": "sprites/fall.png", "frames": 1, "frameDuration": 0.6, "sound": "sounds/startled.wav" },
+    "greeted":  { "file": "sprites/idle.png", "frames": 2, "frameDuration": 0.3, "sound": "sounds/greeted.wav" }
+  }
+}

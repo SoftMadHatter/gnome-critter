@@ -1,8 +1,8 @@
 # Feuille de route
 
-Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-23 (fusion
-de l'ancienne étape 8 — mécaniques de vol/nage — dans l'étape 6, suite à
-l'élargissement de son scope). Chaque étape est motivée par ses dépendances
+Plan à moyen terme, établi le 2026-09-23, mis à jour le 2026-09-24 (étapes 1
+à 6 terminées, étape 7 à tester ; l'ancienne étape 8 — vol/nage — avait été
+fusionnée dans l'étape 6). Chaque étape est motivée par ses dépendances
 sur les précédentes (voir la justification sous chaque titre) ; l'ordre
 n'est pas figé si les priorités changent, mais s'écarter des dépendances
 signifie probablement refaire du travail plus tard.
@@ -56,7 +56,7 @@ Livré : `weightedChoice()` (choix pondéré générique, fonction pure
 testable) remplace la cascade de seuils indépendants, avec deux effets
 contextuels — anti-répétition et suivi sensible à la distance du curseur.
 
-## 5. Interactions entre critters — 🧪 à tester
+## 5. Interactions entre critters — ✅ fait
 
 Réutilise l'arbitrage de l'étape 4 pour qu'un critter puisse remarquer un
 autre critter (avec `critter-count > 1`). Testé d'abord avec plusieurs
@@ -67,10 +67,10 @@ Livré : état `GREET` (marche vers le critter le plus proche, `_chase()`
 mutualisé avec `FOLLOW`), réaction `greeted` déclenchée sur l'initiateur
 ET sur la cible (référence à l'instance réelle transportée à côté de
 l'instantané de positions dans `manager.js`, réaction cible délivrée via
-`interact()`/`_pendingEvent`). 39/39 tests verts ; reste à vérifier en
-conditions réelles (`scripts/dev.sh`, `critter-count` ≥ 2).
+`interact()`/`_pendingEvent`). Testé en conditions réelles avec
+`critter-count` ≥ 2.
 
-## 6. Autres comportements automatiques — 🧪 à tester
+## 6. Autres comportements automatiques — ✅ fait
 
 Étape ouverte : plusieurs pistes proposées et retenues ensemble (pas
 fixées à l'avance dans la version initiale de cette feuille de route).
@@ -103,11 +103,9 @@ Livré : états `SEEK_WALL`, `SEEK_FOCUS`, `CHASE`/`FLEE`, `SEEK_NAP`, et
 donc atterrissage via la détection existante ; nage ondulante
 perpendiculairement à la trajectoire). La fuite est une invitation que la
 cible peut ignorer, pondérée par la distance au poursuivant. Le pack démo
-supporte désormais toutes les locomotions. 68/68 tests verts ; reste à
-vérifier en conditions réelles (`scripts/dev.sh`, `critter-count` ≥ 2 pour
-la poursuite).
+supporte désormais toutes les locomotions. Testé en conditions réelles.
 
-## 7. Nouveaux animaux
+## 7. Nouveaux animaux — 🧪 à tester
 
 Fusionne les anciennes étapes 7 ("animaux faciles") et 8 (poissons/oiseaux
 "difficiles") : une fois l'étape 6 terminée, toutes les locomotions
@@ -115,6 +113,15 @@ Fusionne les anciennes étapes 7 ("animaux faciles") et 8 (poissons/oiseaux
 distinction facile/difficile — juste des packs à créer (chat, insecte
 rampant, poisson, oiseau...), qui servent aussi de test de charge pour les
 étapes 1-6.
+
+Livré : 4 packs (`cat`, `bug`, `fish`, `bird`), sprites et sons placeholder
+générés par script. Deux prérequis ajoutés en chemin : une section
+`behavior` dans `pack.json` pour régler le caractère de chaque espèce
+(`behaviorOverrides()`, clés filtrées), et le fait qu'une espèce sans sol
+(le poisson) ne se pose jamais et enchaîne ses nages. Les préférences
+proposent une liste déroulante des packs, et `tests/packs.test.js` valide
+automatiquement chaque pack. 95/95 tests verts ; reste à vérifier en
+conditions réelles avec chaque animal (`scripts/dev.sh`).
 
 ## 8. Rendu sprites amélioré
 
