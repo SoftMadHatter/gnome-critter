@@ -165,9 +165,9 @@ difficulté et mode vacances, effets sur les poids de comportement,
 sauvegarde v2 avec migration, icône de barre avec les jauges, bulles de
 pensée. Voir `docs/needs.md`. « Nourrir » du menu est provisoire (10.2).
 
-### 10.2 Nourrir et objets du bureau
+### 10.2 Nourrir et objets du bureau — 🧪 à tester
 Framework d'objets (nourriture, gamelle, lit), états de recherche de
-nourriture et de repas, menu contextuel (clic milieu) et menu de l'icône.
+nourriture et de repas, menu contextuel (clic milieu) et menu de l'icône. Voir `docs/needs.md`.
 
 ### 10.3 Jouer, ennui, affection
 Balle et pointeur laser, état de jeu, caresses prolongées, brossage.
@@ -188,3 +188,9 @@ Pièces et boutique, succès propres à chaque espèce et à sa personnalité
 L'animal couvre lui-même ses besoins (proies, grignotage). À cadrer avec
 toi avant tout plan : statut (mode alternatif ou niveau progressif lié à
 la croissance), sources de nourriture, rôle du joueur, conséquences, coût.
+
+### 10.8 Besoins naturels
+« Faire ses besoins » : nouveau besoin et comportements associés. À
+clarifier le moment venu (jauge et rythme, lieu choisi, litière ou objet
+dédié, nettoyage par le joueur, effets sur la propreté et la santé,
+adaptation par espèce, ton visuel).

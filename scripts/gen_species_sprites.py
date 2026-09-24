@@ -117,7 +117,7 @@ def eye(d, x, y, kind):
 def pose(**kw):
     base = dict(
         bob=0, tail=0, phase=None, stride=3, lift=2, eyes="open", mark=None,
-        squash=0, rot=0, ears="up", kind=None, wing="folded", fin=0, mouth=False, pivot=None,
+        squash=0, rot=0, ears="up", kind=None, wing="folded", fin=0, mouth=False, pivot=None, head=0,
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -212,7 +212,7 @@ def draw_cat(img, d, p):
     blob(d, (4, 13 + b + sq, 24, 27 + b), CAT_BASE, CAT_DARK, CAT_LIGHT)
     for x in (9, 13, 17):
         d.line((x, 14 + b + sq, x + 1, 17 + b + sq), fill=CAT_DARK)
-    cat_head(d, 18, 6 + b, p)
+    cat_head(d, 18, 6 + b + p.head, p)
     mark(d, p.mark, 26, 0)
 
 
@@ -260,6 +260,7 @@ def draw_cat_climb(img, d, p):
 def cat_sheets():
     s = common_sheets()
     s["fall"] = [pose(bob=-1, tail=t, eyes="wide", kind="jump") for t in (2, -2)]
+    s["eat"] = [pose(head=h, mouth=m, tail=t) for h, m, t in [(5, False, 0), (6, True, 1), (5, False, 0), (6, True, -1)]]
     s["sleep"] = [pose(kind="sleep"), pose(kind="sleep", mark="z")]
     s["wash"] = [pose(kind="wash", lift=l, mouth=m) for l, m in [(3, False), (1, True), (0, True), (2, False)]]
     s["climb"] = [pose(kind="climb", bob=-(i % 2), lift=[0, 1, 2, 1, 0, -1][i]) for i in range(6)]
@@ -292,8 +293,9 @@ def draw_bug(img, d, p):
     d.line((15, 14 + b, 15, 25 + b), fill=BUG_DARK)  # séparation des élytres
     d.point((11, 20 + b), fill=BUG_DARK)
     d.point((19, 22 + b), fill=BUG_DARK)
-    blob(d, (22, 16 + b, 30, 25 + b), c(84, 96, 74), c(58, 68, 52), c(120, 136, 104))
-    eye(d, 26, 19 + b, "open" if p.eyes == "blink" else p.eyes)
+    h = p.head
+    blob(d, (22, 16 + b + h, 30, 25 + b), c(84, 96, 74), c(58, 68, 52), c(120, 136, 104))
+    eye(d, 26, 19 + b + h, "open" if p.eyes == "blink" else p.eyes)
     aw = -1 if p.tail < 0 else p.tail
     d.line((27, 16 + b, 29, 11 + b - aw), fill=BUG_LEG)
     d.line((25, 16 + b, 26, 11 + b + aw), fill=BUG_LEG)
@@ -321,6 +323,7 @@ def bug_sheets():
     s["flee"] = [pose(bob=-(i % 2), phase=i, eyes="wide", tail=2, mark="!" if i == 0 else None) for i in range(6)]
     s["fall"] = [pose(bob=0, kind="back", phase=i, tail=i) for i in range(2)]
     s["climb"] = [pose(kind="climb", phase=i, bob=-(i % 2)) for i in range(6)]
+    s["eat"] = [pose(head=h, tail=t) for h, t in [(2, 0), (0, 1), (2, 0), (0, -1)]]
     return s
 
 
@@ -402,7 +405,7 @@ def draw_bird(img, d, p):
         d.line((16, 25 + b, 17, 28 + b), fill=BIRD_BEAK)
     blob(d, (5, 13 + b, 23, 27 + b), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
     d.ellipse((10, 19 + b, 21, 27 + b), fill=BIRD_BELLY)
-    hx, hy = (16, 9 + b) if p.kind != "preen" else (14, 13 + b)
+    hx, hy = (16, 9 + b + p.head) if p.kind != "preen" else (14, 13 + b)
     if p.kind == "sleep":
         hx, hy = (15, 12 + b)
     blob(d, (hx, hy - 4, hx + 12, hy + 8), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
@@ -427,6 +430,7 @@ def bird_sheets():
                 [(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")]]
     s["flee"] = [pose(bob=b, kind="flee", wing=w, tail=2, eyes="wide", mark="!" if i == 0 else None)
                  for i, (b, w) in enumerate([(0, "up"), (0, "up"), (1, "mid"), (1, "down"), (1, "down"), (0, "mid")])]
+    s["eat"] = [pose(head=h, tail=t) for h, t in [(7, 0), (3, 1), (7, 0), (3, -1)]]
     s["dive"] = [pose(kind="fly", wing="folded", rot=-55, pivot=16, eyes="wide", tail=b) for b in (1, 2)]
     s["sleep"] = [pose(kind="sleep", bob=1, eyes="closed"), pose(kind="sleep", bob=1, eyes="closed", mark="z")]
     s["wash"] = [pose(kind="preen", bob=b, eyes="closed") for b in (0, 1, 0, 1)]
@@ -448,7 +452,7 @@ SPECIES = {
             "sleep": ("sleep", 0.8), "wash": ("wash", 0.25), "climb": ("climb", 0.12), "ceiling": ("ceiling", 0.1),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekWall": ("walk", 0.09),
             "seekFocus": ("walk", 0.08), "seekNap": ("walk", 0.1), "chase": ("chase", 0.07), "flee": ("flee", 0.06),
-            "run": ("chase", 0.06),
+            "run": ("chase", 0.06), "eat": ("eat", 0.18),
         },
     ),
     "bug": dict(
@@ -459,7 +463,7 @@ SPECIES = {
             "idle": ("idle", 0.4), "walk": ("walk", 0.07), "fall": ("fall", 0.1), "drag": ("fall", 0.1),
             "climb": ("climb", 0.08), "ceiling": ("ceiling", 0.07), "follow": ("walk", 0.06),
             "greet": ("greet", 0.15), "seekWall": ("walk", 0.06), "seekFocus": ("walk", 0.06),
-            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04),
+            "chase": ("walk", 0.05), "flee": ("flee", 0.05), "run": ("walk", 0.04), "eat": ("eat", 0.14),
         },
     ),
     "fish": dict(
@@ -478,7 +482,7 @@ SPECIES = {
             "fly": ("fly", 0.07), "sleep": ("sleep", 0.8), "wash": ("wash", 0.22),
             "follow": ("walk", 0.09), "greet": ("greet", 0.2), "seekFocus": ("walk", 0.09),
             "seekNap": ("walk", 0.1), "chase": ("walk", 0.06), "flee": ("flee", 0.06),
-            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1),
+            "run": ("walk", 0.05), "flyFast": ("fly", 0.045), "dive": ("dive", 0.1), "eat": ("eat", 0.15),
         },
     ),
 }

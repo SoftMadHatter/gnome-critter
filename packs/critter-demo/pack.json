@@ -11,6 +11,7 @@
     "swim": 25,
     "fly": 60
   },
+  "needs": { "diet": { "kibble": 30, "seeds": 30, "meat": 30 } },
   "animations": {
     "idle":    { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.5,  "loop": true },
     "walk":    { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },

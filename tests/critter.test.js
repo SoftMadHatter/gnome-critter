@@ -1623,3 +1623,205 @@ test('serialize/restore emportent les jauges, avec rattrapage hors ligne', () =>
   vacation.restore(saved, { elapsedSeconds: 2 * 3600 });
   assert.equal(vacation.needs.values.satiety, 50);
 });
+
+// --- Nourriture, gamelle, lit ------------------------------------------------
+
+import { createItem, tickItem, fillBowl } from '../core/items.js';
+
+function settleItem(item, surfaces) {
+  for (let i = 0; i < 300; i++) tickItem(item, 1 / 60, surfaces, monitor);
+  return item;
+}
+
+function idleWithItems(config, items, surfaces) {
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, runWeight: 0,
+      needsDiet: { fish: 60, meat: 40 }, ...config,
+    },
+    { x: 100, y: monitor.height },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  return c;
+}
+
+function run(c, surfaces, items, seconds, stop) {
+  const seen = new Set();
+  for (let i = 0; i < seconds * 30; i++) {
+    const snap = c.tick(1 / 30, surfaces, { worldBounds: monitor, items });
+    seen.add(snap.state);
+    if (snap.event) seen.add(`event:${snap.event}`);
+    if (stop?.(snap)) break;
+  }
+  return seen;
+}
+
+test('un affamé va manger la nourriture et sa satiété monte du gain du régime', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces);
+  const c = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  c.needs.values.satiety = 10;
+
+  const seen = run(c, surfaces, [fish], 30, () => fish.consumed && c.state === State.IDLE);
+  assert.ok(seen.has(State.SEEK_FOOD) && seen.has(State.EAT));
+  assert.ok(seen.has('event:ate'));
+  assert.ok(fish.consumed);
+  assert.equal(c.needs.values.satiety, 70);
+  assert.ok(c.needs.values.affection > 80, "l'aliment préféré fait plaisir");
+});
+
+test('un animal rassasié ignore la nourriture, un aliment hors régime aussi', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces);
+  const seeds = settleItem(createItem('food', 'seeds', 250, 50), surfaces);
+
+  const full = idleWithItems({ walkWeight: 77, needsRateScale: 0 }, [fish], surfaces);
+  full.needs.values.satiety = 100;
+  assert.ok(!run(full, surfaces, [fish], 2).has(State.SEEK_FOOD));
+
+  const hungry = idleWithItems({ needsRateScale: 0 }, [seeds], surfaces);
+  hungry.needs.values.satiety = 5;
+  assert.ok(!run(hungry, surfaces, [seeds], 2).has(State.SEEK_FOOD));
+});
+
+test('une nourriture visée est réclamée : un second animal ne la vise pas', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 700, 50), surfaces);
+  const a = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  const b = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  a.needs.values.satiety = 5;
+  b.needs.values.satiety = 5;
+  a.tick(1 / 30, surfaces, { worldBounds: monitor, items: [fish] });
+  assert.equal(fish.claimedBy, a);
+  b.tick(1 / 30, surfaces, { worldBounds: monitor, items: [fish] });
+  assert.notEqual(b.state, State.SEEK_FOOD);
+});
+
+test('nourriture disparue en chemin : retour au repos, réclamation libérée', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 700, 50), surfaces);
+  const c = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  c.needs.values.satiety = 5;
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [fish] });
+  assert.equal(c.state, State.SEEK_FOOD);
+  fish.consumed = true;
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [fish] });
+  assert.equal(c.state, State.IDLE);
+  assert.equal(fish.claimedBy, null);
+});
+
+test('la gamelle perd une portion par repas et reste', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const bowl = settleItem(createItem('bowl', 'meat', 200, 50), surfaces);
+  fillBowl(bowl, 'meat', 2);
+  const c = idleWithItems({ needsRateScale: 0 }, [bowl], surfaces);
+  c.needs.values.satiety = 5;
+  run(c, surfaces, [bowl], 30, () => bowl.portions === 1);
+  assert.equal(bowl.portions, 1);
+  assert.ok(!bowl.consumed);
+  assert.ok(c.needs.values.satiety > 5);
+});
+
+test("un oiseau décolle vers la nourriture posée sur un autre rebord", () => {
+  const win = { id: 'w1', x: 600, y: 250, width: 300, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const seeds = settleItem(createItem('food', 'seeds', 700, 50), surfaces);
+  assert.equal(seeds.y, 250);
+  const c = idleWithItems(
+    { needsRateScale: 0, needsDiet: { seeds: 45 }, supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.AIR]), flySpeed: 300 },
+    [seeds],
+    surfaces,
+  );
+  c.needs.values.satiety = 5;
+  const seen = run(c, surfaces, [seeds], 40, () => seeds.consumed);
+  assert.ok(seen.has(State.FLY));
+  assert.ok(seeds.consumed, "il s'est posé puis a mangé");
+});
+
+test("un poisson va manger le plancton flottant où qu'il soit", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const plankton = createItem('food', 'plankton', 700, 100);
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), needsRateScale: 0, needsDiet: { plankton: 40 },
+      supportedSurfaces: new Set([Locomotion.WATER]), swimSpeed: 200, swimWaveAmplitude: 0,
+    },
+    { x: 100, y: 300 },
+  );
+  c._startRoam(State.SWIM);
+  c.needs.values.satiety = 10;
+  const seen = run(c, surfaces, [plankton], 30, () => plankton.consumed);
+  assert.ok(seen.has(State.SEEK_FOOD) && seen.has(State.EAT));
+  assert.ok(plankton.consumed);
+  assert.equal(c.needs.values.satiety, 50);
+  assert.equal(c.state, State.SWIM, 'il reprend sa nage après le repas');
+});
+
+test('un lit sur la surface : la sieste passe par le lit, et on y récupère plus vite', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const bed = settleItem(createItem('bed', null, 300, 50), surfaces);
+
+  const c = idleWithItems({ needsRateScale: 1, sleepWeight: 100, sleepDuration: [1000, 1000] }, [bed], surfaces);
+  c.needs.values.energy = 10;
+  c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [bed] });
+  assert.equal(c.state, State.SEEK_NAP);
+  run(c, surfaces, [bed], 30, () => c.state === State.SLEEP);
+  assert.equal(c.state, State.SLEEP);
+  assert.equal(c.x, 300);
+
+  const plain = idleWithItems({ needsRateScale: 1, sleepDuration: [1000, 1000] }, [], surfaces);
+  plain.state = State.SLEEP;
+  plain.stateTimer = 1e9;
+  plain.needs.values.energy = 10;
+  c.needs.values.energy = 10;
+  for (let i = 0; i < 60; i++) {
+    c.tick(60, surfaces, { worldBounds: monitor, items: [bed] });
+    plain.tick(60, surfaces, { worldBounds: monitor, items: [] });
+  }
+  assert.ok(c.needs.values.energy > plain.needs.values.energy);
+});
+
+test('un lit lointain (au-delà de la portée de sieste) attire quand même, et le trajet a le temps de finir', () => {
+  const surfaces = computeSurfaces({ monitors: [{ x: 0, y: 0, width: 3000, height: 500 }], windows: [] });
+  const world = { x: 0, y: 0, width: 3000, height: 500 };
+  const bed = createItem('bed', null, 1500, 50);
+  for (let i = 0; i < 300; i++) tickItem(bed, 1 / 60, surfaces, world);
+
+  const c = new Critter(
+    { random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 100, washWeight: 0, followWeight: 0, runWeight: 0, needsRateScale: 0, sleepDuration: [1000, 1000] },
+    { x: 100, y: 500 },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  c.needs.values.energy = 5;
+
+  c.tick(1 / 30, surfaces, { worldBounds: world, items: [bed] });
+  assert.equal(c.state, State.SEEK_NAP);
+  for (let i = 0; i < 30 * 80 && c.state === State.SEEK_NAP; i++) {
+    c.tick(1 / 30, surfaces, { worldBounds: world, items: [bed] });
+  }
+  assert.equal(c.state, State.SLEEP);
+  assert.equal(c.x, 1500);
+});
+
+test("un oiseau décolle vers un lit posé sur une autre surface", () => {
+  const win = { id: 'w1', x: 600, y: 250, width: 300, height: 100 };
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
+  const bed = createItem('bed', null, 700, 50);
+  for (let i = 0; i < 300; i++) tickItem(bed, 1 / 60, surfaces, monitor);
+  const c = new Critter(
+    {
+      random: fixedRandom(0.5), walkWeight: 0, sleepWeight: 100, washWeight: 0, followWeight: 0, runWeight: 0,
+      needsRateScale: 0, supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.AIR]),
+    },
+    { x: 100, y: 500 },
+  );
+  c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  c.state = State.IDLE;
+  c.stateTimer = 0;
+  c.needs.values.energy = 5;
+  assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [bed] }).state, State.FLY);
+});

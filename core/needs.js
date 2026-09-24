@@ -2,6 +2,8 @@
 // avec le temps réel. Module pur, sans dépendance GNOME : le Critter en
 // possède une instance et l'avance dans tick().
 
+import { FOODS } from './items.js';
+
 /** Jauges stockées (la santé est traitée à part, les cinq premières forment l'humeur). */
 export const NEED_GAUGES = ['satiety', 'energy', 'cleanliness', 'stimulation', 'affection'];
 export const ALL_GAUGES = [...NEED_GAUGES, 'health'];
@@ -32,7 +34,6 @@ const CATCH_UP_FACTOR = 0.5;
 
 /** Effets ponctuels d'un événement sur les jauges. */
 export const EVENT_EFFECTS = Object.freeze({
-  fed: { satiety: 40 },
   washed: { cleanliness: 30 },
   petted: { affection: 8, stimulation: 2 },
   tickled: { stimulation: 8, affection: 3 },
@@ -55,17 +56,26 @@ export function needMultiplier(value, { boost = 4, satisfied = 0.3 } = {}) {
 }
 
 /**
- * Filtre la section `needs` d'un pack.json : seuls les débits
- * `decayPerHour` numériques >= 0 des jauges connues passent.
+ * Filtre la section `needs` d'un pack.json : les débits `decayPerHour`
+ * (nombres >= 0, jauges connues) et le régime `diet` (aliments connus ->
+ * gain de satiété > 0) passent, le reste est signalé.
  * @param {object} [raw]
- * @returns {{rates: Record<string, number>, ignored: string[]}}
+ * @returns {{rates: Record<string, number>, diet: Record<string, number>, ignored: string[]}}
  */
 export function needsOverrides(raw = {}) {
   const rates = {};
+  const diet = {};
   const ignored = [];
   for (const [key, value] of Object.entries(raw ?? {})) {
-    if (key !== 'decayPerHour' || !value || typeof value !== 'object') {
+    if ((key !== 'decayPerHour' && key !== 'diet') || !value || typeof value !== 'object') {
       ignored.push(key);
+      continue;
+    }
+    if (key === 'diet') {
+      for (const [food, gain] of Object.entries(value)) {
+        if (FOODS[food] && Number.isFinite(gain) && gain > 0) diet[food] = gain;
+        else ignored.push(`diet.${food}`);
+      }
       continue;
     }
     for (const [gauge, rate] of Object.entries(value)) {
@@ -76,7 +86,7 @@ export function needsOverrides(raw = {}) {
       }
     }
   }
-  return { rates, ignored };
+  return { rates, diet, ignored };
 }
 
 export class Needs {
@@ -99,9 +109,10 @@ export class Needs {
 
   /**
    * @param {number} dt secondes
-   * @param {{sleeping?: boolean, active?: boolean}} [activity]
+   * @param {{sleeping?: boolean, active?: boolean, sleepFactor?: number}} [activity]
+   *   sleepFactor : multiplicateur du gain d'énergie en dormant (lit)
    */
-  advance(dt, { sleeping = false, active = false } = {}) {
+  advance(dt, { sleeping = false, active = false, sleepFactor = 1 } = {}) {
     if (this.rateScale <= 0 || dt <= 0) return;
     const hours = dt / 3600;
     const decayFactor = sleeping ? SLEEP_DECAY_FACTOR : 1;
@@ -110,7 +121,7 @@ export class Needs {
       this.values[g] = clamp100(this.values[g] - this.rates[g] * this.rateScale * decayFactor * hours);
     }
     if (sleeping) {
-      this.values.energy = clamp100(this.values.energy + SLEEP_ENERGY_GAIN_PER_HOUR * this.rateScale * hours);
+      this.values.energy = clamp100(this.values.energy + SLEEP_ENERGY_GAIN_PER_HOUR * sleepFactor * this.rateScale * hours);
     }
     if (active) {
       this.values.stimulation = clamp100(
@@ -124,6 +135,16 @@ export class Needs {
     } else if (average > HEALTH_GAIN_ABOVE) {
       this.values.health = clamp100(this.values.health + HEALTH_GAIN_PER_HOUR * this.rateScale * hours);
     }
+  }
+
+  /** Repas : satiété en plus (bornée). */
+  feed(amount) {
+    this.boost('satiety', amount);
+  }
+
+  boost(gauge, delta) {
+    if (!ALL_GAUGES.includes(gauge) || !Number.isFinite(delta)) return;
+    this.values[gauge] = clamp100(this.values[gauge] + delta);
   }
 
   /** Applique un événement reconnu (voir EVENT_EFFECTS), ignore les autres. */

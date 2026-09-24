@@ -9,7 +9,10 @@
   "spriteSize": { "width": 32, "height": 32 },
   "speeds": { "swim": 50 },
   "behavior": { "swimDuration": [6, 12], "swimWaveAmplitude": 0.8, "swimRetargetDuration": [6, 12] },
-  "needs": { "decayPerHour": { "energy": 0, "cleanliness": 0 } },
+  "needs": {
+    "decayPerHour": { "energy": 0, "cleanliness": 0 },
+    "diet": { "plankton": 40 }
+  },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.4, "loop": true },
     "swim": { "file": "sprites/swim.png", "frames": 6, "frameDuration": 0.12, "loop": true },

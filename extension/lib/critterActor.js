@@ -8,12 +8,13 @@ import Graphene from 'gi://Graphene';
 
 import { State } from '../core/critter.js';
 import { ThoughtBubble } from './thoughtBubble.js';
+import { CritterMenu } from './critterMenu.js';
 
 const DRAG_BEGIN_THRESHOLD_PX = 4;
 
 // Animation de repli d'un état que le pack ne décrit pas, avant le repli
 // final sur "idle" : une allure rapide ressemble à son allure normale.
-const ANIMATION_FALLBACKS = { run: 'walk', swimFast: 'swim', flyFast: 'fly', dive: 'fly' };
+const ANIMATION_FALLBACKS = { run: 'walk', swimFast: 'swim', flyFast: 'fly', dive: 'fly', seekFood: 'walk', eat: 'idle' };
 
 export class CritterActor {
   /**
@@ -21,8 +22,9 @@ export class CritterActor {
    * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
    * @param {Gio.Settings} settings
    * @param {Record<string, St.ImageContent>} [bubbleIcons] icônes des bulles de pensée (aucune bulle si vide)
+   * @param {object} [menuOwner] actions du menu contextuel (voir CritterMenu) ; pas de menu si absent
    */
-  constructor(critter, pack, settings, bubbleIcons = {}) {
+  constructor(critter, pack, settings, bubbleIcons = {}, menuOwner = null) {
     this.critter = critter;
     this.pack = pack;
     this._settings = settings;
@@ -32,6 +34,7 @@ export class CritterActor {
     this._reaction = null; // {name, elapsed}
     this._grab = null;
     this._bubble = Object.keys(bubbleIcons).length > 0 ? new ThoughtBubble(bubbleIcons) : null;
+    this._menu = menuOwner ? new CritterMenu(critter, pack, menuOwner) : null;
 
     this.actor = new Clutter.Actor({
       reactive: true,
@@ -83,6 +86,17 @@ export class CritterActor {
     });
     rightClickGesture.connect('recognize', () => this.critter.interact('rightClick'));
     this.actor.add_action(rightClickGesture);
+
+    // Clic milieu : menu contextuel (nourrir, gamelle, lit). Le clic droit
+    // reste « agacé ».
+    if (this._menu) {
+      const middleClickGesture = new Clutter.ClickGesture({
+        required_button: Clutter.BUTTON_MIDDLE,
+        recognize_on_press: true,
+      });
+      middleClickGesture.connect('recognize', () => this._menu.open());
+      this.actor.add_action(middleClickGesture);
+    }
 
     const panGesture = new Clutter.PanGesture();
     panGesture.set_begin_threshold(DRAG_BEGIN_THRESHOLD_PX);
@@ -219,6 +233,8 @@ export class CritterActor {
   destroy() {
     this._bubble?.destroy();
     this._bubble = null;
+    this._menu?.destroy();
+    this._menu = null;
     if (this._grab) {
       this._grab.dismiss();
       this._grab = null;

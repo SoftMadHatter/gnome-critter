@@ -45,7 +45,7 @@ test('les jauges restent entre 0 et 100', () => {
   const n = new Needs();
   n.advance(1000 * HOUR);
   for (const v of Object.values(n.values)) assert.ok(v >= 0 && v <= 100);
-  for (let i = 0; i < 20; i++) n.apply('fed');
+  for (let i = 0; i < 20; i++) n.feed(40);
   assert.equal(n.values.satiety, 100);
 });
 
@@ -67,7 +67,7 @@ test('effets ponctuels', () => {
   const n = new Needs();
   n.values.satiety = 30;
   n.values.cleanliness = 30;
-  n.apply('fed');
+  n.feed(40);
   n.apply('washed');
   assert.equal(n.values.satiety, 70);
   assert.equal(n.values.cleanliness, 60);
@@ -156,5 +156,28 @@ test('needsOverrides garde les débits valides et signale le reste', () => {
   });
   assert.deepEqual(rates, { energy: 3 });
   assert.deepEqual(ignored.sort(), ['autre', 'decayPerHour.cleanliness', 'decayPerHour.health', 'decayPerHour.satiety']);
-  assert.deepEqual(needsOverrides(undefined), { rates: {}, ignored: [] });
+  assert.deepEqual(needsOverrides(undefined), { rates: {}, diet: {}, ignored: [] });
+});
+
+test('feed et boost bornent la jauge ; le lit majore le gain de sommeil', () => {
+  const n = new Needs();
+  n.feed(1000);
+  assert.equal(n.values.satiety, 100);
+  n.boost('inconnue', 5);
+  n.boost('affection', NaN);
+  assert.equal(n.values.affection, 80);
+
+  const plain = new Needs();
+  const bed = new Needs();
+  plain.values.energy = 10;
+  bed.values.energy = 10;
+  plain.advance(1800, { sleeping: true });
+  bed.advance(1800, { sleeping: true, sleepFactor: 1.5 });
+  assert.ok(bed.values.energy > plain.values.energy);
+});
+
+test('needsOverrides : régime valide, aliments inconnus ou gains invalides signalés', () => {
+  const { diet, ignored } = needsOverrides({ diet: { fish: 60, pizza: 5, meat: -1, seeds: 'x' } });
+  assert.deepEqual(diet, { fish: 60 });
+  assert.deepEqual(ignored.sort(), ['diet.meat', 'diet.pizza', 'diet.seeds']);
 });

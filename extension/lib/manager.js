@@ -15,10 +15,14 @@ import { Critter, Locomotion, behaviorOverrides } from '../core/critter.js';
 import { serializeCritters, parseSavedState } from '../core/persistence.js';
 import { needsOverrides } from '../core/needs.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
+import {
+  createItem, fillBowl, tickItem, isGone, serializeItems, parseSavedItems,
+} from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
 import { loadBubbleIcons } from './thoughtBubble.js';
 import { addIndicator } from './panelIndicator.js';
+import { ItemActor, loadItemImages } from './itemActor.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
@@ -37,6 +41,10 @@ export class Manager {
     this._uuid = uuid;
     this._indicator = null;
     this._settingsIds = [];
+    /** @type {{item: object, actor: ItemActor}[]} */
+    this._items = [];
+    this._itemImages = {};
+    this._lastSavedItems = null;
     /** @type {{critter: Critter, actor: CritterActor}[]} */
     this._critters = [];
     this._timeoutId = null;
@@ -71,6 +79,7 @@ export class Manager {
     if (needs.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
     }
+    this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
     const bubbleIcons = loadBubbleIcons(GLib.build_filenamev([this._extensionPath, 'assets', 'bubbles']));
 
     const saved = parseSavedState(this.settings.get_string('saved-state'), {
@@ -93,6 +102,7 @@ export class Manager {
           // gardent la priorité sur d'éventuelles clés équivalentes.
           ...behavior.config,
           needsRates: needs.rates,
+          needsDiet: needs.diet,
           needsRateScale: this._needsRateScale(),
           speciesId: this.pack.meta.id,
           walkSpeed: this.pack.speeds.walk ?? 40,
@@ -108,7 +118,7 @@ export class Manager {
 
       if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
 
-      const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons);
+      const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner());
       // GNOME 50 (layout.js) : addChrome() inclut automatiquement l'acteur
       // dans la région d'input selon sa taille/position/visibilité ; le
       // paramètre affectsInputRegion n'existe plus (Params.parse rejette
@@ -117,6 +127,8 @@ export class Manager {
 
       this._critters.push({ critter, actor });
     }
+
+    for (const item of parseSavedItems(this.settings.get_string('saved-items'), { bounds })) this._addItem(item);
 
     for (const key of ['difficulty', 'vacation-mode']) {
       this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyNeedsRateScale()));
@@ -142,8 +154,10 @@ export class Manager {
       this._indicator = addIndicator(
         {
           getCritters: () => this._critters.map(({ critter }) => critter),
-          feedAll: () => this.feedAll(),
           title: this.pack.meta.displayName ?? this.pack.meta.id,
+          ...this._menuOwner(),
+          foods: () => this._foods(),
+          clearItems: () => this.clearItems(),
         },
         this.settings,
         this._uuid,
@@ -154,9 +168,62 @@ export class Manager {
     }
   }
 
-  /** Action provisoire du menu (10.2 la remplacera par de la vraie nourriture). */
-  feedAll() {
-    for (const { critter } of this._critters) critter.needs.apply('fed');
+  // --- Objets du bureau ---------------------------------------------------
+
+  /** Actions offertes aux menus (contextuel de l'animal et icône de barre). */
+  _menuOwner() {
+    return {
+      dropFood: (kind, critter) => this._dropNear('food', kind, critter),
+      fillBowl: (kind, critter) => this._fillBowl(kind, critter),
+      dropBed: (critter) => this._dropNear('bed', null, critter),
+    };
+  }
+
+  /** Aliments que connaissent les animaux affichés, le plus apprécié d'abord. */
+  _foods() {
+    const diet = {};
+    for (const { critter } of this._critters) {
+      for (const [kind, gain] of Object.entries(critter.config.needsDiet)) diet[kind] = Math.max(diet[kind] ?? 0, gain);
+    }
+    return Object.entries(diet).sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
+  }
+
+  _addItem(item) {
+    const actor = new ItemActor(item, this._itemImages);
+    Main.layoutManager.addChrome(actor.actor);
+    this._items.push({ item, actor });
+    return item;
+  }
+
+  /** Lâche un objet juste à côté (au-dessus) de l'animal, il retombe. */
+  _dropNear(type, kind, critter = this._critters[0]?.critter) {
+    if (!critter) return null;
+    const bounds = computeWorldBounds(getMonitors());
+    const x = Math.min(Math.max(critter.x + critter.facing * 48, bounds.x + 16), bounds.x + bounds.width - 16);
+    const y = Math.max(bounds.y + 20, critter.y - 90);
+    return this._addItem(createItem(type, kind, x, y));
+  }
+
+  _fillBowl(kind, critter = this._critters[0]?.critter) {
+    if (!critter) return;
+    const bowls = this._items.map((e) => e.item).filter((i) => i.type === 'bowl' && !i.removed);
+    const bowl =
+      bowls.sort((a, b) => Math.abs(a.x - critter.x) - Math.abs(b.x - critter.x))[0] ??
+      this._dropNear('bowl', kind, critter);
+    if (bowl) fillBowl(bowl, kind);
+  }
+
+  clearItems() {
+    for (const { item } of this._items) item.removed = true;
+  }
+
+  _removeGoneItems() {
+    this._items = this._items.filter((entry) => {
+      if (!isGone(entry.item)) return true;
+      Main.layoutManager.removeChrome(entry.actor.actor);
+      entry.actor.destroy();
+      return false;
+    });
   }
 
   start() {
@@ -177,9 +244,16 @@ export class Manager {
       this.pack.meta.id,
       this._critters.map(({ critter }) => critter),
     );
-    if (json === this._lastSavedState) return;
-    this._lastSavedState = json;
-    this.settings.set_string('saved-state', json);
+    if (json !== this._lastSavedState) {
+      this._lastSavedState = json;
+      this.settings.set_string('saved-state', json);
+    }
+
+    const itemsJson = serializeItems(this._items.map(({ item }) => item));
+    if (itemsJson !== this._lastSavedItems) {
+      this._lastSavedItems = itemsJson;
+      this.settings.set_string('saved-items', itemsJson);
+    }
   }
 
   stop() {
@@ -205,6 +279,11 @@ export class Manager {
       actor.destroy();
     }
     this._critters = [];
+    for (const { actor } of this._items) {
+      Main.layoutManager.removeChrome(actor.actor);
+      actor.destroy();
+    }
+    this._items = [];
   }
 
   _tick() {
@@ -251,9 +330,16 @@ export class Manager {
     // la cible une fois atteinte -- voir Critter._tickGreet).
     const others = this._critters.map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
 
+    for (const { item, actor } of this._items) {
+      tickItem(item, dt, surfaces, worldBounds);
+      actor.sync();
+    }
+    this._removeGoneItems();
+    const items = this._items.map(({ item }) => item);
+
     this._critters.forEach(({ critter, actor }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
-      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters, focusedWindow });
+      const snapshot = critter.tick(dt, surfaces, { worldBounds, pointer, otherCritters, focusedWindow, items });
       actor.updateAnimation(dt, snapshot);
     });
   }

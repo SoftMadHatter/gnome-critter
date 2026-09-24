@@ -9,6 +9,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
+import { FOOD_LABELS } from './itemActor.js';
+
 const GAUGES = [
   ['satiety', 'Satiété'],
   ['energy', 'Énergie'],
@@ -36,7 +38,7 @@ function moodIcon(mood) {
 export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
-     * @param {{getCritters: () => import('../core/critter.js').Critter[], feedAll: () => void, title: string}} owner
+     * @param {{getCritters: () => import('../core/critter.js').Critter[], title: string, foods: () => string[], dropFood: Function, fillBowl: Function, dropBed: Function, clearItems: Function}} owner
      * @param {Gio.Settings} settings
      */
     _init(owner, settings) {
@@ -94,12 +96,20 @@ export const CritterIndicator = GObject.registerClass(
       this._vacation.connect('toggled', (_item, state) => this._settings.set_boolean('vacation-mode', state));
       this.menu.addMenuItem(this._vacation);
 
-      const feed = new PopupMenu.PopupMenuItem('Nourrir');
-      feed.connect('activate', () => {
-        this._owner.feedAll();
-        this.refresh();
-      });
-      this.menu.addMenuItem(feed);
+      const foods = this._owner.foods();
+      if (foods.length > 0) {
+        const feed = new PopupMenu.PopupSubMenuMenuItem('Donner à manger');
+        const bowl = new PopupMenu.PopupSubMenuMenuItem('Remplir la gamelle');
+        for (const kind of foods) {
+          const label = FOOD_LABELS[kind] ?? kind;
+          feed.menu.addAction(label, () => this._owner.dropFood(kind));
+          bowl.menu.addAction(label, () => this._owner.fillBowl(kind));
+        }
+        this.menu.addMenuItem(feed);
+        this.menu.addMenuItem(bowl);
+      }
+      this.menu.addAction('Poser un lit', () => this._owner.dropBed());
+      this.menu.addAction('Retirer les objets', () => this._owner.clearItems());
     }
 
     refresh() {

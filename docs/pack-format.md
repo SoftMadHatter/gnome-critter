@@ -80,12 +80,15 @@ packs/<species-id>/
     "run":      { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true },
     "swimFast": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
     "flyFast":  { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.05, "loop": true },
-    "dive":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true }
+    "dive":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true },
+    "eat":      { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.15, "loop": true },
+    "seekFood": { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.1,  "loop": true }
   },
   // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
   // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js),
   // sauf les allures rapides qui retombent d'abord sur leur allure normale :
-  // "run" -> "walk", "swimFast" -> "swim", "flyFast" et "dive" -> "fly".
+  // "run" et "seekFood" -> "walk", "swimFast" -> "swim", "flyFast" et "dive"
+  // -> "fly", "eat" -> "idle".
 
   // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
   // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
@@ -113,8 +116,14 @@ Section optionnelle pour régler la vitesse à laquelle chaque besoin baisse
 `stimulation`, `affection`). Voir `docs/needs.md`.
 
 ```jsonc
-"needs": { "decayPerHour": { "energy": 3, "cleanliness": 2 } }
+"needs": {
+  "decayPerHour": { "energy": 3, "cleanliness": 2 },
+  "diet": { "fish": 60, "meat": 45, "kibble": 30 }
+}
 ```
+
+`diet` : aliments que l'espèce mange (`meat`, `fish`, `kibble`, `seeds`,
+`plankton`) et gain de satiété de chacun ; un aliment absent est ignoré.
 
 ## Règle du spritesheet
 

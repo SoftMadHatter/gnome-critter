@@ -1,5 +1,6 @@
 import { clamp, sign } from './vec2.js';
 import { Needs, needMultiplier } from './needs.js';
+import { edibleFor, consume, bedsOn } from './items.js';
 import {
   findSurfaceBelow,
   isOnSegment,
@@ -35,6 +36,8 @@ export const State = Object.freeze({
   SEEK_NAP: 'seekNap', // marche vers un rebord de fenêtre proche avant de s'endormir
   CHASE: 'chase', // poursuit une cible précise (référence fixe, pas "le plus proche")
   FLEE: 'flee', // s'éloigne d'un poursuivant
+  SEEK_FOOD: 'seekFood', // rejoint une nourriture visée
+  EAT: 'eat', // mange, immobile
 });
 
 /** Types de surface qu'une espèce peut savoir utiliser. */
@@ -62,7 +65,7 @@ const INTERACTION_REACTIONS = {
 const ACTIVE_STATES = new Set([
   State.WALK, State.RUN, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
   State.FLY, State.FLY_FAST, State.DIVE, State.FOLLOW, State.GREET, State.SEEK_WALL,
-  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE,
+  State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD,
 ]);
 
 /** Activités idle dont le poids suit la stimulation (l'animal s'ennuie : il bouge). */
@@ -75,6 +78,12 @@ const DEFAULT_CONFIG = {
   speciesId: 'unknown',
   needsRateScale: 1, // difficulté * (vacances ? 0 : 1), voir core/needs.js
   needsRates: {}, // débits par heure propres à l'espèce (section `needs` du pack, filtrée par needsOverrides)
+  needsDiet: {}, // aliment -> gain de satiété (section `needs.diet` du pack) ; un aliment absent est ignoré
+  foodWeight: 40, // multiplié par la faim : un affamé préfère manger, un rassasié ignore
+  foodSeekDuration: [6, 12], // temps maximal pour rejoindre une nourriture
+  eatDuration: [2, 4],
+  bedSleepFactor: 1.5, // multiplicateur du gain d'énergie en dormant sur un lit
+  bedRadius: 24, // distance sous laquelle on dort « sur » le lit
   walkSpeed: 40, // px/s
   climbSpeed: 30,
   swimSpeed: 25,
@@ -272,6 +281,7 @@ export class Critter {
   // --- Interactions utilisateur -------------------------------------------------
 
   startDrag() {
+    this._releaseFood();
     this.state = State.DRAG;
     this.vx = 0;
     this.vy = 0;
@@ -334,7 +344,11 @@ export class Critter {
     const external = this.lastEvent;
     if (external) this.needs.apply(external);
     this.stateTimer -= dt;
-    this.needs.advance(dt, { sleeping: this.state === State.SLEEP, active: ACTIVE_STATES.has(this.state) });
+    this.needs.advance(dt, {
+      sleeping: this.state === State.SLEEP,
+      active: ACTIVE_STATES.has(this.state),
+      sleepFactor: this._bedSleepFactor(options),
+    });
 
     // La fenêtre/le rebord sur lequel on s'est posé a pu être fermé,
     // déplacé ou redimensionné depuis le tick où `currentSurface` a été
@@ -392,7 +406,13 @@ export class Critter {
         this._tickFlee(dt);
         break;
       case State.SEEK_NAP:
-        this._tickSeekNap(dt, surfaces);
+        this._tickSeekNap(dt, surfaces, options);
+        break;
+      case State.SEEK_FOOD:
+        this._tickSeekFood(dt);
+        break;
+      case State.EAT:
+        this._tickEat(dt);
         break;
       case State.IDLE:
       case State.SLEEP:
@@ -554,6 +574,9 @@ export class Critter {
       candidates.push({ value: 'seekFocus', weight: this.config.seekFocusWeight * proximity });
     }
 
+    const edible = this._edibleTargets(options);
+    if (edible.length > 0) candidates.push({ value: 'food', weight: this.config.foodWeight });
+
     // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
     // pour un décollage, contrairement aux comportements ci-dessus).
     if (this.supports(Locomotion.GROUND)) {
@@ -590,6 +613,7 @@ export class Critter {
       if (c.value === 'sleep') c.weight *= needMultiplier(levels.energy, { boost: 6, satisfied: 0.3 });
       else if (c.value === 'wash') c.weight *= needMultiplier(levels.cleanliness, { boost: 5, satisfied: 0.3 });
       else if (c.value === 'follow') c.weight *= needMultiplier(levels.affection, { boost: 4, satisfied: 0.5 });
+      else if (c.value === 'food') c.weight *= needMultiplier(levels.satiety, { boost: 8, satisfied: 0.05 });
       else if (ENERGETIC_ACTIVITIES.has(c.value)) {
         c.weight *= needMultiplier(levels.stimulation, { boost: 3, satisfied: 0.6 });
         if (tired) c.weight *= 0.3;
@@ -609,7 +633,44 @@ export class Critter {
     this._lastActivity = choice; // 'walk' ne matche jamais la garde !== 'walk' ci-dessus : équivalent à un reset
 
     switch (choice) {
+      case 'food':
+        this._startSeekFood(edible[0]);
+        return;
       case 'sleep': {
+        // Un lit passe avant tout, quelle que soit la distance : on s'y rend
+        // (le temps de marche s'adapte), ou on dort directement dessus si on y
+        // est déjà. Espèce qui vole avec un lit sur une autre surface :
+        // décollage vers ce lit, la sieste suivra une fois posée.
+        const beds = (options.items ?? []).filter((i) => i.type === 'bed' && !i.removed && i.surface && !i.grabbed);
+        const here = this.currentSurface
+          ? beds
+              .filter((b) => b.surface.surfaceId === this.currentSurface.surfaceId)
+              .sort((a, b) => Math.abs(a.x - this.x) - Math.abs(b.x - this.x))[0]
+          : null;
+        if (here) {
+          const distance = Math.abs(here.x - this.x);
+          if (distance >= this.config.napApproachDistance) {
+            this._napBed = here;
+            this.state = State.SEEK_NAP;
+            this.stateTimer = Math.max(
+              randRange(this.config.napSeekDuration, this.config.random),
+              (distance / this.config.walkSpeed) * 1.5 + 2,
+            );
+            return;
+          }
+          this.state = State.SLEEP;
+          this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
+          this.lastEvent = 'sleep';
+          return;
+        }
+        if (this.supports(Locomotion.AIR) && beds.length > 0) {
+          const bed = beds.sort((a, b) => Math.abs(a.x - this.x) - Math.abs(b.x - this.x))[0];
+          const seg = bed.surface;
+          this._startRoam(State.FLY);
+          const margin = Math.min(8, (seg.x2 - seg.x1) / 2);
+          this._flyTarget = { segment: seg, x: clamp(bed.x, seg.x1 + margin, seg.x2 - margin), y: seg.y };
+          return;
+        }
         // Sieste ciblée : plutôt que de dormir sur place, cherche d'abord
         // un rebord de fenêtre proche et atteignable en marchant ; repli
         // sur place si rien à portée (comportement d'avant ce raffinement).
@@ -801,9 +862,32 @@ export class Critter {
     }
   }
 
-  _tickSeekNap(dt, surfaces) {
+  _tickSeekNap(dt, surfaces, options = {}) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
+      return;
+    }
+
+    if (this._napBed) {
+      const bed = this._napBed;
+      const stillThere =
+        !bed.removed &&
+        this.currentSurface &&
+        bedsOn(options.items ?? [], this.currentSurface.surfaceId, this.x).includes(bed);
+      if (this.stateTimer <= 0 || !stillThere) {
+        this._napBed = null;
+        this._enterState(State.IDLE);
+        return;
+      }
+      if (Math.abs(bed.x - this.x) < this.config.napApproachDistance) {
+        this.x = bed.x;
+        this._napBed = null;
+        this.state = State.SLEEP;
+        this.stateTimer = randRange(this.config.sleepDuration, this.config.random);
+        this.lastEvent = 'sleep';
+        return;
+      }
+      this._chase(dt, bed.x);
       return;
     }
 
@@ -836,6 +920,133 @@ export class Critter {
     }
 
     this._chase(dt, targetX);
+  }
+
+  // --- Nourriture et lit ----------------------------------------------------
+
+  /** Cibles comestibles pour cette espèce, la plus proche d'abord. */
+  _edibleTargets(options) {
+    if (!options.items?.length) return [];
+    return edibleFor(options.items, this.config.needsDiet, {
+      x: this.x,
+      surfaceId: this.currentSurface?.surfaceId,
+      canFly: this.supports(Locomotion.AIR),
+      floating: !this.supports(Locomotion.GROUND),
+      self: this,
+    });
+  }
+
+  _releaseFood() {
+    if (this._foodTarget?.item.claimedBy === this) this._foodTarget.item.claimedBy = null;
+    this._foodTarget = null;
+  }
+
+  _startSeekFood(target) {
+    const { item } = target;
+    const seg = item.surface;
+    const sameSurface = seg && this.currentSurface && seg.surfaceId === this.currentSurface.surfaceId;
+
+    if (!item.floating && !sameSurface) {
+      // Espèce qui vole, nourriture sur une autre surface : décollage vers
+      // cette surface ; une fois posée, la nourriture sera sur sa surface.
+      this._releaseFood();
+      this._startRoam(State.FLY);
+      const margin = Math.min(8, (seg.x2 - seg.x1) / 2);
+      this._flyTarget = { segment: seg, x: clamp(item.x, seg.x1 + margin, seg.x2 - margin), y: seg.y };
+      return;
+    }
+
+    this._releaseFood();
+    this._foodTarget = target;
+    if (item.type === 'food') item.claimedBy = this;
+    this.state = State.SEEK_FOOD;
+    this.stateTimer = randRange(this.config.foodSeekDuration, this.config.random);
+  }
+
+  _foodGone(item) {
+    return !item || item.consumed || item.removed || item.grabbed || (item.type === 'bowl' && item.portions <= 0);
+  }
+
+  /** Abandon (cible mangée, disparue, injoignable) : retour au repos ou au roaming. */
+  _giveUpFood() {
+    this._releaseFood();
+    const roam = this._groundlessRoamState();
+    if (roam) this._startRoam(roam);
+    else this._enterState(State.IDLE);
+  }
+
+  _tickSeekFood(dt) {
+    const item = this._foodTarget?.item;
+    const groundless = !this.supports(Locomotion.GROUND);
+
+    if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    const unreachable =
+      item &&
+      !groundless &&
+      !item.floating &&
+      (!item.surface || item.surface.surfaceId !== this.currentSurface?.surfaceId);
+    if (this._foodGone(item) || unreachable || this.stateTimer <= 0) {
+      this._giveUpFood();
+      return;
+    }
+
+    if (groundless) {
+      const toX = item.x - this.x;
+      const toY = item.y - this.y;
+      const distance = Math.hypot(toX, toY);
+      if (distance < 10) {
+        this._startEating();
+        return;
+      }
+      const speed = this.supports(Locomotion.WATER) ? this.config.swimSpeed : this.config.flySpeed;
+      this.facing = sign(toX) || this.facing;
+      this.x += (toX / distance) * speed * dt;
+      this.y += (toY / distance) * speed * dt;
+      return;
+    }
+
+    if (Math.abs(item.x - this.x) < this.config.napApproachDistance) {
+      this._startEating();
+      return;
+    }
+    this._chase(dt, item.x);
+  }
+
+  _startEating() {
+    const item = this._foodTarget.item;
+    this.facing = sign(item.x - this.x) || this.facing;
+    this.state = State.EAT;
+    this.stateTimer = randRange(this.config.eatDuration, this.config.random);
+  }
+
+  _tickEat(dt) {
+    const target = this._foodTarget;
+    const groundless = !this.supports(Locomotion.GROUND);
+    if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._enterState(State.FALL);
+      return;
+    }
+    if (!target || this._foodGone(target.item)) {
+      this._giveUpFood();
+      return;
+    }
+    if (this.stateTimer > 0) return;
+
+    consume(target.item);
+    this.needs.feed(target.gain);
+    if (target.gain >= Math.max(...Object.values(this.config.needsDiet))) this.needs.boost('affection', 5);
+    this.lastEvent = 'ate';
+    this._giveUpFood();
+  }
+
+  /** Multiplicateur du gain d'énergie en dormant : plus fort sur un lit. */
+  _bedSleepFactor(options) {
+    if (this.state !== State.SLEEP || !this.currentSurface || !options?.items) return 1;
+    const bed = bedsOn(options.items, this.currentSurface.surfaceId, this.x)[0];
+    return bed && Math.abs(bed.x - this.x) < this.config.bedRadius ? this.config.bedSleepFactor : 1;
   }
 
   _tickSeekWall(dt, surfaces) {
@@ -1054,6 +1265,22 @@ export class Critter {
   }
 
   _tickRoam(dt, options, speed, yRangeFactors, wavy = false) {
+    // Une espèce sans sol ne passe jamais par _tickWaiting : c'est ici
+    // qu'elle remarque la nourriture flottante quand elle a faim.
+    if (this._groundlessRoamState()) {
+      this._foodCheckTimer = (this._foodCheckTimer ?? 0) - dt;
+      if (this._foodCheckTimer <= 0) {
+        this._foodCheckTimer = 1;
+        if (this.needs.values.satiety < 70) {
+          const edible = this._edibleTargets(options);
+          if (edible.length > 0) {
+            this._startSeekFood(edible[0]);
+            return;
+          }
+        }
+      }
+    }
+
     if (this.stateTimer <= 0) {
       // Une espèce sans sol enchaîne une nouvelle session plutôt que de
       // retomber : elle n'aurait nulle part où se poser.
@@ -1255,6 +1482,7 @@ export class Critter {
   }
 
   _enterState(state) {
+    this._releaseFood();
     this.state = state;
     switch (state) {
       case State.IDLE:
