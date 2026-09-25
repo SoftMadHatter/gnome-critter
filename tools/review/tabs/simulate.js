@@ -10,11 +10,11 @@ import { STAT_KEYS, PLAYER_STAT_KEYS, MARK_FAMILIES, PLAYER_MARK_FAMILIES } from
 import { STAGES, TRAITS } from '../../../core/life.js';
 import { SEASONS, HOLIDAYS } from '../../../core/calendar.js';
 import { GIFTS, BED_MODELS } from '../../../core/items.js';
-import { ACCESSORIES } from '../../../core/accessories.js';
+import { ACCESSORIES, accessoryLabel } from '../../../core/accessories.js';
 import { openBox } from '../../../core/lootBoxes.js';
 import { announceUnlock, announceBurst, rewardLabel } from '../../../core/narrator.js';
-import { STAT_LABELS, PLAYER_STAT_LABELS, MARK_FAMILY_LABELS } from '../../../extension/lib/progressLabels.js';
-import { TRAIT_LABELS, STAGE_LABELS } from '../../../extension/lib/lifeLabels.js';
+import { statLabel, playerStatLabel, markFamilyLabel, traitLabel, stageLabel } from '../../../core/labels.js';
+import { _, ngettext, fmt } from '../../../core/i18n.js';
 import { categoryLabel } from '../format.js';
 
 const STORE = 'scamper-review-simulation';
@@ -90,21 +90,22 @@ function everything(defs, choices) {
   return { stats, marks: [...marks] };
 }
 
-/** Fenêtre de progression telle que le joueur la voit (mêmes règles que extension/lib/progressDialog.js). */
+/** Fenêtre de progression telle que le joueur la voit (mêmes règles et mêmes textes que extension/lib/progressDialog.js). */
 function progressWindow(view, open) {
   return h(
     'div',
     {},
-    h('p', {}, h('b', {}, `${view.done} / ${view.total} débloqués`)),
+    h('p', {}, h('b', {}, fmt(_('{done} / {total} débloqués'), { done: view.done, total: view.total }))),
     view.categories.map((category) => {
       const count = category.id === 'mischief'
-        ? `${category.done} découverte${category.done > 1 ? 's' : ''} sur ${category.total}`
+        ? fmt(ngettext('{done} découverte sur {total}', '{done} découvertes sur {total}', category.done), { done: category.done, total: category.total })
         : `${category.done}/${category.total}`;
       return h(
         'details',
         { open },
         h('summary', {}, `${categoryLabel(category.id)} (${count})`),
-        category.entries.length === 0 ? h('p', { class: 'muted' }, "Rien de découvert pour l'instant. Le Système attend.") : null,
+        category.id === 'player' ? h('p', { class: 'muted' }, _('Tes succès à toi, partagés entre tous tes animaux.')) : null,
+        category.entries.length === 0 ? h('p', { class: 'muted' }, _("Rien de découvert pour l'instant. Le Système attend.")) : null,
         category.entries.map((entry) =>
           h(
             'div',
@@ -115,10 +116,12 @@ function progressWindow(view, open) {
             !entry.done && entry.target
               ? h('div', { class: 'bar' }, h('div', { style: { width: `${Math.min(100, (100 * entry.value) / entry.target)}%` } }))
               : null,
-            entry.last ? h('div', { class: 'muted' }, `Palier obtenu : ${entry.last.name} (${entry.tier}/${entry.tiers})`) : null,
-            entry.done && entry.title ? h('div', {}, h('i', {}, `Titre gagné : ${entry.title}`)) : null,
-            entry.troll ? h('div', { class: 'quip' }, `« ${entry.quip} »`) : null,
-            entry.troll ? h('div', { class: 'muted' }, `Récompense : ${rewardLabel(entry.reward)}`) : null,
+            entry.last
+              ? h('div', { class: 'muted' }, fmt(_('Palier obtenu : {name} ({tier}/{tiers})'), { name: entry.last.name, tier: entry.tier, tiers: entry.tiers }))
+              : null,
+            entry.done && entry.title ? h('div', {}, h('i', {}, fmt(_('Titre gagné : {title}'), { title: entry.title }))) : null,
+            entry.troll ? h('div', { class: 'quip' }, fmt(_('« {name} »'), { name: entry.quip })) : null,
+            entry.troll ? h('div', { class: 'muted' }, fmt(_('Récompense : {reward}'), { reward: rewardLabel(entry.reward) })) : null,
           )),
       );
     }),
@@ -135,7 +138,7 @@ function counters(keys, values, labels, onChange) {
     { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))' } },
     keys.map((key) =>
       h('label', { class: 'field', style: { justifyContent: 'space-between' } },
-        h('span', { title: key }, labels[key] ?? key),
+        h('span', { title: key }, labels(key)),
         h('input', {
           type: 'number', min: '0', value: String(values[key] ?? 0),
           oninput: (e) => {
@@ -149,7 +152,7 @@ function counters(keys, values, labels, onChange) {
 function marksPicker(choices, selected, onChange) {
   return choices.map(([family, values]) =>
     h('div', { style: { margin: '4px 0' } },
-      h('b', {}, `${MARK_FAMILY_LABELS[family] ?? family} : `),
+      h('b', {}, `${markFamilyLabel(family)} : `),
       [...values].map((value) => {
         const mark = `${family}:${value}`;
         return h('label', { style: { marginRight: '10px', whiteSpace: 'nowrap' } },
@@ -192,6 +195,7 @@ export function render(root, { pack, state, setState }) {
     return;
   }
   const sim = stored;
+  const sample = pack.meta.names?.[0] ?? 'Pistache';
   const open = state.open === '1';
   const marks = new Set(sim.marks);
   const playerMarks = new Set(sim.playerMarks);
@@ -210,7 +214,7 @@ export function render(root, { pack, state, setState }) {
     const playerUnlocked = unlockAll(pack.player, { facts: playerFacts });
     const playerView = achievementView(pack.player, { unlocked: playerUnlocked, facts: playerFacts });
     results.replaceChildren(
-      h('div', {}, h('h3', {}, `Fenêtre de progression — ${TRAIT_LABELS[sim.trait]}, ${STAGE_LABELS[sim.stage].toLowerCase()}`), progressWindow(view, open)),
+      h('div', {}, h('h3', {}, `Fenêtre de progression — ${traitLabel(sim.trait)}, ${stageLabel(sim.stage).toLowerCase()}`), progressWindow(view, open)),
       h('div', {}, h('h3', {}, 'Succès du joueur (rubrique « Toi »)'), progressWindow(playerView, open)),
     );
     const got = [...pack.critter, ...pack.player].filter((def) => unlocked.has(def.id) || playerUnlocked.has(def.id));
@@ -219,13 +223,13 @@ export function render(root, { pack, state, setState }) {
       notices,
       h('h3', {}, `Annonces du Système (${got.length} succès)`),
       got.length > 3
-        ? [notice(announceBurst({ who: 'Pistache', defs: got, coins })),
+        ? [notice(announceBurst({ who: sample, defs: got, coins })),
           h('p', { class: 'muted' }, 'Plus de 3 succès d’un coup : en jeu, une seule notification (ci-dessus). Annonces individuelles :')]
         : null,
       got.slice(0, 40).map((def) => notice(announceUnlock({
         def,
-        who: def.scope === 'player' ? null : 'Pistache',
-        outcome: { paid: true, box: def.reward.box ? openBox(def.reward.box, Math.random) : undefined, accessoryLabel: ACCESSORIES[def.reward.accessory]?.label },
+        who: def.scope === 'player' ? null : sample,
+        outcome: { paid: true, box: def.reward.box ? openBox(def.reward.box, Math.random) : undefined, accessoryLabel: def.reward.accessory ? accessoryLabel(def.reward.accessory) : undefined },
       }))),
       got.length > 40 ? h('p', { class: 'muted' }, `… et ${got.length - 40} autres.`) : null,
     );
@@ -242,16 +246,16 @@ export function render(root, { pack, state, setState }) {
       h(
         'div',
         { class: 'controls' },
-        field('Caractère', select(TRAITS.map((t) => [t, TRAIT_LABELS[t]]), sim.trait, (v) => { sim.trait = v; compute(); })),
-        field('Stade', select(STAGES.map((s) => [s, STAGE_LABELS[s]]), sim.stage, (v) => { sim.stage = v; compute(); })),
+        field('Caractère', select(TRAITS.map((t) => [t, traitLabel(t)]), sim.trait, (v) => { sim.trait = v; compute(); })),
+        field('Stade', select(STAGES.map((s) => [s, stageLabel(s)]), sim.stage, (v) => { sim.stage = v; compute(); })),
         h('button', { onclick: () => preset('new') }, 'Animal neuf'),
         h('button', { onclick: () => preset('month') }, 'Un mois de vie'),
         h('button', { onclick: () => preset('all') }, 'Tout débloqué'),
         field('Tout déplier', h('input', { type: 'checkbox', checked: open, onchange: (e) => setState({ open: e.target.checked ? '1' : '' }) })),
       ),
-      h('details', {}, h('summary', {}, 'Compteurs de l’animal'), counters(CRITTER_KEYS, sim.stats, STAT_LABELS, soon)),
+      h('details', {}, h('summary', {}, 'Compteurs de l’animal'), counters(CRITTER_KEYS, sim.stats, statLabel, soon)),
       h('details', {}, h('summary', {}, 'Marques de l’animal'), marksPicker(critterChoices, marks, soon)),
-      h('details', {}, h('summary', {}, 'Compteurs et marques du joueur'), counters(PLAYER_KEYS, sim.playerStats, PLAYER_STAT_LABELS, soon),
+      h('details', {}, h('summary', {}, 'Compteurs et marques du joueur'), counters(PLAYER_KEYS, sim.playerStats, playerStatLabel, soon),
         marksPicker(playerChoices, playerMarks, soon)),
     ),
     h('section', { class: 'panel' }, results),

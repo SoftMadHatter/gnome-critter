@@ -25,6 +25,8 @@
 #   scripts/dev.sh --no-build   # saute le rebuild (utile si seul packs/ ou
 #                                # schemas/ a changé et que le lien symlink
 #                                # est déjà à jour)
+#   scripts/dev.sh --lang en    # session imbriquée dans une autre langue
+#                                # (traductions, voir docs/i18n.md)
 
 set -euo pipefail
 
@@ -49,8 +51,25 @@ warn() { printf '%s⚠%s %s\n' "$YELLOW" "$RESET" "$*" >&2; }
 err()  { printf '%s✗%s %s\n' "$RED" "$RESET" "$*" >&2; }
 export -f info ok warn err
 
-if [[ "${1:-}" != "--no-build" ]]; then
+BUILD=1
+LANG_CODE=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-build) BUILD=0; shift ;;
+    --lang) LANG_CODE="${2:-}"; shift 2 ;;
+    *) err "Option inconnue : $1 (usage : scripts/dev.sh [--no-build] [--lang en])"; exit 2 ;;
+  esac
+done
+
+if [[ "$BUILD" == 1 ]]; then
   "$ROOT_DIR/scripts/build.sh" --link
+fi
+
+# Langue de la session imbriquée : LANGUAGE passe devant la locale pour les
+# catalogues gettext ; la vraie session n'est pas touchée.
+if [[ -n "$LANG_CODE" ]]; then
+  export LANGUAGE="$LANG_CODE"
+  info "Session imbriquée en langue « $LANG_CODE »."
 fi
 
 if ! command -v dbus-run-session >/dev/null 2>&1; then

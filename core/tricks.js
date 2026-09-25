@@ -1,11 +1,18 @@
 // Tours appris par répétition (assis, roulade, saut). Module pur : le Critter
 // possède un carnet de tours ; le joueur entraîne, l'animal progresse.
 
+import { _, N_ } from './i18n.js';
+
 export const TRICKS = Object.freeze({
-  sit: { label: 'Assis', duration: 2.5 },
-  roll: { label: 'Roulade', duration: 2 },
-  flip: { label: 'Saut périlleux', duration: 1.6 },
+  sit: { label: N_('Assis'), duration: 2.5 },
+  roll: { label: N_('Roulade'), duration: 2 },
+  flip: { label: N_('Saut périlleux'), duration: 1.6 },
 });
+
+/** Nom affiché d'un tour. */
+export function trickLabel(name) {
+  return TRICKS[name] ? _(TRICKS[name].label) : name;
+}
 
 const TRAINING_GAIN = 12; // maîtrise gagnée par essai
 const GAIN_BY_TRAIT = { playful: 1.5, lazy: 0.6 };

@@ -86,6 +86,35 @@
     "Sirène",
     "Ricochet"
   ],
+  "translations": {
+    "en": {
+      "displayName": "Fish",
+      "names": [
+        "Bubbles",
+        "Nemo",
+        "Foam",
+        "Coral",
+        "Ripple",
+        "Goldie",
+        "Minnow",
+        "Fin",
+        "Droplet",
+        "Tide",
+        "Pearly",
+        "Drifter",
+        "Splash",
+        "Flake",
+        "Mermaid",
+        "Skipper"
+      ],
+      "achievements": {
+        "laser-dancer": { "name": "Laser dancer", "description": "Play 15 times" },
+        "glutton": { "name": "Glutton", "description": "Eat 30 meals" },
+        "hunts": { "names": [ "First krill", "Krill feast", "Desktop whale", "Krill vacuum" ], "description": "Gulp down {n} krill", "title": "krill vacuum" },
+        "fish-memory": { "name": "Goldfish memory", "description": "Swim 1,000 laps", "quip": "A thousand laps of the bowl. Every lap, it discovers the scenery all over again. It's very happy." }
+      }
+    }
+  },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "fall": { "file": "sprites/fall.png", "frames": 2, "frameDuration": 0.12, "loop": true },

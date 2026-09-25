@@ -84,6 +84,11 @@ Pour itérer :
 `--no-build` saute l'étape 1 (utile si le lien symlink pointe déjà vers un
 `dist/` à jour).
 
+`--lang en` lance la session imbriquée dans une autre langue (`LANGUAGE`),
+sans toucher à la vraie session : menus, notifications, fenêtre de
+progression, préférences et prénoms en anglais. Traductions et outillage :
+`docs/i18n.md`.
+
 ## Logs
 
 Dans un terminal séparé, pendant que la session imbriquée tourne :
@@ -139,13 +144,18 @@ scripts/review.sh --open        # http://127.0.0.1:8765/ ; --port N pour un autr
 
 Le mini serveur (`tools/review/server.mjs`, Node, sans dépendance) n'écoute que
 sur 127.0.0.1, ne répond qu'aux lectures (GET) et ne sert que `core/`,
-`packs/`, `extension/lib/`, `extension/assets/` et `tools/review/`. La page
+`packs/`, `po/`, `extension/lib/`, `extension/assets/` et `tools/review/`. La page
 charge directement les modules du cœur (`buildAchievements`,
 `achievementView`, le Système, les boîtes, `shiftPixels`...) : ce qu'elle
 affiche est exactement ce que calcule le jeu. Quand un fichier change, elle se
 recharge seule en gardant l'onglet et les filtres (dans l'adresse) : on
 corrige dans l'éditeur, on vérifie dans la page. `tools/` n'est pas copié par
 `scripts/build.sh` : rien n'est livré avec l'extension.
+
+Le choix de langue de l'en-tête (français, anglais ; `&lang=en` dans
+l'adresse) affiche les textes du jeu traduits par `po/<langue>.po` et la
+section `translations` des packs. L'interface de l'outil reste en français
+(voir `docs/i18n.md`).
 
 Onglets :
 
@@ -170,6 +180,10 @@ Onglets :
 - **Contrôles** : erreurs de structure (les règles de `tests/packs.test.js`)
   et textes à relire (typographie, doublons, longueurs, titres genrés,
   descriptions de paliers identiques) ; leur nombre s'affiche sur l'onglet.
+  Hors du français s'ajoutent :
+  - les contrôles du catalogue : traductions manquantes, espaces réservés,
+    textes identiques au français ;
+  - ceux de la section `translations` de chaque pack.
 
 Limites : aucune écriture (les corrections se font dans l'éditeur) ; ce n'est
 pas le rendu réel de GNOME Shell (menus, notifications, HiDPI, filtres de

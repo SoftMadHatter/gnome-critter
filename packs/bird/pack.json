@@ -93,6 +93,36 @@
     "Vent",
     "Éclair"
   ],
+  "translations": {
+    "en": {
+      "displayName": "Bird",
+      "names": [
+        "Pip",
+        "Feather",
+        "Azure",
+        "Sunny",
+        "Kiwi",
+        "Zephyr",
+        "Trill",
+        "Skye",
+        "Bluebell",
+        "Chickadee",
+        "Chirpy",
+        "Breezy",
+        "Wren",
+        "Finch",
+        "Gale",
+        "Flash"
+      ],
+      "achievements": {
+        "sky-lightning": { "name": "Lightning wings", "description": "Make 30 dives" },
+        "pecker": { "name": "Peck peck", "description": "Eat 40 meals" },
+        "cozy-nest": { "name": "Cozy nest", "description": "Take 20 naps" },
+        "hunts": { "names": [ "First beetle", "Bug hunter", "Terror of beetles", "Scourge of coleoptera" ], "description": "Catch {n} beetle{s}", "title": "scourge of coleoptera" },
+        "bird-restless": { "name": "Restless wings", "description": "Take off 300 times", "quip": "Three hundred takeoffs. It has never stayed put for more than five minutes. Wonder where it gets that from." }
+      }
+    }
+  },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   formatSeconds, formatDuration, statValue, STAT_LABELS, CATEGORY_LABELS, PLAYER_STAT_LABELS, MARK_FAMILY_LABELS,
-} from '../extension/lib/progressLabels.js';
+} from '../core/labels.js';
 import { STAT_KEYS, DERIVED_STATS, PLAYER_CONDITION_STATS, MARK_FAMILIES, PLAYER_MARK_FAMILIES } from '../core/stats.js';
 import { DISPLAY_ORDER } from '../core/achievements.js';
 

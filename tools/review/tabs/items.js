@@ -5,9 +5,7 @@ import { h, select, fill } from '../dom.js';
 import { spriteCatalog } from '../../../core/itemLooks.js';
 import { FOODS, PLANTS, GIFTS, BED_MODELS, BOWL_MODELS, TOYS, isBowlFood } from '../../../core/items.js';
 import { PREY } from '../../../core/prey.js';
-import {
-  FOOD_LABELS, TOY_LABELS, BED_LABELS, BOWL_LABELS, PREY_LABELS, PLANT_LABELS,
-} from '../../../extension/lib/itemLabels.js';
+import { foodLabel, toyLabel, bedLabel, bowlLabel, preyLabel, plantLabel } from '../../../core/labels.js';
 
 const BACKGROUNDS = [['checker', 'Damier'], ['light', 'Clair'], ['dark', 'Sombre']];
 const BG_STYLE = { checker: '', light: 'background:#eef0f4', dark: 'background:#2a2f38' };
@@ -33,20 +31,20 @@ export function render(root, { state, setState }) {
 
   const groups = [
     ['Aliments (par bouchées restantes)', Object.entries(FOODS).flatMap(([kind, food]) =>
-      Array.from({ length: food.bites }, (_, i) => card(`food_${kind}_${food.bites - i}`, `${FOOD_LABELS[kind] ?? kind} — ${bites(food.bites - i)}`)))],
-    ...BOWL_MODELS.map((model) => [`Gamelle ${BOWL_LABELS[model] ?? model} (vide, aliments par niveau, moisie)`, [
+      Array.from({ length: food.bites }, (_, i) => card(`food_${kind}_${food.bites - i}`, `${foodLabel(kind)} — ${bites(food.bites - i)}`)))],
+    ...BOWL_MODELS.map((model) => [`Gamelle ${bowlLabel(model)} (vide, aliments par niveau, moisie)`, [
       card(`bowl_${model}_empty`, 'vide'),
       ...Object.keys(FOODS).filter(isBowlFood).flatMap((kind) =>
-        [1, 2, 3].map((level) => card(`bowl_${model}_${kind}_${level}`, `${FOOD_LABELS[kind] ?? kind} — ${levels[level]}`))),
+        [1, 2, 3].map((level) => card(`bowl_${model}_${kind}_${level}`, `${foodLabel(kind)} — ${levels[level]}`))),
       ...[1, 2, 3].map((level) => card(`bowl_${model}_moldy_${level}`, `moisie — ${levels[level]}`)),
     ]]),
-    ['Lits', BED_MODELS.map((model) => card(`bed_${model}`, BED_LABELS[model] ?? model))],
+    ['Lits', BED_MODELS.map((model) => card(`bed_${model}`, bedLabel(model)))],
     ['Jouets (variantes)', Object.entries(TOYS).flatMap(([kind, toy]) =>
-      toy.variants.map((variant) => card(`toy_${kind}_${variant}`, `${TOY_LABELS[kind] ?? kind} — ${variant}`)))],
+      toy.variants.map((variant) => card(`toy_${kind}_${variant}`, `${toyLabel(kind)} — ${variant}`)))],
     ['Plantes (portions restantes)', Object.keys(PLANTS).flatMap((kind) =>
-      [3, 2, 1, 0].map((n) => card(`${kind}_${n}`, `${PLANT_LABELS[kind] ?? kind} — ${n}`)))],
+      [3, 2, 1, 0].map((n) => card(`${kind}_${n}`, `${plantLabel(kind)} — ${n}`)))],
     ['Proies (deux frames de marche)', Object.keys(PREY).flatMap((kind) =>
-      [0, 1].map((frame) => card(`${kind}_${frame}`, `${PREY_LABELS[kind] ?? kind} — frame ${frame}`)))],
+      [0, 1].map((frame) => card(`${kind}_${frame}`, `${preyLabel(kind)} — frame ${frame}`)))],
     ['Cadeaux, litière, traces, laser', [
       ...Object.entries(GIFTS).map(([kind, gift]) => card(kind, `${kind} (${gift.coins} pièces)`)),
       card('litter_clean', 'litière propre'),

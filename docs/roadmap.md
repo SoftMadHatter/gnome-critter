@@ -282,7 +282,7 @@ Titres à choisir, trophées (médaille, laurier, auréole), succès du joueur,
 saisons et fêtes (Pâques calculée). Une cinquantaine de compteurs et des
 marques par animal. Voir `docs/progression.md`.
 
-## 16. Langues et traductions
+## 16. Langues et traductions — à tester
 
 Prendre en compte plusieurs langues : sortir tous les textes français
 (menus, fenêtres, notifications, libellés d'aliments, jouets, accessoires, tours,
@@ -295,3 +295,28 @@ langue de référence des sources, la traduction des textes portés par les pack
 l'outillage d'extraction (`xgettext`) et de compilation (`msgfmt`) dans
 `scripts/build.sh`, et des tests qui vérifient qu'aucun texte n'échappe à la
 traduction.
+
+Livré :
+
+- **Mécanisme** : gettext, domaine `scamper`. Le français est la langue
+  source : les textes du code sont les msgid. Le catalogue `po/en.po` traduit
+  en anglais environ 900 textes :
+  - menus, fenêtres, préférences, schéma, journal, notifications ;
+  - libellés, le Système (« the System »), boîtes ;
+  - succès et bêtises de la bibliothèque.
+- **Cœur** (`core/i18n.js`) : traducteur branché par l'extension, les
+  préférences, les tests et l'outil de revue. Les libellés sont traduits à
+  l'affichage et les succès à la construction.
+- **Packs** : section `translations` dans chaque `pack.json` (nom de
+  l'espèce, prénoms, succès propres), une liste de prénoms génériques par
+  langue.
+- **Outillage** :
+  - `scripts/i18n.sh update | check` ;
+  - compilation des `.mo` par `scripts/build.sh` ;
+  - `scripts/dev.sh --lang en` ;
+  - choix de la langue et contrôles des traductions dans l'outil de revue.
+- **Tests** (`tests/i18n.test.js`) : catalogue complet et à jour, couverture
+  des textes marqués, aucun texte d'interface hors de `_()`, packs traduits,
+  rendu anglais sans français.
+
+Voir `docs/i18n.md`.

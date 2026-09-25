@@ -111,6 +111,38 @@
     "Filou",
     "Cléo"
   ],
+  "translations": {
+    "en": {
+      "displayName": "Cat",
+      "names": [
+        "Whiskers",
+        "Mocha",
+        "Cuddles",
+        "Pixel",
+        "Nougat",
+        "Purrcy",
+        "Tiger",
+        "Luna",
+        "Felix",
+        "Mittens",
+        "Smokey",
+        "Pearl",
+        "Honey",
+        "Socks",
+        "Rascal",
+        "Cleo"
+      ],
+      "achievements": {
+        "nap-king": { "name": "Nap royalty", "description": "Sleep 15 minutes straight" },
+        "ball-hunter": { "name": "Ball hunter", "description": "Kick the ball 50 times" },
+        "gourmet": { "name": "Gourmet", "description": "Eat its favorite food 20 times" },
+        "cuddle-pro": { "name": "Professional cuddler", "description": "Purr 10 times" },
+        "salad": { "name": "Greens lover", "description": "Nibble on grass 15 times" },
+        "hunts": { "names": [ "First mouse", "Mouser", "Scourge of mice", "Rodents' nightmare" ], "description": "Catch {n} mice", "title": "rodents' nightmare" },
+        "cat-early-meal": { "name": "Alarm clock", "description": "Eat between 5 and 6 a.m.", "quip": "Five in the morning, and it's eating. If you're still asleep, it just hasn't started meowing yet." }
+      }
+    }
+  },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },

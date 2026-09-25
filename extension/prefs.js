@@ -1,8 +1,12 @@
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk';
 
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+
+import { _, N_, setTranslator, sessionLanguage, language } from './core/i18n.js';
+import { localizePack } from './core/packTranslations.js';
 
 /**
  * Liste les packs installés : chaque sous-dossier de `packs/` qui contient
@@ -26,7 +30,7 @@ function listPacks(extensionPath) {
     try {
       const [, contents] = packsDir.get_child(id).get_child('pack.json').load_contents(null);
       const meta = JSON.parse(new TextDecoder('utf-8').decode(contents));
-      packs.push({ id, label: meta.displayName ?? id });
+      packs.push({ id, label: localizePack(meta, language()).displayName ?? id });
     } catch {
       // Dossier sans pack.json valide : pas un pack, on l'ignore.
     }
@@ -37,23 +41,30 @@ function listPacks(extensionPath) {
 
 export default class ScamperPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
+    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/scamper.mo).
+    this.initTranslations?.();
+    setTranslator({
+      gettext: (text) => this.gettext(text),
+      ngettext: (singular, plural, n) => this.ngettext(singular, plural, n),
+      language: sessionLanguage(GLib.get_language_names()),
+    });
     const settings = this.getSettings();
 
     // Tous les réglages s'appliquent immédiatement, sans recharger l'extension
     // (changer d'animal ou de nombre recrée le gestionnaire à chaud).
-    const generalPage = new Adw.PreferencesPage({ title: 'Général', icon_name: 'preferences-system-symbolic' });
-    const group = new Adw.PreferencesGroup({ title: 'Animaux', description: 'Les changements sont appliqués tout de suite.' });
+    const generalPage = new Adw.PreferencesPage({ title: _('Général'), icon_name: 'preferences-system-symbolic' });
+    const group = new Adw.PreferencesGroup({ title: _('Animaux'), description: _('Les changements sont appliqués tout de suite.') });
     generalPage.add(group);
 
-    const lifePage = new Adw.PreferencesPage({ title: 'Besoins et vie', icon_name: 'emblem-favorite-symbolic' });
-    const lifeGroup = new Adw.PreferencesGroup({ title: 'Besoins et croissance' });
+    const lifePage = new Adw.PreferencesPage({ title: _('Besoins et vie'), icon_name: 'emblem-favorite-symbolic' });
+    const lifeGroup = new Adw.PreferencesGroup({ title: _('Besoins et croissance') });
     lifePage.add(lifeGroup);
 
-    const worldPage = new Adw.PreferencesPage({ title: 'Rythme et capteurs', icon_name: 'preferences-system-time-symbolic' });
+    const worldPage = new Adw.PreferencesPage({ title: _('Rythme et capteurs'), icon_name: 'preferences-system-time-symbolic' });
 
     const packs = listPacks(this.path);
     const packRow = new Adw.ComboRow({
-      title: 'Animal',
+      title: _('Animal'),
       model: Gtk.StringList.new(packs.map((p) => p.label)),
     });
     // Pack actif introuvable : aucune sélection, et le réglage n'est pas
@@ -67,25 +78,25 @@ export default class ScamperPreferences extends ExtensionPreferences {
     group.add(packRow);
 
     const countRow = new Adw.SpinRow({
-      title: "Nombre d'animaux",
+      title: _("Nombre d'animaux"),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 10, step_increment: 1 }),
     });
     settings.bind('critter-count', countRow, 'value', 0);
     group.add(countRow);
 
-    const soundsRow = new Adw.SwitchRow({ title: 'Sons activés' });
+    const soundsRow = new Adw.SwitchRow({ title: _('Sons activés') });
     settings.bind('sounds-enabled', soundsRow, 'active', 0);
     group.add(soundsRow);
 
     const difficulties = [
-      ['relaxed', 'Détendue'],
-      ['normal', 'Normale'],
-      ['strict', 'Stricte'],
+      ['relaxed', N_('Détendue')],
+      ['normal', N_('Normale')],
+      ['strict', N_('Stricte')],
     ];
     const difficultyRow = new Adw.ComboRow({
-      title: 'Difficulté',
-      subtitle: 'Vitesse à laquelle les besoins des animaux baissent.',
-      model: Gtk.StringList.new(difficulties.map(([, label]) => label)),
+      title: _('Difficulté'),
+      subtitle: _('Vitesse à laquelle les besoins des animaux baissent.'),
+      model: Gtk.StringList.new(difficulties.map(([, label]) => _(label))),
     });
     difficultyRow.selected = Math.max(
       0,
@@ -97,114 +108,114 @@ export default class ScamperPreferences extends ExtensionPreferences {
     lifeGroup.add(difficultyRow);
 
     const vacationRow = new Adw.SwitchRow({
-      title: 'Mode vacances',
-      subtitle: 'Fige tous les besoins des animaux.',
+      title: _('Mode vacances'),
+      subtitle: _('Fige tous les besoins des animaux.'),
     });
     settings.bind('vacation-mode', vacationRow, 'active', 0);
     lifeGroup.add(vacationRow);
 
     const indicatorRow = new Adw.SwitchRow({
-      title: 'Icône dans la barre supérieure',
-      subtitle: 'Humeur et menu des animaux.',
+      title: _('Icône dans la barre supérieure'),
+      subtitle: _('Humeur et menu des animaux.'),
     });
     settings.bind('show-indicator', indicatorRow, 'active', 0);
     group.add(indicatorRow);
 
     const autonomies = [
-      ['auto', 'Auto (suit la croissance)'],
-      ['off', 'Désactivée'],
-      ['partial', 'Partielle'],
-      ['full', 'Totale'],
+      ['auto', N_('Auto (suit la croissance)')],
+      ['off', N_('Désactivée')],
+      ['partial', N_('Partielle')],
+      ['full', N_('Totale')],
     ];
     const autonomyRow = new Adw.ComboRow({
-      title: 'Autonomie',
-      subtitle: 'Les animaux autonomes chassent, grignotent et voient leurs besoins baisser plus lentement.',
-      model: Gtk.StringList.new(autonomies.map(([, label]) => label)),
+      title: _('Autonomie'),
+      subtitle: _('Les animaux autonomes chassent, grignotent et voient leurs besoins baisser plus lentement.'),
+      model: Gtk.StringList.new(autonomies.map(([, label]) => _(label))),
     });
     autonomyRow.selected = Math.max(0, autonomies.findIndex(([id]) => id === settings.get_string('autonomy')));
     autonomyRow.connect('notify::selected', () => settings.set_string('autonomy', autonomies[autonomyRow.selected][0]));
     lifeGroup.add(autonomyRow);
 
     const preyRow = new Adw.SwitchRow({
-      title: 'Proies automatiques',
-      subtitle: 'Des proies apparaissent de temps en temps pour les animaux autonomes.',
+      title: _('Proies automatiques'),
+      subtitle: _('Des proies apparaissent de temps en temps pour les animaux autonomes.'),
     });
     settings.bind('prey-spawn', preyRow, 'active', 0);
     lifeGroup.add(preyRow);
 
     const plantsRow = new Adw.SwitchRow({
-      title: 'Plantes décoratives',
-      subtitle: 'Des plantes à grignoter sont maintenues sur le bureau.',
+      title: _('Plantes décoratives'),
+      subtitle: _('Des plantes à grignoter sont maintenues sur le bureau.'),
     });
     settings.bind('decor-plants', plantsRow, 'active', 0);
     lifeGroup.add(plantsRow);
 
     const growthRow = new Adw.SwitchRow({
-      title: 'Croissance',
-      subtitle: "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte.",
+      title: _('Croissance'),
+      subtitle: _("Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte."),
     });
     settings.bind('growth-enabled', growthRow, 'active', 0);
     lifeGroup.add(growthRow);
 
     const growthSpeedRow = new Adw.SpinRow({
-      title: 'Vitesse de croissance',
-      subtitle: '1 = temps réel. Plus haut pour essayer les stades sans attendre.',
+      title: _('Vitesse de croissance'),
+      subtitle: _('1 = temps réel. Plus haut pour essayer les stades sans attendre.'),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 1000, step_increment: 1, page_increment: 10 }),
     });
     settings.bind('growth-speed', growthSpeedRow, 'value', 0);
     lifeGroup.add(growthSpeedRow);
 
     const worldGroup = new Adw.PreferencesGroup({
-      title: 'Rythme et capteurs',
-      description: "Aucun contenu n'est jamais lu : ni notifications, ni touches.",
+      title: _('Rythme et capteurs'),
+      description: _("Aucun contenu n'est jamais lu : ni notifications, ni touches."),
     });
     worldPage.add(worldGroup);
 
     const dayNightRow = new Adw.SwitchRow({
-      title: 'Cycle jour/nuit',
-      subtitle: 'De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris.',
+      title: _('Cycle jour/nuit'),
+      subtitle: _('De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris.'),
     });
     settings.bind('day-night', dayNightRow, 'active', 0);
     worldGroup.add(dayNightRow);
 
     const awayRow = new Adw.SwitchRow({
-      title: 'Dormir en votre absence',
-      subtitle: 'Ils s\'endorment quand vous êtes inactif, et vous accueillent à votre retour.',
+      title: _('Dormir en votre absence'),
+      subtitle: _('Ils s\'endorment quand vous êtes inactif, et vous accueillent à votre retour.'),
     });
     settings.bind('away-sleep', awayRow, 'active', 0);
     worldGroup.add(awayRow);
 
     const awayMinutesRow = new Adw.SpinRow({
-      title: "Minutes d'inactivité avant l'absence",
+      title: _("Minutes d'inactivité avant l'absence"),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 240, step_increment: 1, page_increment: 10 }),
     });
     settings.bind('away-minutes', awayMinutesRow, 'value', 0);
     worldGroup.add(awayMinutesRow);
 
     const breakRow = new Adw.SwitchRow({
-      title: 'Rappel de pause',
-      subtitle: 'Un animal vient vers votre curseur après une longue période d\'activité.',
+      title: _('Rappel de pause'),
+      subtitle: _('Un animal vient vers votre curseur après une longue période d\'activité.'),
     });
     settings.bind('break-reminder', breakRow, 'active', 0);
     worldGroup.add(breakRow);
 
     const breakMinutesRow = new Adw.SpinRow({
-      title: "Minutes d'activité avant le rappel",
+      title: _("Minutes d'activité avant le rappel"),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 480, step_increment: 5, page_increment: 30 }),
     });
     settings.bind('break-minutes', breakMinutesRow, 'value', 0);
     worldGroup.add(breakMinutesRow);
 
     const notificationsRow = new Adw.SwitchRow({
-      title: 'Réagir aux notifications',
-      subtitle: "Seul le fait qu'une notification arrive est utilisé, jamais son contenu.",
+      title: _('Réagir aux notifications'),
+      subtitle: _("Seul le fait qu'une notification arrive est utilisé, jamais son contenu."),
     });
     settings.bind('react-notifications', notificationsRow, 'active', 0);
     worldGroup.add(notificationsRow);
 
     const typingRow = new Adw.SwitchRow({
-      title: 'Réagir à la frappe',
-      subtitle: "Compte seulement qu'une touche est pressée, jamais laquelle.",
+      title: _('Réagir à la frappe'),
+      subtitle: _("Compte seulement qu'une touche est pressée, jamais laquelle."),
     });
     settings.bind('react-typing', typingRow, 'active', 0);
     worldGroup.add(typingRow);

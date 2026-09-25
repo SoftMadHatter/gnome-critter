@@ -13,6 +13,7 @@ import { TOYS, GIFTS, PLANTS, BED_MODELS, toyFits } from './items.js';
 import { ACCESSORIES } from './accessories.js';
 import { SEASONS, HOLIDAYS } from './calendar.js';
 import { LIBRARY } from './achievementLibrary.js';
+import { _, language } from './i18n.js';
 
 /** Catégories des vrais succès d'animal, dans l'ordre d'affichage. */
 export const CATEGORIES = Object.freeze(['care', 'play', 'exploration', 'life', 'collection', 'seasons']);
@@ -66,10 +67,16 @@ export function speciesProfile(meta = {}) {
   return { can, diet, tricks, toys: Object.keys(TOYS).filter((kind) => toyFits(kind, groundless)) };
 }
 
-/** « 1000 » -> « 1 000 » (espace fine insécable). */
+/** « 1000 » -> « 1 000 » (espace fine insécable ; virgule en anglais). */
 export function formatCount(n) {
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, language() === 'en' ? ',' : '\u202f');
 }
+
+/** Texte d'un gabarit dans la langue affichée (bibliothèque : catalogue gettext ; packs : section `translations`). */
+const tr = (text) => (typeof text === 'string' && text !== '' ? _(text) : text);
+
+/** Récompense avec son texte traduit. */
+const translatedReward = (reward) => (reward.text ? { ...reward, text: tr(reward.text) } : reward);
 
 function render(text, n) {
   return text.replaceAll('{n}', formatCount(n)).replaceAll('{s}', n > 1 ? 's' : '');
@@ -162,16 +169,16 @@ function expandSingle(entry) {
   if (entry.title !== undefined && !isText(entry.title)) return null;
   return [{
     id: entry.id,
-    name: entry.name,
-    description: entry.description,
+    name: tr(entry.name),
+    description: tr(entry.description),
     ...where,
     series: null,
     condition,
     unit: 1,
     requires,
-    reward,
-    quip: where.troll ? entry.quip : null,
-    title: entry.title ?? null,
+    reward: translatedReward(reward),
+    quip: where.troll ? tr(entry.quip) : null,
+    title: tr(entry.title) ?? null,
   }];
 }
 
@@ -228,16 +235,16 @@ function expandSeries(entry, profile) {
     if (!reward) return null;
     defs.push({
       id: id ?? `${entry.series}-${at}`,
-      name: entry.names[index],
-      description: render(descriptions[index], at),
+      name: tr(entry.names[index]),
+      description: render(tr(descriptions[index]), at),
       ...where,
       series: entry.series,
       condition: { ...probe, atLeast: at * unit },
       unit,
       requires,
-      reward,
-      quip: where.troll ? quips[index] : null,
-      title: rank === kept.length - 1 ? entry.title ?? null : null,
+      reward: translatedReward(reward),
+      quip: where.troll ? tr(quips[index]) : null,
+      title: rank === kept.length - 1 ? tr(entry.title) ?? null : null,
     });
   }
   return defs;

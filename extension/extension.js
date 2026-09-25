@@ -3,6 +3,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { loadPack, resolvePackPath } from './lib/packLoader.js';
 import { Manager } from './lib/manager.js';
+import { setTranslator, sessionLanguage } from './core/i18n.js';
 
 const DEFAULT_PACK_ID = 'critter-demo';
 const DEFAULT_COUNT = 1;
@@ -10,6 +11,14 @@ const RELOAD_DELAY_MS = 400; // regroupe les changements successifs (champ numé
 
 export default class ScamperExtension extends Extension {
   enable() {
+    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/scamper.mo,
+    // domaine « gettext-domain » de metadata.json) ; sans catalogue : le français d'origine.
+    this.initTranslations?.();
+    setTranslator({
+      gettext: (text) => this.gettext(text),
+      ngettext: (singular, plural, n) => this.ngettext(singular, plural, n),
+      language: sessionLanguage(GLib.get_language_names()),
+    });
     this._settings = this.getSettings();
     this._startManager();
 
@@ -63,5 +72,6 @@ export default class ScamperExtension extends Extension {
     this._manager?.destroy();
     this._manager = null;
     this._settings = null;
+    setTranslator(); // retour au français : ne garde pas de référence à l'extension désactivée
   }
 }

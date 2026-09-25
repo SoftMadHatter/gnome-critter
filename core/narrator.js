@@ -1,59 +1,84 @@
 // Le Système : la voix des notifications de succès, façon animateur de jeu
 // cynique. Sobre pour un vrai succès, déchaîné pour une bêtise ; il tutoie le
 // joueur et se moque de lui, jamais de l'animal. Module pur (hasard injecté).
+// Les textes des succès (nom, commentaire, récompense) arrivent déjà traduits
+// par buildAchievements ; les phrases du Système sont traduites ici.
 
-import { BOX_LABELS } from './lootBoxes.js';
+import { boxLabel } from './lootBoxes.js';
 import { formatCount } from './achievements.js';
-import { ACCESSORIES } from './accessories.js';
+import { accessoryLabel } from './accessories.js';
+import { _, N_, ngettext, fmt } from './i18n.js';
 
-export const NARRATOR = 'Le Système';
+/** Nom du narrateur (texte source ; affiché traduit). */
+export const NARRATOR = N_('Le Système');
 
-export const SOBER_OPENERS = ['Nouveau succès !', 'Succès débloqué.', 'Le Système prend note.'];
-export const TROLL_OPENERS = ['Nouveau succès !', 'Bêtise débloquée !', 'Attention, succès en approche.', 'Le Système a tout vu.'];
+export const SOBER_OPENERS = [N_('Nouveau succès !'), N_('Succès débloqué.'), N_('Le Système prend note.')];
+export const TROLL_OPENERS = [
+  N_('Nouveau succès !'),
+  N_('Bêtise débloquée !'),
+  N_('Attention, succès en approche.'),
+  N_('Le Système a tout vu.'),
+];
+/** `null` : pas de conclusion. */
 export const TROLL_CLOSERS = [
-  'Les spectateurs adorent.',
-  'Nos sponsors se désolidarisent.',
-  'Ce succès ne compte pour rien. Comme les autres.',
-  'Applaudissements enregistrés.',
-  "Le Système n'en revient pas.",
-  'Personne ne te jugera. Sauf le Système.',
-  '',
+  N_('Les spectateurs adorent.'),
+  N_('Nos sponsors se désolidarisent.'),
+  N_('Ce succès ne compte pour rien. Comme les autres.'),
+  N_('Applaudissements enregistrés.'),
+  N_("Le Système n'en revient pas."),
+  N_('Personne ne te jugera. Sauf le Système.'),
+  null,
 ];
 
 const pick = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
+const translated = (text) => (text ? _(text) : null);
 
-/** « Nom » suivi d'un point, sauf si le nom finit déjà par une ponctuation forte. */
-const quoted = (name) => `« ${name} »${/[?!.…]$/.test(name) ? '' : '.'}`;
+/** Nom d'un succès entre guillemets, suivi d'un point sauf s'il finit déjà par une ponctuation forte. */
+function quoted(name) {
+  const text = fmt(_('« {name} »'), { name });
+  return /[?!.…]$/.test(name) ? text : `${text}.`;
+}
+
+/** Sujet de l'annonce : le nom de l'animal et celui du succès, ou le succès seul (succès du joueur). */
+function subject(who, name) {
+  return who ? fmt(_('{name} : {achievement}'), { name: who, achievement: quoted(name) }) : quoted(name);
+}
 
 export function coinsText(n) {
-  return `${formatCount(n)} pièce${n > 1 ? 's' : ''}`;
+  return fmt(ngettext('{n} pièce', '{n} pièces', n), { n: formatCount(n) });
 }
+
+const feeText = (reward) => reward.text ?? _('frais de dossier');
 
 /**
  * Texte de la récompense reçue.
- * @param {{coins?: number, box?: string, accessory?: string, text?: string}} reward récompense du succès
+ * @param {{coins?: number, box?: string, accessory?: string, text?: string}} reward récompense du succès (textes déjà traduits)
  * @param {{paid?: boolean, box?: {text: string}, accessoryLabel?: string}} [outcome] ce qui s'est passé :
  *   frais de dossier payés ou non, contenu de la boîte, nom de l'accessoire
  */
 export function rewardText(reward, outcome = {}) {
-  if (reward.box) return `${BOX_LABELS[reward.box]}… qui contient : ${outcome.box?.text ?? 'rien'}.`;
-  if (reward.accessory) return `${(outcome.accessoryLabel ?? reward.accessory).toLowerCase()}. À porter, si tu oses.`;
+  if (reward.box) return fmt(_('{box}… qui contient : {content}.'), { box: boxLabel(reward.box), content: outcome.box?.text ?? _('rien') });
+  if (reward.accessory) {
+    const accessory = (outcome.accessoryLabel ?? accessoryLabel(reward.accessory)).toLowerCase();
+    return fmt(_('{accessory}. À porter, si tu oses.'), { accessory });
+  }
   if (reward.coins < 0) {
-    const fee = reward.text ?? 'frais de dossier';
-    return outcome.paid ? `−${coinsText(-reward.coins)} (${fee}).` : `des ${fee} que tu ne peux même pas payer. Touchant.`;
+    return outcome.paid
+      ? fmt(_('−{coins} ({fee}).'), { coins: coinsText(-reward.coins), fee: feeText(reward) })
+      : fmt(_('des {fee} que tu ne peux même pas payer. Touchant.'), { fee: feeText(reward) });
   }
   if (reward.coins > 0) return `${reward.text ?? coinsText(reward.coins)}.`;
   if (reward.text) return `${reward.text}.`;
-  return 'rien. Absolument rien.';
+  return _('rien. Absolument rien.');
 }
 
 /** Récompense annoncée d'un succès, telle que la fenêtre de progression la rappelle. */
 export function rewardLabel(reward) {
-  if (reward.box) return BOX_LABELS[reward.box];
-  if (reward.accessory) return (ACCESSORIES[reward.accessory]?.label ?? reward.accessory).toLowerCase();
-  if (reward.coins < 0) return `−${coinsText(-reward.coins)} (${reward.text ?? 'frais de dossier'})`;
+  if (reward.box) return boxLabel(reward.box);
+  if (reward.accessory) return accessoryLabel(reward.accessory).toLowerCase();
+  if (reward.coins < 0) return fmt(_('−{coins} ({fee})'), { coins: coinsText(-reward.coins), fee: feeText(reward) });
   if (reward.coins > 0) return reward.text ?? coinsText(reward.coins);
-  return reward.text ?? 'rien';
+  return reward.text ?? _('rien');
 }
 
 /**
@@ -63,21 +88,20 @@ export function rewardLabel(reward) {
  * @returns {{title: string, body: string}}
  */
 export function announceUnlock({ def, who = null, outcome = {}, random = Math.random }) {
-  const subject = who ? `${who} : ` : '';
+  const title = _(NARRATOR);
   if (!def.troll) {
     const coins = def.reward?.coins ?? 0;
-    return {
-      title: NARRATOR,
-      body: `${pick(SOBER_OPENERS, random)} ${subject}${quoted(def.name)} Récompense : ${coins > 0 ? coinsText(coins) : 'la gloire'}.`,
-    };
+    const reward = fmt(_('Récompense : {reward}.'), { reward: coins > 0 ? coinsText(coins) : _('la gloire') });
+    return { title, body: [_(pick(SOBER_OPENERS, random)), subject(who, def.name), reward].join(' ') };
   }
   const parts = [
-    `${pick(TROLL_OPENERS, random)} ${subject}${quoted(def.name)}`,
+    _(pick(TROLL_OPENERS, random)),
+    subject(who, def.name),
     def.quip,
-    `Récompense : ${rewardText(def.reward, outcome)}`,
-    pick(TROLL_CLOSERS, random),
+    fmt(_('Récompense : {reward}'), { reward: rewardText(def.reward, outcome) }),
+    translated(pick(TROLL_CLOSERS, random)),
   ];
-  return { title: NARRATOR, body: parts.filter(Boolean).join(' ') };
+  return { title, body: parts.filter(Boolean).join(' ') };
 }
 
 /**
@@ -85,21 +109,41 @@ export function announceUnlock({ def, who = null, outcome = {}, random = Math.ra
  * @param {{who?: string|null, defs: object[], coins?: number}} params
  */
 export function announceBurst({ who = null, defs, coins = 0 }) {
-  const names = defs.slice(0, 3).map((def) => `« ${def.name} »`);
-  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} et ${names[names.length - 1]}` : names[0];
+  const names = defs.slice(0, 3).map((def) => fmt(_('« {name} »'), { name: def.name }));
+  const list = names.length > 1 ? fmt(_('{first} et {last}'), { first: names.slice(0, -1).join(', '), last: names[names.length - 1] }) : names[0];
+  const count = defs.length;
+  const parts = [
+    who
+      ? fmt(ngettext(
+        "Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont {list}.",
+        "Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont {list}.",
+        count,
+      ), { name: who, count, list })
+      : fmt(ngettext(
+        "Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont {list}.",
+        "Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont {list}.",
+        count,
+      ), { count, list }),
+  ];
   const trolls = defs.filter((def) => def.troll).length;
-  const extra = trolls > 0 ? ` Dont ${trolls} bêtise${trolls > 1 ? 's' : ''}. Le Système ne dira rien.` : '';
-  const gain = coins > 0 ? ` +${coinsText(coins)}.` : '';
-  return {
-    title: NARRATOR,
-    body: `Le Système a pris du retard : ${who ? `${who} obtient` : 'tu obtiens'} ${defs.length} succès d'un coup, dont ${list}.${extra}${gain}`,
-  };
+  if (trolls > 0) {
+    parts.push(fmt(ngettext('Dont {n} bêtise. Le Système ne dira rien.', 'Dont {n} bêtises. Le Système ne dira rien.', trolls), { n: trolls }));
+  }
+  if (coins > 0) parts.push(fmt(_('+{coins}.'), { coins: coinsText(coins) }));
+  return { title: _(NARRATOR), body: parts.join(' ') };
 }
 
 /** Trophée gagné au nombre total de succès. */
 export function announceTrophy({ label, count }) {
   return {
-    title: NARRATOR,
-    body: `${formatCount(count)} succès. Tu as droit à : ${label.toLowerCase()}. Le Système est presque impressionné.`,
+    title: _(NARRATOR),
+    body: fmt(
+      ngettext(
+        '{count} succès. Tu as droit à : {trophy}. Le Système est presque impressionné.',
+        '{count} succès. Tu as droit à : {trophy}. Le Système est presque impressionné.',
+        count,
+      ),
+      { count: formatCount(count), trophy: label.toLowerCase() },
+    ),
   };
 }

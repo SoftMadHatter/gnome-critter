@@ -6,13 +6,12 @@ import { h, select, table, field, debounce } from '../dom.js';
 import { SpritePlayer, stageScales } from '../sprites.js';
 import { STAGES, stagesOverrides } from '../../../core/life.js';
 import { appearanceOverrides } from '../../../core/colorShift.js';
-import { ACCESSORIES, anchorsOverrides } from '../../../core/accessories.js';
+import { ACCESSORIES, anchorsOverrides, accessoryLabel } from '../../../core/accessories.js';
 import { needsOverrides } from '../../../core/needs.js';
 import { behaviorOverrides } from '../../../core/critter.js';
-import { tricksOverrides, TRICKS } from '../../../core/tricks.js';
+import { tricksOverrides, trickLabel } from '../../../core/tricks.js';
 import { namesOverrides } from '../../../core/names.js';
-import { FOOD_LABELS, PLANT_LABELS, PREY_LABELS } from '../../../extension/lib/itemLabels.js';
-import { STAGE_LABELS } from '../../../extension/lib/lifeLabels.js';
+import { FOOD_LABELS, foodLabel, plantLabel, preyLabel, stageLabel } from '../../../core/labels.js';
 
 const list = (values) => (values.length > 0 ? values.join(', ') : '—');
 
@@ -23,7 +22,7 @@ function packSheet(pack) {
   const scales = stageScales(meta);
   const appearance = appearanceOverrides(meta.appearance).config;
   const behavior = behaviorOverrides(meta.behavior).config;
-  const food = (kind) => FOOD_LABELS[kind] ?? PLANT_LABELS[kind] ?? kind;
+  const food = (kind) => (FOOD_LABELS[kind] ? foodLabel(kind) : plantLabel(kind));
   const rows = [
     ['Identifiant', pack.id],
     ['Nom affiché', meta.displayName ?? '—'],
@@ -33,10 +32,10 @@ function packSheet(pack) {
     ['Comportement', list(Object.entries(behavior).map(([k, v]) => `${k} ${Array.isArray(v) ? v.join('–') : v}`))],
     ['Baisse des besoins (par heure)', list(Object.entries(needs.rates).map(([k, v]) => `${k} ${v}`))],
     ['Régime', list(Object.entries(needs.diet).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${food(k)} ${v}`))],
-    ['Proies', list(Object.entries(needs.prey).map(([k, v]) => `${PREY_LABELS[k] ?? k} ${v}`))],
-    ['Tours', list(tricksOverrides(meta.tricks).list.map((t) => TRICKS[t]?.label ?? t))],
+    ['Proies', list(Object.entries(needs.prey).map(([k, v]) => `${preyLabel(k)} ${v}`))],
+    ['Tours', list(tricksOverrides(meta.tricks).list.map((t) => trickLabel(t)))],
     ['Prénoms', list(namesOverrides(meta.names).list)],
-    ['Stades', list(STAGES.map((s) => `${STAGE_LABELS[s]} ×${scales[s]}${stages.folders[s] ? ` (${stages.folders[s]})` : ''}`))],
+    ['Stades', list(STAGES.map((s) => `${stageLabel(s)} ×${scales[s]}${stages.folders[s] ? ` (${stages.folders[s]})` : ''}`))],
     ['Apparence', appearance.enabled
       ? `teinte ${appearance.hueRange.join(' à ')}°${appearance.colorizeGrays ? `, gris colorisés (saturation ${appearance.graySaturation})` : ''}`
       : 'désactivée'],
@@ -105,7 +104,7 @@ export function render(root, { pack, state, setState }) {
     const sheets = options.stage === 'egg'
       ? [h('div', { class: 'grid' }, card('egg'))]
       : [h('div', { class: 'grid' }, animations.map(card)), h('h3', {}, 'Réactions'), h('div', { class: 'grid' }, reactions.map(card))];
-    contact.replaceChildren(h('h3', {}, `Animations — ${STAGE_LABELS[options.stage]}`), ...sheets);
+    contact.replaceChildren(h('h3', {}, `Animations — ${stageLabel(options.stage)}`), ...sheets);
   };
   const renderContactSoon = debounce(() => renderContact(), 250); // la planche recolore toutes les feuilles
   const control = (label, element) => field(label, element);
@@ -132,12 +131,12 @@ export function render(root, { pack, state, setState }) {
           onchange: (e) => { options.name = e.target.value; redraw(); },
         }, h('optgroup', { label: 'États' }, animations.map((a) => h('option', { value: a, selected: a === options.name }, a))),
         h('optgroup', { label: 'Réactions' }, reactions.map((a) => h('option', { value: a, selected: a === options.name }, a))))),
-        control('Stade', select(STAGES.map((s) => [s, STAGE_LABELS[s]]), options.stage, (v) => { options.stage = v; redraw(); })),
+        control('Stade', select(STAGES.map((s) => [s, stageLabel(s)]), options.stage, (v) => { options.stage = v; redraw(); })),
         control('Taille', select([['1', '×1'], ['2', '×2'], ['4', '×4'], ['6', '×6']], String(options.zoom), (v) => { options.zoom = Number(v); redraw(); })),
         control('Vitesse', select([['0.25', '×0,25'], ['0.5', '×0,5'], ['1', '×1'], ['2', '×2']], String(options.speed), (v) => { options.speed = Number(v); redraw(); })),
         control('Lissé', h('input', { type: 'checkbox', checked: options.smooth, onchange: (e) => { options.smooth = e.target.checked; redraw(); } })),
         control('Vers la gauche', h('input', { type: 'checkbox', checked: options.facing < 0, onchange: (e) => { options.facing = e.target.checked ? -1 : 1; redraw(); } })),
-        control('Accessoire', select([['', 'Aucun'], ...Object.entries(ACCESSORIES).map(([id, def]) => [id, def.label])], options.accessory ?? '', (v) => {
+        control('Accessoire', select([['', 'Aucun'], ...Object.entries(ACCESSORIES).map(([id]) => [id, accessoryLabel(id)])], options.accessory ?? '', (v) => {
           options.accessory = v || null;
           redraw();
         })),

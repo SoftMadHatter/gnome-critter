@@ -19,6 +19,8 @@ import Cogl from 'gi://Cogl';
 
 import { shiftPixels, appearanceOverrides } from '../core/colorShift.js';
 import { stagesOverrides } from '../core/life.js';
+import { localizePack } from '../core/packTranslations.js';
+import { language } from '../core/i18n.js';
 
 /**
  * @param {GdkPixbuf.Pixbuf} pixbuf
@@ -131,7 +133,8 @@ export function loadPack(packDirPath) {
   const dir = Gio.File.new_for_path(packDirPath);
   const packFile = dir.get_child('pack.json');
   const [, contents] = packFile.load_contents(null);
-  const meta = JSON.parse(new TextDecoder('utf-8').decode(contents));
+  // Nom, prénoms et succès du pack dans la langue de la session (section `translations`).
+  const meta = localizePack(JSON.parse(new TextDecoder('utf-8').decode(contents)), language());
   const appearanceConfig = appearanceOverrides(meta.appearance).config;
 
   // Feuilles décodées une seule fois : chaque variante de couleur repart des

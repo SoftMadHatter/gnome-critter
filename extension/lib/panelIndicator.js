@@ -11,20 +11,20 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { foodLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from './itemLabels.js';
 import { isBowlFood } from '../core/items.js';
+import { _, N_, fmt } from '../core/i18n.js';
+import { foodLabel, toyLabel, bedLabel, bowlLabel, lifeSummary, BED_LABELS, BOWL_LABELS } from '../core/labels.js';
 import { buildCritterActions } from './critterActions.js';
-import { lifeSummary } from './lifeLabels.js';
 import { buttonRow, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
 
 const GAUGES = [
-  ['satiety', 'Satiété'],
-  ['energy', 'Énergie'],
-  ['cleanliness', 'Propreté'],
-  ['stimulation', 'Stimulation'],
-  ['affection', 'Affection'],
-  ['relief', 'Soulagement'],
-  ['health', 'Santé'],
+  ['satiety', N_('Satiété')],
+  ['energy', N_('Énergie')],
+  ['cleanliness', N_('Propreté')],
+  ['stimulation', N_('Stimulation')],
+  ['affection', N_('Affection')],
+  ['relief', N_('Soulagement')],
+  ['health', N_('Santé')],
 ];
 
 const REFRESH_SECONDS = 2;
@@ -103,7 +103,7 @@ export const CritterIndicator = GObject.registerClass(
       this._gauges = {};
       for (let i = 0; i < GAUGES.length; i += 2) {
         const cells = GAUGES.slice(i, i + 2).map(([key, label]) => {
-          const cell = gaugeCell(label);
+          const cell = gaugeCell(_(label));
           this._gauges[key] = cell;
           return cell;
         });
@@ -112,57 +112,57 @@ export const CritterIndicator = GObject.registerClass(
 
       // Actions rapides : elles ne referment pas le menu, on peut les enchaîner.
       this._quick = buttonRow([
-        { label: 'Nourrir', onClick: () => this._owner.quickFeed(this._critter()) },
+        { label: _('Nourrir'), onClick: () => this._owner.quickFeed(this._critter()) },
         // Le premier jouet adapté : la balle, ou l'anneau flottant pour le poisson.
-        { label: 'Jouer', onClick: () => this._owner.dropToy(this._owner.toyKinds()[0] ?? 'ball', this._critter()) },
-        { label: 'Brosser', onClick: () => this._owner.brush(this._critter()) },
-        { label: 'Câlin', onClick: () => this._owner.pet(this._critter()) },
+        { label: _('Jouer'), onClick: () => this._owner.dropToy(this._owner.toyKinds()[0] ?? 'ball', this._critter()) },
+        { label: _('Brosser'), onClick: () => this._owner.brush(this._critter()) },
+        { label: _('Câlin'), onClick: () => this._owner.pet(this._critter()) },
       ]);
       this.menu.addMenuItem(this._quick.item);
 
       // Rangées repliables : une seule ouverte à la fois.
-      this._more = expandableRow(this.menu, 'Plus…', (open) => this._toggle(this._more, open));
-      this._desk = expandableRow(this.menu, 'Bureau…', (open) => this._toggle(this._desk, open));
-      this._progress = expandableRow(this.menu, 'Pièces', (open) => this._toggle(this._progress, open));
+      this._more = expandableRow(this.menu, _('Plus…'), (open) => this._toggle(this._more, open));
+      this._desk = expandableRow(this.menu, _('Bureau…'), (open) => this._toggle(this._desk, open));
+      this._progress = expandableRow(this.menu, _('Pièces'), (open) => this._toggle(this._progress, open));
       this._sections = [this._more, this._desk, this._progress];
       this._buildDesk(this._desk.section);
-      this._shop = expandableRow(this._progress.section, 'Boutique');
-      this._journal = this._progress.section.addAction('Journal', () => this._owner.openProgress(this._critter(), 'journal'));
+      this._shop = expandableRow(this._progress.section, _('Boutique'));
+      this._journal = this._progress.section.addAction(_('Journal'), () => this._owner.openProgress(this._critter(), 'journal'));
 
-      this.menu.addAction('Réglages…', () => this._owner.openSettings());
+      this.menu.addAction(_('Réglages…'), () => this._owner.openSettings());
     }
 
     /** « Bureau… » : ce qui concerne tout le monde ; les objets tombent à la position du curseur. */
     _buildDesk(section) {
-      this._vacation = new PopupMenu.PopupSwitchMenuItem('Mode vacances', this._settings.get_boolean('vacation-mode'));
+      this._vacation = new PopupMenu.PopupSwitchMenuItem(_('Mode vacances'), this._settings.get_boolean('vacation-mode'));
       this._vacation.connect('toggled', (_item, state) => this._settings.set_boolean('vacation-mode', state));
       section.addMenuItem(this._vacation);
-      this._laser = new PopupMenu.PopupSwitchMenuItem('Pointeur laser', this._owner.isLaser());
+      this._laser = new PopupMenu.PopupSwitchMenuItem(_('Pointeur laser'), this._owner.isLaser());
       this._laser.connect('toggled', (_item, state) => this._owner.setLaser(state));
       section.addMenuItem(this._laser);
 
       const foods = this._owner.foods();
       if (foods.length > 0) {
-        const feed = expandableRow(section, 'Poser de la nourriture');
+        const feed = expandableRow(section, _('Poser de la nourriture'));
         for (const kind of foods) feed.section.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
       }
       const bowlFoods = foods.filter(isBowlFood); // la nourriture flottante ne va pas dans une gamelle
       if (bowlFoods.length > 0) {
-        const bowl = expandableRow(section, 'Remplir une gamelle');
+        const bowl = expandableRow(section, _('Remplir une gamelle'));
         for (const kind of bowlFoods) bowl.section.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
-        const bowls = expandableRow(section, 'Poser une gamelle');
-        for (const [model, label] of Object.entries(BOWL_LABELS)) bowls.section.addAction(label, () => this._owner.dropBowl(null, model));
+        const bowls = expandableRow(section, _('Poser une gamelle'));
+        for (const model of Object.keys(BOWL_LABELS)) bowls.section.addAction(bowlLabel(model), () => this._owner.dropBowl(null, model));
       }
-      const beds = expandableRow(section, 'Poser un lit');
-      for (const [model, label] of Object.entries(BED_LABELS)) beds.section.addAction(label, () => this._owner.dropBed(null, model));
-      section.addAction('Poser une litière', () => this._owner.dropLitter());
-      section.addAction('Nettoyer les traces', () => this._owner.cleanAll());
-      if (this._owner.preyKinds().length > 0) section.addAction('Lâcher une proie', () => this._owner.dropPrey());
-      if (this._owner.plantKinds().length > 0) section.addAction('Poser une plante', () => this._owner.dropPlant());
-      const toys = expandableRow(section, 'Poser un jouet');
-      for (const kind of this._owner.toyKinds()) toys.section.addAction(TOY_LABELS[kind], () => this._owner.dropToy(kind));
-      this._tidy = section.addAction('Ranger les jouets', () => this._owner.clearToys());
-      section.addAction('Retirer les objets', () => this._owner.clearItems());
+      const beds = expandableRow(section, _('Poser un lit'));
+      for (const model of Object.keys(BED_LABELS)) beds.section.addAction(bedLabel(model), () => this._owner.dropBed(null, model));
+      section.addAction(_('Poser une litière'), () => this._owner.dropLitter());
+      section.addAction(_('Nettoyer les traces'), () => this._owner.cleanAll());
+      if (this._owner.preyKinds().length > 0) section.addAction(_('Lâcher une proie'), () => this._owner.dropPrey());
+      if (this._owner.plantKinds().length > 0) section.addAction(_('Poser une plante'), () => this._owner.dropPlant());
+      const toys = expandableRow(section, _('Poser un jouet'));
+      for (const kind of this._owner.toyKinds()) toys.section.addAction(toyLabel(kind), () => this._owner.dropToy(kind));
+      this._tidy = section.addAction(_('Ranger les jouets'), () => this._owner.clearToys());
+      section.addAction(_('Retirer les objets'), () => this._owner.clearItems());
     }
 
     _toggle(row, open) {
@@ -183,26 +183,26 @@ export const CritterIndicator = GObject.registerClass(
       section.removeAll();
       this._actions = buildCritterActions(section, this._critter(), this._owner);
       // Le détail s'ouvre dans une fenêtre à part : le menu ne montre que le nombre de succès.
-      this._achievements = section.addAction('Succès', () => this._owner.openProgress(this._critter(), 'achievements'));
-      section.addAction('Statistiques', () => this._owner.openProgress(this._critter(), 'stats'));
+      this._achievements = section.addAction(_('Succès'), () => this._owner.openProgress(this._critter(), 'achievements'));
+      section.addAction(_('Statistiques'), () => this._owner.openProgress(this._critter(), 'stats'));
     }
 
     /** Recrée succès, statistiques, boutique et journal (à l'ouverture du menu ou après un achat). */
     _rebuildProgress() {
       const player = this._owner.getPlayer();
-      this._progress.setTitle(`Pièces : ${player.coins}`);
+      this._progress.setTitle(fmt(_('Pièces : {coins}'), { coins: player.coins }));
 
       const critter = this._critter();
       const { done, total } = this._owner.achievementSummary(critter);
-      this._achievements.label.text = `Succès (${done}/${total})`;
+      this._achievements.label.text = fmt(_('Succès ({done}/{total})'), { done, total });
 
       this._shop.section.removeAll();
       for (const { id, label, price, owned, free } of this._owner.shopList()) {
         if (owned || free) {
-          const text = owned ? `✓ ${label}` : `${label} (gratuit de saison)`;
+          const text = owned ? `✓ ${label}` : fmt(_('{accessory} (gratuit de saison)'), { accessory: label });
           this._shop.section.addMenuItem(new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false }));
         } else {
-          this._shop.section.addAction(`Acheter : ${label} (${price} pièces)`, () => {
+          this._shop.section.addAction(fmt(_('Acheter : {accessory} ({price} pièces)'), { accessory: label, price }), () => {
             this._owner.buyAccessory(id);
             this._rebuildProgress();
           });
@@ -226,7 +226,7 @@ export const CritterIndicator = GObject.registerClass(
         });
       }
       const title = this._owner.titleOf(critter);
-      this._title.text = `${critter.name ?? 'Sans nom'}${title ? `, ${title}` : ''} — ${lifeSummary(critter.life)}`;
+      this._title.text = `${critter.name ?? _('Sans nom')}${title ? `, ${title}` : ''} — ${lifeSummary(critter.life)}`;
       for (const [key] of GAUGES) this._gauges[key].update(critter.needs.values[key]);
 
       // Œuf : rien ne marche ; hibernation : seul « Câlin » (il réveille).

@@ -1,9 +1,12 @@
 // Contrôles de la page de revue : structure de la bibliothèque de succès
-// d'un pack (erreurs) et qualité des textes (avertissements). Module pur,
-// utilisé par l'onglet « Contrôles » et testé sous Node (tests/review.test.js).
+// d'un pack (erreurs), qualité des textes (avertissements) et, hors du
+// français, traductions (catalogue .po et section `translations` des packs).
+// Module pur, utilisé par l'onglet « Contrôles » et testé sous Node
+// (tests/review.test.js).
 
 import { CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY } from '../../core/achievements.js';
 import { announceUnlock } from '../../core/narrator.js';
+import { missingTranslations, translationsOverrides } from '../../core/packTranslations.js';
 
 export const LIMITS = Object.freeze({
   name: 45,
@@ -114,6 +117,91 @@ export function checkPack(pack) {
     if (tiers.length > 1 && new Set(tiers.map((def) => def.description)).size < tiers.length) {
       warn(tiers[0].id, `série « ${name} » : descriptions identiques d'un palier à l'autre ({n} manquant ?)`);
     }
+  }
+  return issues;
+}
+
+/** Espaces réservés nommés d'un texte, triés, sans `{s}` (marque du pluriel des descriptions, libre dans chaque langue). */
+export function placeholders(text) {
+  return [...new Set(text.match(/\{\w+\}/g) ?? [])].filter((p) => p !== '{s}').sort();
+}
+
+const samePlaceholders = (a, b) => placeholders(a).join() === placeholders(b).join();
+
+/** Expressions françaises reprises telles quelles dans les autres langues. */
+const KEPT_AS_IS = ['Bon appétit'];
+
+/** Allure d'un texte resté en français : accents, guillemets français, petits mots courants. */
+export function looksFrench(text) {
+  const rest = KEPT_AS_IS.reduce((out, phrase) => out.replaceAll(phrase, ''), text);
+  return /[àâçéèêëîïôûùüÿœæ«»]|\b(le|la|les|des|du|une?|et|est|pas|il|tu|ta|tes|fois|avec|dans|sur|aux?)\b/i.test(rest);
+}
+
+/**
+ * Contrôles d'un catalogue lu par parsePo (langue autre que le français).
+ * @returns {{level: 'error'|'warning'|'info', id: string, message: string}[]} `id` : le texte source
+ */
+export function checkCatalog({ entries }) {
+  const issues = [];
+  for (const entry of entries) {
+    const id = entry.msgid;
+    const add = (level, message) => issues.push({ level, id, message });
+    if (entry.flags.includes('fuzzy')) add('warning', 'entrée floue : à relire (gettext l’ignore)');
+    if (entry.msgstr.length === 0 || entry.msgstr.some((text) => !text)) {
+      add('warning', 'non traduit');
+      continue;
+    }
+    for (const text of entry.msgstr) {
+      if (!samePlaceholders(entry.msgid, text)) add('error', `espaces réservés différents : ${text}`);
+      if (/[«»]| [!?:;]/.test(text)) add('warning', `typographie française : ${text}`);
+    }
+    if (entry.msgidPlural === null && entry.msgstr[0] === entry.msgid) add('info', 'identique au français');
+  }
+  return issues;
+}
+
+/**
+ * Contrôles de la traduction d'un pack affiché hors du français (voir data.js :
+ * `raw`, `lang`, `french`) : section `translations` du pack, textes restés en
+ * français, longueur des notifications dans la langue.
+ * @returns {{level: 'error'|'warning', id: string|null, message: string}[]}
+ */
+export function checkTranslations(pack) {
+  const issues = [];
+  const error = (id, message) => issues.push({ level: 'error', id, message });
+  const warn = (id, message) => issues.push({ level: 'warning', id, message });
+  const { lang, raw } = pack;
+  const { languages, ignored } = translationsOverrides(raw.translations);
+  for (const key of ignored) warn(null, `pack.json, section translations : « ${key} » ignorée (format invalide)`);
+  for (const path of missingTranslations(raw, lang)) warn(null, `pack.json : traduction « ${lang} » manquante (${path})`);
+  const section = languages[lang]?.achievements ?? {};
+  for (const entry of Array.isArray(raw.achievements) ? raw.achievements : []) {
+    const key = entry?.series ?? entry?.id;
+    const texts = section[key];
+    if (!texts) continue;
+    for (const field of ['name', 'description', 'quip', 'title']) {
+      if (typeof entry[field] === 'string' && typeof texts[field] === 'string' && !samePlaceholders(entry[field], texts[field])) {
+        error(key, `pack.json, ${field} (${lang}) : espaces réservés différents du français`);
+      }
+    }
+    for (const field of ['names', 'descriptions', 'quips']) {
+      (texts[field] ?? []).forEach((text, i) => {
+        const source = entry[field]?.[i];
+        if (text && source && !samePlaceholders(source, text)) error(key, `pack.json, ${field}[${i}] (${lang}) : espaces réservés différents`);
+      });
+    }
+  }
+  const french = new Map((pack.french?.all ?? []).map((def) => [def.id, def]));
+  for (const def of pack.all) {
+    for (const field of ['name', 'description', 'quip', 'title']) {
+      const text = def[field];
+      if (text && looksFrench(text)) warn(def.id, `${field} resté en français ? ${text}`);
+    }
+    if (!french.has(def.id)) continue;
+    const longest = Math.max(
+      ...[0, 0.5, 0.999].map((r) => announceUnlock({ def, who: 'Pistache', outcome: { paid: true, box: { text: '' } }, random: () => r }).body.length),
+    );
+    if (longest > LIMITS.notification) warn(def.id, `notification longue en « ${lang} » (${longest} caractères)`);
   }
   return issues;
 }

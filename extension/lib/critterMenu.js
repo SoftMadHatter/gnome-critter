@@ -8,7 +8,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { buildCritterActions } from './critterActions.js';
-import { lifeSummary } from './lifeLabels.js';
+import { _ } from '../core/i18n.js';
+import { lifeSummary } from '../core/labels.js';
 
 export class CritterMenu {
   /**
@@ -34,16 +35,16 @@ export class CritterMenu {
     this.menu.addMenuItem(this._header);
     this._actions = buildCritterActions(this.menu, critter, owner);
 
-    this._laser = new PopupMenu.PopupSwitchMenuItem('Pointeur laser', owner.isLaser());
+    this._laser = new PopupMenu.PopupSwitchMenuItem(_('Pointeur laser'), owner.isLaser());
     this._laser.connect('toggled', (_item, state) => owner.setLaser(state));
     this.menu.addMenuItem(this._laser);
-    this._tidy = this.menu.addAction('Ranger les jouets', () => owner.clearToys());
+    this._tidy = this.menu.addAction(_('Ranger les jouets'), () => owner.clearToys());
   }
 
   /** @param {number} spriteHeight hauteur affichée de l'animal (varie avec son stade) */
   open(spriteHeight) {
     const title = this._owner.titleOf(this._critter);
-    this._header.label.text = `${this._critter.name ?? 'Sans nom'}${title ? `, ${title}` : ''} — ${lifeSummary(this._critter.life)}`;
+    this._header.label.text = `${this._critter.name ?? _('Sans nom')}${title ? `, ${title}` : ''} — ${lifeSummary(this._critter.life)}`;
     if (!this.menu.isOpen) this._owner.noteContextMenuOpen(); // le Système compte
     this._actions.refresh();
     this._laser.setToggleState(this._owner.isLaser());

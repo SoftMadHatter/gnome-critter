@@ -30,6 +30,9 @@
     "Zigzag",
     "Fripon"
   ],
+  "translations": {
+    "en": { "displayName": "Critter (demo)", "names": [ "Critter", "Pixel", "Thingy", "Whatsit", "Doohickey", "Pudding", "Zigzag", "Rascal" ] }
+  },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 4, "frameDuration": 0.12, "loop": true },

@@ -82,6 +82,34 @@
     "Gribouille",
     "Miette"
   ],
+  "translations": {
+    "en": {
+      "displayName": "Bug",
+      "names": [
+        "Beetle",
+        "Tiny",
+        "Caper",
+        "Twirl",
+        "Firefly",
+        "Paperclip",
+        "Button",
+        "Ladybug",
+        "Speck",
+        "Chick",
+        "Jiggle",
+        "Lentil",
+        "Ant",
+        "Dotty",
+        "Scribble",
+        "Crumb"
+      ],
+      "achievements": {
+        "small-but-strong": { "name": "Small but mighty", "description": "Play 20 times" },
+        "hunts": { "names": [ "First aphid", "Terror of aphids", "Scourge of aphids", "Gardener's friend" ], "description": "Catch {n} aphid{s}", "title": "gardener's friend" },
+        "bug-unbreakable": { "name": "Indestructible", "description": "Fall 50 times", "quip": "Fifty falls and not a scratch. It's almost insulting.", "title": "immortal cockroach" }
+      }
+    }
+  },
   "animations": {
     "idle": { "file": "sprites/idle.png", "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk": { "file": "sprites/walk.png", "frames": 6, "frameDuration": 0.1, "loop": true },

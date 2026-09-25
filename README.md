@@ -36,9 +36,17 @@ tests/       tests du cœur (node --test).
 
 ## Essayer sur ta machine (GNOME 48+, Wayland)
 
-Prérequis : `zip`, `glib-compile-schemas` (paquet `libglib2.0-bin` sur
-Debian/Ubuntu, `glib2-devel` sur Fedora), Python 3 + Pillow si tu veux
-régénérer les sprites placeholder.
+Prérequis :
+
+- `zip` ;
+- `glib-compile-schemas` (paquet `libglib2.0-bin` sur Debian/Ubuntu,
+  `glib2-devel` sur Fedora) ;
+- `msgfmt` (paquet `gettext`) pour compiler les traductions ; sans lui,
+  l'extension reste en français ;
+- Python 3 et Pillow, seulement pour régénérer les sprites placeholder.
+
+Le jeu est en français et en anglais : il suit la langue de la session GNOME.
+Traductions : `docs/i18n.md`.
 
 ```bash
 # 1. Build + installation en lien symbolique (pratique pour itérer : un

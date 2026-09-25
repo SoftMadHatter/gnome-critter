@@ -2,9 +2,10 @@
 // budget de pièces de l'espèce, trophées et accessoires ridicules.
 
 import { h, table, badge, percent } from '../dom.js';
-import { BOX_TABLES, BOX_LABELS, openBox } from '../../../core/lootBoxes.js';
+import { BOX_TABLES, boxLabel, openBox } from '../../../core/lootBoxes.js';
+import { _ } from '../../../core/i18n.js';
 import { BOX_TIERS, DISPLAY_ORDER, formatCount } from '../../../core/achievements.js';
-import { ACCESSORIES } from '../../../core/accessories.js';
+import { ACCESSORIES, accessoryLabel } from '../../../core/accessories.js';
 import { rewardText } from '../../../core/narrator.js';
 import { categoryLabel } from '../format.js';
 
@@ -42,10 +43,10 @@ function boxPanel(tier) {
   return h(
     'div',
     { class: 'panel', style: { border: '1px solid var(--line)', borderRadius: '8px', padding: '10px' } },
-    h('h3', {}, BOX_LABELS[tier]),
+    h('h3', {}, boxLabel(tier)),
     table(
       [
-        ['Lot', ([, lot]) => (lot.accessory ? `un accessoire farce (sinon : ${lot.fallback.text})` : lot.text)],
+        ['Lot', ([, lot]) => (lot.accessory ? `un accessoire farce (sinon : ${_(lot.fallback.text)})` : _(lot.text))],
         ['Pièces', ([, lot]) => lot.coins ?? (lot.fallback?.coins ? `(${lot.fallback.coins})` : 0), 'num'],
         ['Probabilité', ([weight]) => percent(weight / total), 'num'],
       ],
@@ -111,7 +112,7 @@ export function render(root, { pack, data }) {
       h('h2', {}, 'Trophées et accessoires ridicules'),
       table(
         [
-          ['Accessoire', ([id, def]) => [h('img', { src: `/extension/assets/accessories/${id}.png`, width: 32, height: 32, style: { verticalAlign: 'middle' } }), ' ', def.label]],
+          ['Accessoire', ([id, def]) => [h('img', { src: `/extension/assets/accessories/${id}.png`, width: 32, height: 32, style: { verticalAlign: 'middle' } }), ' ', accessoryLabel(id)]],
           ['Obtention', ([id, def]) => (def.trophy
             ? `au ${def.trophy}e succès du joueur (tous animaux confondus)`
             : givers(id).map((g) => `${g.name} (${g.id})`).join(', ') || 'boîtes en or, platine ou légendaires seulement')],

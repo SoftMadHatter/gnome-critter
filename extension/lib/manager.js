@@ -20,13 +20,15 @@ import { Player } from '../core/player.js';
 import { tricksOverrides } from '../core/tricks.js';
 import { PreySpawner, pickSpawnPoint, PREY, FLEE_ANIMAL_RADIUS, FLEE_POINTER_RADIUS } from '../core/prey.js';
 import { namesOverrides, pickName, sanitizeName, uniqueName } from '../core/names.js';
-import { anchorsOverrides, shopList, equippable, trophiesFor, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
+import { anchorsOverrides, shopList, equippable, trophiesFor, accessoryLabel, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
 import {
   buildAchievements, speciesProfile, newlyUnlocked, titlesFor, achievementView, achievementCount,
 } from '../core/achievements.js';
 import { openBox } from '../core/lootBoxes.js';
 import { announceUnlock, announceBurst, announceTrophy } from '../core/narrator.js';
-import { STAGE_LABELS } from './lifeLabels.js';
+import { stageLabel } from '../core/labels.js';
+import { _, ngettext, fmt } from '../core/i18n.js';
+import { translationsOverrides } from '../core/packTranslations.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
   createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
@@ -138,6 +140,10 @@ export class Manager {
     if (stages.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
     }
+    const translations = translationsOverrides(this.pack.meta.translations);
+    if (translations.ignored.length > 0) {
+      console.warn(`Scamper: pack "${this.pack.meta.id}", traductions ignorées : ${translations.ignored.join(', ')}`);
+    }
     const namesList = namesOverrides(this.pack.meta.names).list;
     const achievements = buildAchievements(this.pack.meta.achievements, speciesProfile(this.pack.meta));
     if (achievements.ignored.length > 0) {
@@ -205,7 +211,7 @@ export class Manager {
         const taken = this._critters.map((e) => e.critter.name).filter(Boolean);
         critter.setName(pickName(Math.random, namesList, taken));
       }
-      if (!saved[i] && growthEnabled) this._player.log(`Un œuf est déposé : ${critter.name}.`, Date.now());
+      if (!saved[i] && growthEnabled) this._player.log(fmt(_('Un œuf est déposé : {name}.'), { name: critter.name }), Date.now());
 
       const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner(), this._eggSheet);
       actor.attachAccessories(this._accessoryImages, anchors.anchors);
@@ -321,7 +327,7 @@ export class Manager {
       if (this._player.coins === 0) this._player.stats.mark('state', 'broke');
       return true;
     }
-    Main.notify('Critter', `Pièces insuffisantes (${price} nécessaires, ${this._player.coins} en poche).`);
+    Main.notify('Critter', fmt(_('Pièces insuffisantes ({price} nécessaires, {coins} en poche).'), { price, coins: this._player.coins }));
     return false;
   }
 
@@ -331,8 +337,9 @@ export class Manager {
     if (!this._pay(def.price)) return;
     this._player.own(id);
     if (id === 'crown') this._player.stats.mark('shop', 'crown');
-    this._player.log(`Accessoire acheté : ${def.label}.`, Date.now());
-    Main.notify('Critter', `${def.label} acheté (-${def.price} pièces).`);
+    const label = accessoryLabel(id);
+    this._player.log(fmt(_('Accessoire acheté : {accessory}.'), { accessory: label }), Date.now());
+    Main.notify('Critter', fmt(_('{accessory} acheté (-{price} pièces).'), { accessory: label, price: def.price }));
   }
 
   /** Nom d'un animal dans les messages : l'espèce, numérotée s'il y en a plusieurs. */
@@ -365,7 +372,7 @@ export class Manager {
     const yours = achievementView(this._playerAchievements, { unlocked: this._player.unlocked, facts: this._player.progressFacts() });
     const { stageReached, tricksLearned, achievementsUnlocked, ...values } = facts.stats;
     new ProgressDialog({
-      title: `${critter.name ?? 'Sans nom'} — progression`,
+      title: fmt(_('{name} — progression'), { name: critter.name ?? _('Sans nom') }),
       tab,
       achievements: {
         done: mine.done + yours.done,
@@ -389,7 +396,7 @@ export class Manager {
     const taken = this._critters.map((e) => e.critter.name).filter((n) => n && n !== critter.name);
     const previous = critter.name;
     critter.setName(uniqueName(clean, taken));
-    this._player.log(`${previous ?? 'Une créature'} est rebaptisé(e) ${critter.name}.`, Date.now());
+    this._player.log(fmt(_('{previous} est rebaptisé(e) {name}.'), { previous: previous ?? _('Une créature'), name: critter.name }), Date.now());
   }
 
   /** Succès obtenus / possibles pour un animal (espèce et caractère compatibles). */
@@ -413,16 +420,17 @@ export class Manager {
       coins += outcome.coins;
       return outcome;
     });
-    const subject = who ?? 'Toi';
+    const subject = who ?? _('Toi');
     if (defs.length > BURST_SIZE) {
       const { title, body } = announceBurst({ who, defs, coins });
       Main.notify(title, body);
-      this._player.log(`${subject} : ${defs.length} succès d'un coup.`, Date.now());
+      this._player.log(fmt(ngettext("{name} : {count} succès d'un coup.", "{name} : {count} succès d'un coup.", defs.length), { name: subject, count: defs.length }), Date.now());
     } else {
       defs.forEach((def, i) => {
         const { title, body } = announceUnlock({ def, who, outcome: outcomes[i] });
         Main.notify(title, body);
-        this._player.log(`${subject} : ${def.troll ? 'bêtise' : 'succès'} « ${def.name} ».`, Date.now());
+        const line = def.troll ? _('{name} : bêtise « {achievement} ».') : _('{name} : succès « {achievement} ».');
+        this._player.log(fmt(line, { name: subject, achievement: def.name }), Date.now());
       });
     }
     this._player.achievementCount += defs.length;
@@ -431,7 +439,7 @@ export class Manager {
       this._player.own(trophy.id);
       const { title, body } = announceTrophy({ label: trophy.label, count: ACCESSORIES[trophy.id].trophy });
       Main.notify(title, body);
-      this._player.log(`Trophée obtenu : ${trophy.label}.`, Date.now());
+      this._player.log(fmt(_('Trophée obtenu : {trophy}.'), { trophy: trophy.label }), Date.now());
     }
   }
 
@@ -448,7 +456,7 @@ export class Manager {
     }
     if (reward.accessory) {
       this._player.own(reward.accessory);
-      outcome.accessoryLabel = ACCESSORIES[reward.accessory]?.label;
+      outcome.accessoryLabel = accessoryLabel(reward.accessory);
     }
     return outcome;
   }
@@ -463,11 +471,11 @@ export class Manager {
     const event = snapshot.event;
     if (event) {
       this._player.awardEvent(`${index}`, event, nowSeconds);
-      if (event === 'hatched') this._player.log(`${name} a éclos.`, Date.now());
-      else if (event === 'birthday') this._player.log(`${name} fête son anniversaire !`, Date.now());
-      else if (event === 'grew') this._player.log(`${name} devient ${STAGE_LABELS[snapshot.stage]?.toLowerCase() ?? snapshot.stage}.`, Date.now());
+      if (event === 'hatched') this._player.log(fmt(_('{name} a éclos.'), { name }), Date.now());
+      else if (event === 'birthday') this._player.log(fmt(_('{name} fête son anniversaire !'), { name }), Date.now());
+      else if (event === 'grew') this._player.log(fmt(_('{name} devient {stage}.'), { name, stage: stageLabel(snapshot.stage).toLowerCase() }), Date.now());
     }
-    if (event === 'trickLearned') this._player.log(`${name} a appris un tour.`, Date.now());
+    if (event === 'trickLearned') this._player.log(fmt(_('{name} a appris un tour.'), { name }), Date.now());
     const mess = critter.takeMess();
     if (mess) this._addItem(createItem('mess', null, mess.x, mess.y - 4));
     const gift = critter.takeGift();
@@ -702,7 +710,7 @@ export class Manager {
         const coins = GIFTS[item.kind]?.coins ?? 0;
         this._player.award('gift', coins, 0);
         this._player.stats.add('giftsCollected');
-        this._player.log(`Cadeau ramassé : +${coins} pièces.`, Date.now());
+        this._player.log(fmt(ngettext('Cadeau ramassé : +{coins} pièce.', 'Cadeau ramassé : +{coins} pièces.', coins), { coins }), Date.now());
       } else if (item.collected && item.type === 'mess') {
         this._player.award('clean', 1, 0); // service rendu : une pièce par trace nettoyée
         this._player.stats.add('messesCleaned');

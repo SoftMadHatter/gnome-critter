@@ -2,11 +2,12 @@
 // sa condition, avec les alertes des contrôles (titre genré, doublon).
 
 import { h, table, badge } from '../dom.js';
-import { TRAIT_LABELS } from '../../../extension/lib/lifeLabels.js';
+import { traitLabel } from '../../../core/labels.js';
 import { categoryLabel, conditionText } from '../format.js';
 
 export function render(root, { pack, issues }) {
   const titled = pack.all.filter((def) => def.title).sort((a, b) => a.title.localeCompare(b.title, 'fr'));
+  const sample = pack.meta.names?.[0] ?? 'Pistache';
   const alerts = (def) => (issues[pack.id] ?? []).filter((issue) => issue.id === def.id && /titre|title/.test(issue.message));
   root.append(
     h(
@@ -22,9 +23,9 @@ export function render(root, { pack, issues }) {
       table(
         [
           ['Titre', (def) => h('b', {}, def.title)],
-          ['Aperçu', (def) => `Pistache, ${def.title}`],
+          ['Aperçu', (def) => `${sample}, ${def.title}`],
           ['Succès', (def) => [def.name, def.troll ? badge('bêtise', 'troll') : null, h('small', {}, `${categoryLabel(def.category)} · ${def.id}`)]],
-          ['Condition', (def) => [conditionText(def), def.requires.trait ? h('small', {}, `caractère ${TRAIT_LABELS[def.requires.trait]}`) : null]],
+          ['Condition', (def) => [conditionText(def), def.requires.trait ? h('small', {}, `caractère ${traitLabel(def.requires.trait)}`) : null]],
           ['Alertes', (def) => alerts(def).map((issue) => h('div', { class: 'warning-text' }, issue.message))],
         ],
         titled,

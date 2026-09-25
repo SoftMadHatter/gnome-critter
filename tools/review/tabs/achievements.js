@@ -5,7 +5,7 @@
 import { h, select, table, badge, debounce, copyText, percent } from '../dom.js';
 import { DISPLAY_ORDER, isEligible } from '../../../core/achievements.js';
 import { rewardLabel } from '../../../core/narrator.js';
-import { TRAIT_LABELS } from '../../../extension/lib/lifeLabels.js';
+import { TRAIT_LABELS, traitLabel } from '../../../core/labels.js';
 import { categoryLabel, conditionText, requiresText } from '../format.js';
 
 const KINDS = [
@@ -91,7 +91,7 @@ export function render(root, { pack, state, setState }) {
       h(
         'div',
         { class: 'controls' },
-        select([['', 'Tous caractères'], ...Object.entries(TRAIT_LABELS)], filters.trait, (v) => {
+        select([['', 'Tous caractères'], ...Object.keys(TRAIT_LABELS).map((t) => [t, traitLabel(t)])], filters.trait, (v) => {
           filters.trait = v;
           update();
         }),

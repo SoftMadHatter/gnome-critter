@@ -1,9 +1,11 @@
-// Page de revue (dev) : en-tête (pack, onglets), état dans l'adresse (#tab=...&pack=...),
-// rechargement automatique quand le serveur signale un fichier modifié.
+// Page de revue (dev) : en-tête (pack, langue, onglets), état dans l'adresse
+// (#tab=...&pack=...&lang=...), rechargement automatique quand le serveur
+// signale un fichier modifié. L'interface de l'outil reste en français ; les
+// textes du jeu suivent la langue choisie.
 
 import { h, select, badge } from './dom.js';
 import { loadData } from './data.js';
-import { checkPack } from './checks.js';
+import { checkPack, checkTranslations, checkCatalog } from './checks.js';
 
 /** [id, libellé, module] : chaque module exporte `render(racine, contexte)`. */
 const TABS = [
@@ -15,6 +17,12 @@ const TABS = [
   ['creatures', 'Créatures', () => import('./tabs/creatures.js')],
   ['items', 'Objets', () => import('./tabs/items.js')],
   ['checks', 'Contrôles', () => import('./tabs/checks.js')],
+];
+
+/** Langues des textes du jeu : [code, libellé]. */
+const LANGUAGE_CHOICES = [
+  ['fr', 'Français'],
+  ['en', 'English'],
 ];
 
 let data = null;
@@ -45,7 +53,7 @@ function setState(patch, { silent = false } = {}) {
 function renderHeader() {
   const found = issues[state.pack] ?? [];
   const errors = found.filter((issue) => issue.level === 'error').length;
-  const warnings = found.length - errors;
+  const warnings = found.filter((issue) => issue.level === 'warning').length;
   const packLabel = (id) => {
     const name = data.packs[id].meta.displayName;
     return name ? `${name} (${id})` : id;
@@ -53,6 +61,12 @@ function renderHeader() {
   document.getElementById('top').replaceChildren(
     h('h1', {}, 'Revue Scamper'),
     select(data.ids.map((id) => [id, packLabel(id)]), state.pack, (pack) => setState({ pack }), { title: 'Espèce' }),
+    select(LANGUAGE_CHOICES, data.lang, (lang) => {
+      // Le traducteur est global et les succès sont développés au chargement : on recharge.
+      state.lang = lang;
+      writeState();
+      location.reload();
+    }, { title: 'Langue des textes du jeu' }),
     h(
       'nav',
       { class: 'tabs' },
@@ -103,7 +117,7 @@ function listen() {
 async function main() {
   state = readState();
   try {
-    data = await loadData();
+    data = await loadData(state.lang);
   } catch (e) {
     document.getElementById('main').replaceChildren(
       h('p', { class: 'error-text' }, `Chargement impossible : ${e.message}`),
@@ -113,8 +127,14 @@ async function main() {
   }
   if (!data.packs[state.pack]) state.pack = data.ids.includes('cat') ? 'cat' : data.ids[0];
   if (!TABS.some(([id]) => id === state.tab)) state.tab = TABS[0][0];
+  state.lang = data.lang === 'fr' ? '' : data.lang; // le français, langue source, reste implicite dans l'adresse
   writeState();
-  issues = Object.fromEntries(data.ids.map((id) => [id, checkPack(data.packs[id])]));
+  // Textes source relus en français ; hors du français, contrôles de la traduction en plus.
+  issues = Object.fromEntries(data.ids.map((id) => {
+    const pack = data.packs[id];
+    return [id, [...checkPack(pack.french ?? pack), ...(pack.french ? checkTranslations(pack) : [])]];
+  }));
+  data.catalogIssues = data.catalog ? checkCatalog(data.catalog) : [];
   renderHeader();
   renderTab();
   listen();

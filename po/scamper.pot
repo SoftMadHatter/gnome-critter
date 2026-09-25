@@ -1,0 +1,4345 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the scamper package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: scamper\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-25 07:40+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: core/accessories.js:12
+msgid "Chapeau de fête"
+msgstr ""
+
+#: core/accessories.js:13
+msgid "Nœud"
+msgstr ""
+
+#: core/accessories.js:14
+msgid "Lunettes"
+msgstr ""
+
+#: core/accessories.js:15
+msgid "Couronne"
+msgstr ""
+
+#: core/accessories.js:16
+msgid "Bonnet de Noël"
+msgstr ""
+
+#: core/accessories.js:17
+msgid "Chapeau de sorcière"
+msgstr ""
+
+#: core/accessories.js:18
+msgid "Médaille"
+msgstr ""
+
+#: core/accessories.js:19
+msgid "Couronne de laurier"
+msgstr ""
+
+#: core/accessories.js:20
+msgid "Auréole"
+msgstr ""
+
+#: core/accessories.js:21
+msgid "Cône de la honte"
+msgstr ""
+
+#: core/accessories.js:22
+msgid "Chaussette"
+msgstr ""
+
+#: core/accessories.js:23
+msgid "Chapeau en papier alu"
+msgstr ""
+
+#: core/labels.js:12
+msgid "Repas"
+msgstr ""
+
+#: core/labels.js:13
+msgid "Repas préférés"
+msgstr ""
+
+#: core/labels.js:14
+msgid "Parties de jeu"
+msgstr ""
+
+#: core/labels.js:15
+msgid "Coups de balle"
+msgstr ""
+
+#: core/labels.js:16
+msgid "Brossages"
+msgstr ""
+
+#: core/labels.js:17
+msgid "Ronronnements"
+msgstr ""
+
+#: core/labels.js:18
+msgid "Caresses"
+msgstr ""
+
+#: core/labels.js:19
+msgid "Salutations"
+msgstr ""
+
+#: core/labels.js:20
+msgid "Escalades"
+msgstr ""
+
+#: core/labels.js:21
+msgid "Vols"
+msgstr ""
+
+#: core/labels.js:22
+msgid "Piqués"
+msgstr ""
+
+#: core/labels.js:23
+msgid "Nages"
+msgstr ""
+
+#: core/labels.js:24
+msgid "Courses"
+msgstr ""
+
+#: core/labels.js:25
+msgid "Siestes"
+msgstr ""
+
+#: core/labels.js:26
+msgid "Plus longue sieste"
+msgstr ""
+
+#: core/labels.js:27
+msgid "Tours réussis"
+msgstr ""
+
+#: core/labels.js:28
+msgid "Cadeaux offerts"
+msgstr ""
+
+#: core/labels.js:29
+msgid "Proies attrapées"
+msgstr ""
+
+#: core/labels.js:30
+msgid "Grignotages"
+msgstr ""
+
+#: core/labels.js:31
+msgid "Soulagements"
+msgstr ""
+
+#: core/labels.js:32
+msgid "Accidents"
+msgstr ""
+
+#: core/labels.js:33
+msgid "Chatouilles"
+msgstr ""
+
+#: core/labels.js:34
+msgid "Sursauts"
+msgstr ""
+
+#: core/labels.js:35
+msgid "Réveils"
+msgstr ""
+
+#: core/labels.js:36
+msgid "Agacements"
+msgstr ""
+
+#: core/labels.js:37
+msgid "Indigestions"
+msgstr ""
+
+#: core/labels.js:38
+msgid "Anniversaires"
+msgstr ""
+
+#: core/labels.js:39
+msgid "Voyages à la souris"
+msgstr ""
+
+#: core/labels.js:40
+msgid "Chutes"
+msgstr ""
+
+#: core/labels.js:41
+msgid "Filatures du curseur"
+msgstr ""
+
+#: core/labels.js:42
+msgid "Fuites"
+msgstr ""
+
+#: core/labels.js:43
+msgid "Poursuites"
+msgstr ""
+
+#: core/labels.js:44
+msgid "Toilettes"
+msgstr ""
+
+#: core/labels.js:45
+msgid "Marches au plafond"
+msgstr ""
+
+#: core/labels.js:46
+msgid "Hibernations"
+msgstr ""
+
+#: core/labels.js:47
+msgid "Poursuites du laser"
+msgstr ""
+
+#: core/labels.js:48
+msgid "Coups de museau à l'anneau"
+msgstr ""
+
+#: core/labels.js:49
+msgid "Restes laissés"
+msgstr ""
+
+#: core/labels.js:50
+msgid "Temps de sommeil"
+msgstr ""
+
+#: core/labels.js:51
+msgid "Caresses à l'œuf"
+msgstr ""
+
+#: core/labels.js:52
+msgid "Survols"
+msgstr ""
+
+#: core/labels.js:53
+msgid "Changements de nom"
+msgstr ""
+
+#: core/labels.js:54
+msgid "Repas forcés"
+msgstr ""
+
+#: core/labels.js:55
+msgid "Brossages inutiles"
+msgstr ""
+
+#: core/labels.js:56
+msgid "Tours ratés"
+msgstr ""
+
+#: core/labels.js:57
+msgid "Réveils d'hibernation"
+msgstr ""
+
+#: core/labels.js:58
+msgid "Sorties d'écran"
+msgstr ""
+
+#: core/labels.js:59
+msgid "Séances de dactylo"
+msgstr ""
+
+#: core/labels.js:60
+msgid "Notifications remarquées"
+msgstr ""
+
+#: core/labels.js:61
+msgid "Jours de vie"
+msgstr ""
+
+#: core/labels.js:62
+msgid "Stade atteint"
+msgstr ""
+
+#: core/labels.js:63
+msgid "Tours appris"
+msgstr ""
+
+#: core/labels.js:64
+msgid "Succès obtenus"
+msgstr ""
+
+#: core/labels.js:69
+msgid "Ouvertures du menu"
+msgstr ""
+
+#: core/labels.js:70
+msgid "Ouvertures du menu d'un animal"
+msgstr ""
+
+#: core/labels.js:71
+msgid "Ouvertures des réglages"
+msgstr ""
+
+#: core/labels.js:72
+msgid "Ouvertures de la progression"
+msgstr ""
+
+#: core/labels.js:73
+msgid "Ouvertures du journal"
+msgstr ""
+
+#: core/labels.js:74
+msgid "Départs en vacances"
+msgstr ""
+
+#: core/labels.js:75
+msgid "Allumages du laser"
+msgstr ""
+
+#: core/labels.js:76
+msgid "Bureaux vidés"
+msgstr ""
+
+#: core/labels.js:77
+msgid "Jouets rangés"
+msgstr ""
+
+#: core/labels.js:78
+msgid "Objets retirés (clic droit)"
+msgstr ""
+
+#: core/labels.js:79
+msgid "Proies lâchées"
+msgstr ""
+
+#: core/labels.js:80
+msgid "Gamelles pleines remplies"
+msgstr ""
+
+#: core/labels.js:81
+msgid "Pièces dépensées"
+msgstr ""
+
+#: core/labels.js:82
+msgid "Traces nettoyées"
+msgstr ""
+
+#: core/labels.js:83
+msgid "Cadeaux ramassés"
+msgstr ""
+
+#: core/labels.js:84
+msgid "Pièces en poche"
+msgstr ""
+
+#: core/labels.js:85
+msgid "Accessoires possédés"
+msgstr ""
+
+#: core/labels.js:90
+msgid "Aliments goûtés"
+msgstr ""
+
+#: core/labels.js:91
+msgid "Jouets essayés"
+msgstr ""
+
+#: core/labels.js:92
+msgid "Accessoires portés"
+msgstr ""
+
+#: core/labels.js:93
+msgid "Sortes de présents"
+msgstr ""
+
+#: core/labels.js:94
+msgid "Lits essayés"
+msgstr ""
+
+#: core/labels.js:95
+msgid "Saisons vécues"
+msgstr ""
+
+#: core/labels.js:96
+msgid "Fêtes vécues"
+msgstr ""
+
+#: core/labels.js:97
+msgid "Moments"
+msgstr ""
+
+#: core/labels.js:98
+msgid "États"
+msgstr ""
+
+#: core/labels.js:99
+msgid "Bureau"
+msgstr ""
+
+#: core/labels.js:100 extension/lib/panelIndicator.js:129
+msgid "Boutique"
+msgstr ""
+
+#: core/labels.js:105
+msgid "Soins"
+msgstr ""
+
+#: core/labels.js:106
+msgid "Jeu"
+msgstr ""
+
+#: core/labels.js:107
+msgid "Exploration"
+msgstr ""
+
+#: core/labels.js:108
+msgid "Vie"
+msgstr ""
+
+#: core/labels.js:109
+msgid "Collection"
+msgstr ""
+
+#: core/labels.js:110
+msgid "Saisons"
+msgstr ""
+
+#: core/labels.js:111
+msgid "Bêtises"
+msgstr ""
+
+#: core/labels.js:112 extension/lib/manager.js:419
+msgid "Toi"
+msgstr ""
+
+#: core/labels.js:115
+msgid "Adulte"
+msgstr ""
+
+#: core/labels.js:115
+msgid "Bébé"
+msgstr ""
+
+#: core/labels.js:115
+msgid "Jeune"
+msgstr ""
+
+#: core/labels.js:115
+msgid "Senior"
+msgstr ""
+
+#: core/labels.js:115
+msgid "Œuf"
+msgstr ""
+
+#: core/labels.js:117
+msgid "gourmand"
+msgstr ""
+
+#: core/labels.js:117
+msgid "joueur"
+msgstr ""
+
+#: core/labels.js:117
+msgid "paresseux"
+msgstr ""
+
+#: core/labels.js:117
+msgid "timide"
+msgstr ""
+
+#: core/labels.js:119
+msgid "choyé"
+msgstr ""
+
+#: core/labels.js:119
+msgid "négligé"
+msgstr ""
+
+#: core/labels.js:122
+msgid "Viande"
+msgstr ""
+
+#: core/labels.js:123
+msgid "Poisson"
+msgstr ""
+
+#: core/labels.js:124
+msgid "Pâtée"
+msgstr ""
+
+#: core/labels.js:125
+msgid "Croquettes"
+msgstr ""
+
+#: core/labels.js:126
+msgid "Graines"
+msgstr ""
+
+#: core/labels.js:127
+msgid "Vers de farine"
+msgstr ""
+
+#: core/labels.js:128
+msgid "Pomme"
+msgstr ""
+
+#: core/labels.js:129
+msgid "Plancton"
+msgstr ""
+
+#: core/labels.js:130
+msgid "Flocons"
+msgstr ""
+
+#: core/labels.js:133
+msgid "Anneau flottant"
+msgstr ""
+
+#: core/labels.js:133
+msgid "Balle"
+msgstr ""
+
+#: core/labels.js:133
+msgid "Pelote de laine"
+msgstr ""
+
+#: core/labels.js:133
+msgid "Peluche"
+msgstr ""
+
+#: core/labels.js:135
+msgid "Couffin"
+msgstr ""
+
+#: core/labels.js:135
+msgid "Coussin"
+msgstr ""
+
+#: core/labels.js:135
+msgid "Panier"
+msgstr ""
+
+#: core/labels.js:137
+msgid "Bois"
+msgstr ""
+
+#: core/labels.js:137
+msgid "Céramique"
+msgstr ""
+
+#: core/labels.js:137
+msgid "Inox"
+msgstr ""
+
+#: core/labels.js:139
+msgid "Krill"
+msgstr ""
+
+#: core/labels.js:139
+msgid "Puceron"
+msgstr ""
+
+#: core/labels.js:139
+msgid "Scarabée"
+msgstr ""
+
+#: core/labels.js:139
+msgid "Souris"
+msgstr ""
+
+#: core/labels.js:141
+msgid "Algue"
+msgstr ""
+
+#: core/labels.js:141
+msgid "Baies"
+msgstr ""
+
+#: core/labels.js:141
+msgid "Feuille"
+msgstr ""
+
+#: core/labels.js:141
+msgid "Herbe"
+msgstr ""
+
+#: core/labels.js:161
+msgid "{food} ({price} pièces)"
+msgstr ""
+
+#: core/labels.js:166 core/labels.js:173 core/labels.js:194
+msgid "{n} min"
+msgstr ""
+
+#: core/labels.js:166
+msgid "{n} s"
+msgstr ""
+
+#: core/labels.js:173
+msgid "{h} h {m} min"
+msgstr ""
+
+#: core/labels.js:187
+msgid "{day}/{month} {hour}:{minute}"
+msgstr ""
+
+#: core/labels.js:195
+msgid "{n} h"
+msgstr ""
+
+#: core/labels.js:196
+msgid "{n} j"
+msgstr ""
+
+#: core/labels.js:205
+msgid "hibernation"
+msgstr ""
+
+#: core/lootBoxes.js:17
+msgid "rien, absolument rien"
+msgstr ""
+
+#: core/lootBoxes.js:18
+msgid "une pièce rouillée"
+msgstr ""
+
+#: core/lootBoxes.js:19
+msgid "un mot d'excuse du Système"
+msgstr ""
+
+#: core/lootBoxes.js:20
+msgid "cinq pièces presque neuves"
+msgstr ""
+
+#: core/lootBoxes.js:23
+msgid "une boîte en bronze, vide"
+msgstr ""
+
+#: core/lootBoxes.js:24
+msgid "deux pièces qui ne se ressemblent pas"
+msgstr ""
+
+#: core/lootBoxes.js:25
+msgid "un coupon de réduction expiré"
+msgstr ""
+
+#: core/lootBoxes.js:26
+msgid "dix pièces"
+msgstr ""
+
+#: core/lootBoxes.js:29
+msgid "un certificat de participation"
+msgstr ""
+
+#: core/lootBoxes.js:30
+msgid "cinq pièces et une excuse"
+msgstr ""
+
+#: core/lootBoxes.js:31
+msgid "vingt pièces, sans condition"
+msgstr ""
+
+#: core/lootBoxes.js:32
+msgid "vingt pièces (tu as déjà toutes les farces)"
+msgstr ""
+
+#: core/lootBoxes.js:35
+msgid "une boîte en or, vide, mais brillante"
+msgstr ""
+
+#: core/lootBoxes.js:36 core/lootBoxes.js:37
+msgid "quarante pièces"
+msgstr ""
+
+#: core/lootBoxes.js:40
+msgid "cent pièces. Le Système n'en revient pas"
+msgstr ""
+
+#: core/lootBoxes.js:41
+msgid "cent pièces"
+msgstr ""
+
+#: core/lootBoxes.js:46
+msgid "une boîte en bronze"
+msgstr ""
+
+#: core/lootBoxes.js:47
+msgid "une boîte en argent"
+msgstr ""
+
+#: core/lootBoxes.js:48
+msgid "une boîte en or"
+msgstr ""
+
+#: core/lootBoxes.js:49
+msgid "une boîte en platine"
+msgstr ""
+
+#: core/lootBoxes.js:50
+msgid "une boîte légendaire"
+msgstr ""
+
+#: core/narrator.js:13
+msgid "Le Système"
+msgstr ""
+
+#: core/narrator.js:15
+msgid "Le Système prend note."
+msgstr ""
+
+#: core/narrator.js:15 core/narrator.js:17
+msgid "Nouveau succès !"
+msgstr ""
+
+#: core/narrator.js:15
+msgid "Succès débloqué."
+msgstr ""
+
+#: core/narrator.js:18
+msgid "Bêtise débloquée !"
+msgstr ""
+
+#: core/narrator.js:19
+msgid "Attention, succès en approche."
+msgstr ""
+
+#: core/narrator.js:20
+msgid "Le Système a tout vu."
+msgstr ""
+
+#: core/narrator.js:24
+msgid "Les spectateurs adorent."
+msgstr ""
+
+#: core/narrator.js:25
+msgid "Nos sponsors se désolidarisent."
+msgstr ""
+
+#: core/narrator.js:26
+msgid "Ce succès ne compte pour rien. Comme les autres."
+msgstr ""
+
+#: core/narrator.js:27
+msgid "Applaudissements enregistrés."
+msgstr ""
+
+#: core/narrator.js:28
+msgid "Le Système n'en revient pas."
+msgstr ""
+
+#: core/narrator.js:29
+msgid "Personne ne te jugera. Sauf le Système."
+msgstr ""
+
+#: core/narrator.js:38 core/narrator.js:112 extension/lib/progressDialog.js:124
+msgid "« {name} »"
+msgstr ""
+
+#: core/narrator.js:44
+msgid "{name} : {achievement}"
+msgstr ""
+
+#: core/narrator.js:48
+msgid "{n} pièce"
+msgid_plural "{n} pièces"
+msgstr[0] ""
+msgstr[1] ""
+
+#: core/narrator.js:51
+msgid "frais de dossier"
+msgstr ""
+
+#: core/narrator.js:60 core/narrator.js:81
+msgid "rien"
+msgstr ""
+
+#: core/narrator.js:60
+msgid "{box}… qui contient : {content}."
+msgstr ""
+
+#: core/narrator.js:63
+msgid "{accessory}. À porter, si tu oses."
+msgstr ""
+
+#: core/narrator.js:67
+msgid "−{coins} ({fee})."
+msgstr ""
+
+#: core/narrator.js:68
+msgid "des {fee} que tu ne peux même pas payer. Touchant."
+msgstr ""
+
+#: core/narrator.js:72
+msgid "rien. Absolument rien."
+msgstr ""
+
+#: core/narrator.js:79
+msgid "−{coins} ({fee})"
+msgstr ""
+
+#: core/narrator.js:94
+msgid "Récompense : {reward}."
+msgstr ""
+
+#: core/narrator.js:94
+msgid "la gloire"
+msgstr ""
+
+#: core/narrator.js:101 extension/lib/progressDialog.js:125
+msgid "Récompense : {reward}"
+msgstr ""
+
+#: core/narrator.js:113
+msgid "{first} et {last}"
+msgstr ""
+
+#: core/narrator.js:118
+msgid ""
+"Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont "
+"{list}."
+msgid_plural ""
+"Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont "
+"{list}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: core/narrator.js:123
+msgid ""
+"Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont "
+"{list}."
+msgid_plural ""
+"Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont "
+"{list}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: core/narrator.js:130
+msgid "Dont {n} bêtise. Le Système ne dira rien."
+msgid_plural "Dont {n} bêtises. Le Système ne dira rien."
+msgstr[0] ""
+msgstr[1] ""
+
+#: core/narrator.js:132
+msgid "+{coins}."
+msgstr ""
+
+#: core/narrator.js:142
+msgid ""
+"{count} succès. Tu as droit à : {trophy}. Le Système est presque "
+"impressionné."
+msgid_plural ""
+"{count} succès. Tu as droit à : {trophy}. Le Système est presque "
+"impressionné."
+msgstr[0] ""
+msgstr[1] ""
+
+#: core/tricks.js:7
+msgid "Assis"
+msgstr ""
+
+#: core/tricks.js:8
+msgid "Roulade"
+msgstr ""
+
+#: core/tricks.js:9
+msgid "Saut périlleux"
+msgstr ""
+
+#: extension/lib/critterActions.js:32
+msgid "Renommer…"
+msgstr ""
+
+#: extension/lib/critterActions.js:40
+msgid "{food} (préféré)"
+msgstr ""
+
+#: extension/lib/critterActions.js:42
+msgid "Donner à manger"
+msgstr ""
+
+#: extension/lib/critterActions.js:47
+msgid "Remplir la gamelle"
+msgstr ""
+
+#: extension/lib/critterActions.js:51 extension/lib/panelIndicator.js:153
+msgid "Poser une gamelle"
+msgstr ""
+
+#: extension/lib/critterActions.js:55
+msgid "Accessoires"
+msgstr ""
+
+#: extension/lib/critterActions.js:56
+msgid "Titre"
+msgstr ""
+
+#: extension/lib/critterActions.js:57
+msgid "Tours"
+msgstr ""
+
+#: extension/lib/critterActions.js:58
+msgid "Réveiller"
+msgstr ""
+
+#: extension/lib/critterActions.js:60 extension/lib/panelIndicator.js:156
+msgid "Poser un lit"
+msgstr ""
+
+#: extension/lib/critterActions.js:62 extension/lib/panelIndicator.js:118
+msgid "Brosser"
+msgstr ""
+
+#: extension/lib/critterActions.js:66 extension/lib/panelIndicator.js:117
+msgid "Jouer"
+msgstr ""
+
+#: extension/lib/critterActions.js:75 extension/lib/critterActions.js:87
+msgid "Aucun"
+msgstr ""
+
+#: extension/lib/critterActions.js:100
+msgid "Faire : {trick}"
+msgstr ""
+
+#: extension/lib/critterActions.js:103
+msgid "Entraîner : {trick} ({skill} %)"
+msgstr ""
+
+#: extension/lib/critterMenu.js:38 extension/lib/panelIndicator.js:140
+msgid "Pointeur laser"
+msgstr ""
+
+#: extension/lib/critterMenu.js:41 extension/lib/panelIndicator.js:164
+msgid "Ranger les jouets"
+msgstr ""
+
+#: extension/lib/critterMenu.js:47 extension/lib/manager.js:371
+#: extension/lib/panelIndicator.js:229
+msgid "Sans nom"
+msgstr ""
+
+#: extension/lib/manager.js:210
+msgid "Un œuf est déposé : {name}."
+msgstr ""
+
+#: extension/lib/manager.js:326
+msgid "Pièces insuffisantes ({price} nécessaires, {coins} en poche)."
+msgstr ""
+
+#: extension/lib/manager.js:337
+msgid "Accessoire acheté : {accessory}."
+msgstr ""
+
+#: extension/lib/manager.js:338
+msgid "{accessory} acheté (-{price} pièces)."
+msgstr ""
+
+#: extension/lib/manager.js:371
+msgid "{name} — progression"
+msgstr ""
+
+#: extension/lib/manager.js:395
+msgid "Une créature"
+msgstr ""
+
+#: extension/lib/manager.js:395
+msgid "{previous} est rebaptisé(e) {name}."
+msgstr ""
+
+#: extension/lib/manager.js:423
+msgid "{name} : {count} succès d'un coup."
+msgid_plural "{name} : {count} succès d'un coup."
+msgstr[0] ""
+msgstr[1] ""
+
+#: extension/lib/manager.js:428
+msgid "{name} : bêtise « {achievement} »."
+msgstr ""
+
+#: extension/lib/manager.js:428
+msgid "{name} : succès « {achievement} »."
+msgstr ""
+
+#: extension/lib/manager.js:438
+msgid "Trophée obtenu : {trophy}."
+msgstr ""
+
+#: extension/lib/manager.js:470
+msgid "{name} a éclos."
+msgstr ""
+
+#: extension/lib/manager.js:471
+msgid "{name} fête son anniversaire !"
+msgstr ""
+
+#: extension/lib/manager.js:472
+msgid "{name} devient {stage}."
+msgstr ""
+
+#: extension/lib/manager.js:474
+msgid "{name} a appris un tour."
+msgstr ""
+
+#: extension/lib/manager.js:709
+msgid "Cadeau ramassé : +{coins} pièce."
+msgid_plural "Cadeau ramassé : +{coins} pièces."
+msgstr[0] ""
+msgstr[1] ""
+
+#: extension/lib/panelIndicator.js:21
+msgid "Satiété"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:22
+msgid "Énergie"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:23
+msgid "Propreté"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:24
+msgid "Stimulation"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:25
+msgid "Affection"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:26
+msgid "Soulagement"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:27
+msgid "Santé"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:115
+msgid "Nourrir"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:119
+msgid "Câlin"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:124
+msgid "Plus…"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:125
+msgid "Bureau…"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:126
+msgid "Pièces"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:130 extension/lib/progressDialog.js:21
+msgid "Journal"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:132
+msgid "Réglages…"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:137 extension/prefs.js:111
+msgid "Mode vacances"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:146
+msgid "Poser de la nourriture"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:151
+msgid "Remplir une gamelle"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:158
+msgid "Poser une litière"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:159
+msgid "Nettoyer les traces"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:160
+msgid "Lâcher une proie"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:161
+msgid "Poser une plante"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:162
+msgid "Poser un jouet"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:165
+msgid "Retirer les objets"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:186 extension/lib/progressDialog.js:21
+msgid "Succès"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:187 extension/lib/progressDialog.js:21
+msgid "Statistiques"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:193
+msgid "Pièces : {coins}"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:197
+msgid "Succès ({done}/{total})"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:202
+msgid "{accessory} (gratuit de saison)"
+msgstr ""
+
+#: extension/lib/panelIndicator.js:205
+msgid "Acheter : {accessory} ({price} pièces)"
+msgstr ""
+
+#: extension/lib/progressDialog.js:61
+msgid "Fermer"
+msgstr ""
+
+#: extension/lib/progressDialog.js:84
+msgid "{done} / {total} débloqués"
+msgstr ""
+
+#: extension/lib/progressDialog.js:85
+msgid "Aucun succès pour cet animal."
+msgstr ""
+
+#: extension/lib/progressDialog.js:93
+msgid "{done} découverte sur {total}"
+msgid_plural "{done} découvertes sur {total}"
+msgstr[0] ""
+msgstr[1] ""
+
+#: extension/lib/progressDialog.js:109
+msgid "Tes succès à toi, partagés entre tous tes animaux."
+msgstr ""
+
+#: extension/lib/progressDialog.js:110
+msgid "Rien de découvert pour l'instant. Le Système attend."
+msgstr ""
+
+#: extension/lib/progressDialog.js:120
+msgid "Palier obtenu : {name} ({tier}/{tiers})"
+msgstr ""
+
+#: extension/lib/progressDialog.js:122
+msgid "Titre gagné : {title}"
+msgstr ""
+
+#: extension/lib/progressDialog.js:138
+msgid "{label} : {value}"
+msgstr ""
+
+#: extension/lib/progressDialog.js:144
+msgid "Rien pour le moment."
+msgstr ""
+
+#: extension/lib/renameDialog.js:23
+msgid "Nom de la créature"
+msgstr ""
+
+#: extension/lib/renameDialog.js:29
+msgid "{n} caractères au plus"
+msgstr ""
+
+#: extension/lib/renameDialog.js:36
+msgid "Annuler"
+msgstr ""
+
+#: extension/lib/renameDialog.js:37
+msgid "OK"
+msgstr ""
+
+#: extension/prefs.js:55
+msgid "Général"
+msgstr ""
+
+#: extension/prefs.js:56
+msgid "Animaux"
+msgstr ""
+
+#: extension/prefs.js:56
+msgid "Les changements sont appliqués tout de suite."
+msgstr ""
+
+#: extension/prefs.js:59
+msgid "Besoins et vie"
+msgstr ""
+
+#: extension/prefs.js:60
+msgid "Besoins et croissance"
+msgstr ""
+
+#: extension/prefs.js:63 extension/prefs.js:169
+msgid "Rythme et capteurs"
+msgstr ""
+
+#: extension/prefs.js:67
+msgid "Animal"
+msgstr ""
+
+#: extension/prefs.js:81
+msgid "Nombre d'animaux"
+msgstr ""
+
+#: extension/prefs.js:87
+msgid "Sons activés"
+msgstr ""
+
+#: extension/prefs.js:92
+msgid "Détendue"
+msgstr ""
+
+#: extension/prefs.js:93
+msgid "Normale"
+msgstr ""
+
+#: extension/prefs.js:94
+msgid "Stricte"
+msgstr ""
+
+#: extension/prefs.js:97
+msgid "Difficulté"
+msgstr ""
+
+#: extension/prefs.js:98
+msgid "Vitesse à laquelle les besoins des animaux baissent."
+msgstr ""
+
+#: extension/prefs.js:112
+msgid "Fige tous les besoins des animaux."
+msgstr ""
+
+#: extension/prefs.js:118
+msgid "Icône dans la barre supérieure"
+msgstr ""
+
+#: extension/prefs.js:119
+msgid "Humeur et menu des animaux."
+msgstr ""
+
+#: extension/prefs.js:125
+msgid "Auto (suit la croissance)"
+msgstr ""
+
+#: extension/prefs.js:126
+msgid "Désactivée"
+msgstr ""
+
+#: extension/prefs.js:127
+msgid "Partielle"
+msgstr ""
+
+#: extension/prefs.js:128
+msgid "Totale"
+msgstr ""
+
+#: extension/prefs.js:131
+msgid "Autonomie"
+msgstr ""
+
+#: extension/prefs.js:132
+msgid ""
+"Les animaux autonomes chassent, grignotent et voient leurs besoins baisser "
+"plus lentement."
+msgstr ""
+
+#: extension/prefs.js:140
+msgid "Proies automatiques"
+msgstr ""
+
+#: extension/prefs.js:141
+msgid "Des proies apparaissent de temps en temps pour les animaux autonomes."
+msgstr ""
+
+#: extension/prefs.js:147
+msgid "Plantes décoratives"
+msgstr ""
+
+#: extension/prefs.js:148
+msgid "Des plantes à grignoter sont maintenues sur le bureau."
+msgstr ""
+
+#: extension/prefs.js:154
+msgid "Croissance"
+msgstr ""
+
+#: extension/prefs.js:155
+msgid "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte."
+msgstr ""
+
+#: extension/prefs.js:161
+msgid "Vitesse de croissance"
+msgstr ""
+
+#: extension/prefs.js:162
+msgid "1 = temps réel. Plus haut pour essayer les stades sans attendre."
+msgstr ""
+
+#: extension/prefs.js:170
+msgid "Aucun contenu n'est jamais lu : ni notifications, ni touches."
+msgstr ""
+
+#: extension/prefs.js:175
+msgid "Cycle jour/nuit"
+msgstr ""
+
+#: extension/prefs.js:176
+msgid ""
+"De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris."
+msgstr ""
+
+#: extension/prefs.js:182
+msgid "Dormir en votre absence"
+msgstr ""
+
+#: extension/prefs.js:183
+msgid ""
+"Ils s'endorment quand vous êtes inactif, et vous accueillent à votre retour."
+msgstr ""
+
+#: extension/prefs.js:189
+msgid "Minutes d'inactivité avant l'absence"
+msgstr ""
+
+#: extension/prefs.js:196
+msgid "Rappel de pause"
+msgstr ""
+
+#: extension/prefs.js:197
+msgid "Un animal vient vers votre curseur après une longue période d'activité."
+msgstr ""
+
+#: extension/prefs.js:203
+msgid "Minutes d'activité avant le rappel"
+msgstr ""
+
+#: extension/prefs.js:210
+msgid "Réagir aux notifications"
+msgstr ""
+
+#: extension/prefs.js:211
+msgid ""
+"Seul le fait qu'une notification arrive est utilisé, jamais son contenu."
+msgstr ""
+
+#: extension/prefs.js:217
+msgid "Réagir à la frappe"
+msgstr ""
+
+#: extension/prefs.js:218
+msgid "Compte seulement qu'une touche est pressée, jamais laquelle."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:6
+msgid "Identifiant du pack d'animal actif"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:7
+msgid "Nom du dossier sous packs/ à charger (ex: \"critter-demo\")."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:12
+msgid "Nombre d'animaux affichés"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:16
+msgid "Active les effets sonores des réactions"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:26
+msgid ""
+"Vitesse à laquelle les besoins de l'animal baissent : détendu (x0,4), normal "
+"(x1) ou strict (x2)."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:40
+msgid ""
+"Un animal neuf naît d'un œuf et grandit par stades. Désactivée, il naît "
+"adulte."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:46
+msgid ""
+"Multiplicateur de la vitesse de vieillissement (utile pour essayer les "
+"stades sans attendre des jours)."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:51
+msgid ""
+"La nuit (23 h à 7 h, heure locale), les animaux dorment davantage et sont "
+"légèrement assombris."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:69
+msgid "Minutes d'activité avant le rappel de pause"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:89
+msgid "Autonomie des animaux"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:90
+msgid ""
+"Auto : suit la croissance et les tours appris. Sinon désactivée, partielle "
+"ou totale."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:100
+msgid ""
+"Des plantes à grignoter sont maintenues sur le bureau pour les animaux "
+"autonomes."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:104
+msgid "Pièces, achats et journal (interne)"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:105
+msgid "JSON écrit par l'extension. Ne pas modifier à la main."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:109
+msgid "Objets du bureau sauvegardés (interne)"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:110
+msgid ""
+"JSON écrit par l'extension : gamelles, lits et nourriture à restaurer. Ne "
+"pas modifier à la main."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:114
+msgid "État sauvegardé des animaux (interne)"
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:115
+msgid ""
+"JSON écrit par l'extension : positions à restaurer au prochain démarrage. Ne "
+"pas modifier à la main."
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "Petit creux"
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "Bon appétit"
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "Belle fourchette"
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "Estomac sur pattes"
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "Gouffre sans fond"
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "Faire {n} repas"
+msgstr ""
+
+#. succès : meals
+#: core/achievementLibrary.js
+msgid "gouffre sans fond"
+msgstr ""
+
+#. succès : mealsFavorite
+#: core/achievementLibrary.js
+msgid "Plat du jour"
+msgstr ""
+
+#. succès : mealsFavorite
+#: core/achievementLibrary.js
+msgid "Menu préféré"
+msgstr ""
+
+#. succès : mealsFavorite
+#: core/achievementLibrary.js
+msgid "Habitué de la maison"
+msgstr ""
+
+#. succès : mealsFavorite
+#: core/achievementLibrary.js
+msgid "Manger {n} fois son aliment préféré"
+msgstr ""
+
+#. succès : mealsFavorite
+#: core/achievementLibrary.js
+msgid "fine bouche"
+msgstr ""
+
+#. succès : pets
+#: core/achievementLibrary.js
+msgid "Première caresse"
+msgstr ""
+
+#. succès : pets
+#: core/achievementLibrary.js
+msgid "Câlin régulier"
+msgstr ""
+
+#. succès : pets
+#: core/achievementLibrary.js
+msgid "Pelote d'affection"
+msgstr ""
+
+#. succès : pets
+#: core/achievementLibrary.js
+msgid "Aimant à caresses"
+msgstr ""
+
+#. succès : pets
+#: core/achievementLibrary.js
+msgid "Recevoir {n} caresses"
+msgstr ""
+
+#. succès : pets
+#: core/achievementLibrary.js
+msgid "aimant à caresses"
+msgstr ""
+
+#. succès : purrs
+#: core/achievementLibrary.js
+msgid "Aux anges"
+msgstr ""
+
+#. succès : purrs
+#: core/achievementLibrary.js
+msgid "Nuage de bonheur"
+msgstr ""
+
+#. succès : purrs
+#: core/achievementLibrary.js
+msgid "Béatitude"
+msgstr ""
+
+#. succès : purrs
+#: core/achievementLibrary.js
+msgid "Nirvana du câlin"
+msgstr ""
+
+#. succès : purrs
+#: core/achievementLibrary.js
+msgid "Savourer {n} séries de caresses"
+msgstr ""
+
+#. succès : purrs
+#: core/achievementLibrary.js
+msgid "sage du câlin"
+msgstr ""
+
+#. succès : brushes
+#: core/achievementLibrary.js
+msgid "Coup de brosse"
+msgstr ""
+
+#. succès : brushes
+#: core/achievementLibrary.js
+msgid "Brushing"
+msgstr ""
+
+#. succès : brushes
+#: core/achievementLibrary.js
+msgid "Toujours impeccable"
+msgstr ""
+
+#. succès : brushes
+#: core/achievementLibrary.js
+msgid "Star du toilettage"
+msgstr ""
+
+#. succès : brushes
+#: core/achievementLibrary.js
+msgid "Être brossé {n} fois"
+msgstr ""
+
+#. succès : brushes
+#: core/achievementLibrary.js
+msgid "star du toilettage"
+msgstr ""
+
+#. succès : washes
+#: core/achievementLibrary.js
+msgid "Brin de toilette"
+msgstr ""
+
+#. succès : washes
+#: core/achievementLibrary.js
+msgid "Propre sur soi"
+msgstr ""
+
+#. succès : washes
+#: core/achievementLibrary.js
+msgid "Obsession de la propreté"
+msgstr ""
+
+#. succès : washes
+#: core/achievementLibrary.js
+msgid "Faire sa toilette {n} fois"
+msgstr ""
+
+#. succès : washes
+#: core/achievementLibrary.js
+msgid "maniaque de la propreté"
+msgstr ""
+
+#. succès : greets
+#: core/achievementLibrary.js
+msgid "Bonjour !"
+msgstr ""
+
+#. succès : greets
+#: core/achievementLibrary.js
+msgid "Comité d'accueil"
+msgstr ""
+
+#. succès : greets
+#: core/achievementLibrary.js
+msgid "Vedette de la politesse"
+msgstr ""
+
+#. succès : greets
+#: core/achievementLibrary.js
+msgid "Saluer ou être salué {n} fois"
+msgstr ""
+
+#. succès : greets
+#: core/achievementLibrary.js
+msgid "vedette de l'accueil"
+msgstr ""
+
+#. succès : playSessions
+#: core/achievementLibrary.js
+msgid "Récréation"
+msgstr ""
+
+#. succès : playSessions
+#: core/achievementLibrary.js
+msgid "Partie de plaisir"
+msgstr ""
+
+#. succès : playSessions
+#: core/achievementLibrary.js
+msgid "Infatigable"
+msgstr ""
+
+#. succès : playSessions
+#: core/achievementLibrary.js
+msgid "Tornade ludique"
+msgstr ""
+
+#. succès : playSessions
+#: core/achievementLibrary.js
+msgid "Jouer {n} fois jusqu'au bout"
+msgstr ""
+
+#. succès : playSessions
+#: core/achievementLibrary.js
+msgid "tornade ludique"
+msgstr ""
+
+#. succès : ballKicks
+#: core/achievementLibrary.js
+msgid "Premier dribble"
+msgstr ""
+
+#. succès : ballKicks
+#: core/achievementLibrary.js
+msgid "Petit pont"
+msgstr ""
+
+#. succès : ballKicks
+#: core/achievementLibrary.js
+msgid "Frappe de mule"
+msgstr ""
+
+#. succès : ballKicks
+#: core/achievementLibrary.js
+msgid "Ballon d'or"
+msgstr ""
+
+#. succès : ballKicks
+#: core/achievementLibrary.js
+msgid "Frapper la balle ou la pelote {n} fois"
+msgstr ""
+
+#. succès : ballKicks
+#: core/achievementLibrary.js
+msgid "virtuose du ballon"
+msgstr ""
+
+#. succès : tricksPerformed
+#: core/achievementLibrary.js
+msgid "Numéro de cirque"
+msgstr ""
+
+#. succès : tricksPerformed
+#: core/achievementLibrary.js
+msgid "Artiste de rue"
+msgstr ""
+
+#. succès : tricksPerformed
+#: core/achievementLibrary.js
+msgid "Tête d'affiche"
+msgstr ""
+
+#. succès : tricksPerformed
+#: core/achievementLibrary.js
+msgid "Légende du chapiteau"
+msgstr ""
+
+#. succès : tricksPerformed
+#: core/achievementLibrary.js
+msgid "Réussir {n} tours"
+msgstr ""
+
+#. succès : tricksPerformed
+#: core/achievementLibrary.js
+msgid "légende du chapiteau"
+msgstr ""
+
+#. succès : follows
+#: core/achievementLibrary.js
+msgid "Dans tes pas"
+msgstr ""
+
+#. succès : follows
+#: core/achievementLibrary.js
+msgid "Ombre fidèle"
+msgstr ""
+
+#. succès : follows
+#: core/achievementLibrary.js
+msgid "Pot de colle"
+msgstr ""
+
+#. succès : follows
+#: core/achievementLibrary.js
+msgid "Suivre le curseur {n} fois"
+msgstr ""
+
+#. succès : follows
+#: core/achievementLibrary.js
+msgid "pot de colle"
+msgstr ""
+
+#. succès : ringPushes
+#: core/achievementLibrary.js
+msgid "Coup de museau"
+msgstr ""
+
+#. succès : ringPushes
+#: core/achievementLibrary.js
+msgid "Jonglerie aquatique"
+msgstr ""
+
+#. succès : ringPushes
+#: core/achievementLibrary.js
+msgid "Otarie de cirque"
+msgstr ""
+
+#. succès : ringPushes
+#: core/achievementLibrary.js
+msgid "Pousser l'anneau {n} fois"
+msgstr ""
+
+#. succès : ringPushes
+#: core/achievementLibrary.js
+msgid "otarie d'honneur"
+msgstr ""
+
+#. succès : runs
+#: core/achievementLibrary.js
+msgid "Petite foulée"
+msgstr ""
+
+#. succès : runs
+#: core/achievementLibrary.js
+msgid "Sprint"
+msgstr ""
+
+#. succès : runs
+#: core/achievementLibrary.js
+msgid "Marathon de bureau"
+msgstr ""
+
+#. succès : runs
+#: core/achievementLibrary.js
+msgid "Fusée"
+msgstr ""
+
+#. succès : runs
+#: core/achievementLibrary.js
+msgid "Courir {n} fois"
+msgstr ""
+
+#. succès : runs
+#: core/achievementLibrary.js
+msgid "fusée du bureau"
+msgstr ""
+
+#. succès : climbs
+#: core/achievementLibrary.js
+msgid "Premier mur"
+msgstr ""
+
+#. succès : climbs
+#: core/achievementLibrary.js
+msgid "Grimpette"
+msgstr ""
+
+#. succès : climbs
+#: core/achievementLibrary.js
+msgid "Alpiniste"
+msgstr ""
+
+#. succès : climbs
+#: core/achievementLibrary.js
+msgid "Maître de la varappe"
+msgstr ""
+
+#. succès : climbs
+#: core/achievementLibrary.js
+msgid "Grimper {n} fois"
+msgstr ""
+
+#. succès : climbs
+#: core/achievementLibrary.js
+msgid "as de la varappe"
+msgstr ""
+
+#. succès : ceilingWalks
+#: core/achievementLibrary.js
+msgid "Tête en bas"
+msgstr ""
+
+#. succès : ceilingWalks
+#: core/achievementLibrary.js
+msgid "Vue d'en haut"
+msgstr ""
+
+#. succès : ceilingWalks
+#: core/achievementLibrary.js
+msgid "Lustre vivant"
+msgstr ""
+
+#. succès : ceilingWalks
+#: core/achievementLibrary.js
+msgid "Marcher au plafond {n} fois"
+msgstr ""
+
+#. succès : ceilingWalks
+#: core/achievementLibrary.js
+msgid "chauve-souris honoraire"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "Premier envol"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "Vol de croisière"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "Grand voyageur"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "Long-courrier"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "Maître des airs"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "Voler {n} fois"
+msgstr ""
+
+#. succès : flights
+#: core/achievementLibrary.js
+msgid "as des airs"
+msgstr ""
+
+#. succès : dives
+#: core/achievementLibrary.js
+msgid "Plongeon"
+msgstr ""
+
+#. succès : dives
+#: core/achievementLibrary.js
+msgid "Piqué"
+msgstr ""
+
+#. succès : dives
+#: core/achievementLibrary.js
+msgid "Chute contrôlée"
+msgstr ""
+
+#. succès : dives
+#: core/achievementLibrary.js
+msgid "Faucon pèlerin"
+msgstr ""
+
+#. succès : dives
+#: core/achievementLibrary.js
+msgid "Faire {n} piqué{s}"
+msgstr ""
+
+#. succès : dives
+#: core/achievementLibrary.js
+msgid "missile à plumes"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "Premières brasses"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "Nage libre"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "Grand nageur"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "Traversée"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "Océan de bureau"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "Nager {n} fois"
+msgstr ""
+
+#. succès : swims
+#: core/achievementLibrary.js
+msgid "terreur des abysses"
+msgstr ""
+
+#. succès : hunts
+#: core/achievementLibrary.js
+msgid "Première prise"
+msgstr ""
+
+#. succès : hunts
+#: core/achievementLibrary.js
+msgid "Instinct de chasse"
+msgstr ""
+
+#. succès : hunts
+#: core/achievementLibrary.js
+msgid "Terreur des proies"
+msgstr ""
+
+#. succès : hunts
+#: core/achievementLibrary.js
+msgid "Sommet de la chaîne alimentaire"
+msgstr ""
+
+#. succès : hunts
+#: core/achievementLibrary.js
+msgid "Attraper {n} proie{s}"
+msgstr ""
+
+#. succès : hunts
+#: core/achievementLibrary.js
+msgid "sommet de la chaîne alimentaire"
+msgstr ""
+
+#. succès : grazes
+#: core/achievementLibrary.js
+msgid "Brin d'herbe"
+msgstr ""
+
+#. succès : grazes
+#: core/achievementLibrary.js
+msgid "Salade verte"
+msgstr ""
+
+#. succès : grazes
+#: core/achievementLibrary.js
+msgid "Tondeuse"
+msgstr ""
+
+#. succès : grazes
+#: core/achievementLibrary.js
+msgid "Grignoter {n} fois une plante"
+msgstr ""
+
+#. succès : grazes
+#: core/achievementLibrary.js
+msgid "tondeuse à gazon"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Premier jour"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Première semaine"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Doyen"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Centenaire (en jours)"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Un an de bureau"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Millénaire (en jours)"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "Vivre {n} jour{s}"
+msgstr ""
+
+#. succès : daysAlive
+#: core/achievementLibrary.js
+msgid "pilier du bureau"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Éclosion"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Jeunesse"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Âge adulte"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Âge d'or"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Sortir de l'œuf"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Devenir jeune"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Devenir adulte"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "Devenir senior"
+msgstr ""
+
+#. succès : stageReached
+#: core/achievementLibrary.js
+msgid "sagesse incarnée"
+msgstr ""
+
+#. succès : naps
+#: core/achievementLibrary.js
+msgid "Petite sieste"
+msgstr ""
+
+#. succès : naps
+#: core/achievementLibrary.js
+msgid "Pause méritée"
+msgstr ""
+
+#. succès : naps
+#: core/achievementLibrary.js
+msgid "Pro de la sieste"
+msgstr ""
+
+#. succès : naps
+#: core/achievementLibrary.js
+msgid "Sieste olympique"
+msgstr ""
+
+#. succès : naps
+#: core/achievementLibrary.js
+msgid "Faire {n} siestes"
+msgstr ""
+
+#. succès : naps
+#: core/achievementLibrary.js
+msgid "as de la sieste"
+msgstr ""
+
+#. succès : sleepHours
+#: core/achievementLibrary.js
+msgid "Une heure de rêve"
+msgstr ""
+
+#. succès : sleepHours
+#: core/achievementLibrary.js
+msgid "Nuit complète"
+msgstr ""
+
+#. succès : sleepHours
+#: core/achievementLibrary.js
+msgid "Hibernation amateur"
+msgstr ""
+
+#. succès : sleepHours
+#: core/achievementLibrary.js
+msgid "Oreiller vivant"
+msgstr ""
+
+#. succès : sleepHours
+#: core/achievementLibrary.js
+msgid "Dormir {n} h au total"
+msgstr ""
+
+#. succès : sleepHours
+#: core/achievementLibrary.js
+msgid "oreiller vivant"
+msgstr ""
+
+#. succès : birthdays
+#: core/achievementLibrary.js
+msgid "Joyeux anniversaire"
+msgstr ""
+
+#. succès : birthdays
+#: core/achievementLibrary.js
+msgid "Deux bougies"
+msgstr ""
+
+#. succès : birthdays
+#: core/achievementLibrary.js
+msgid "Cinq bougies"
+msgstr ""
+
+#. succès : birthdays
+#: core/achievementLibrary.js
+msgid "Fêter {n} anniversaire{s}"
+msgstr ""
+
+#. succès : birthdays
+#: core/achievementLibrary.js
+msgid "gâteau sur pattes"
+msgstr ""
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid "Propre"
+msgstr ""
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid "Bonnes manières"
+msgstr ""
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid "Diplôme de propreté"
+msgstr ""
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid "Se soulager proprement {n} fois"
+msgstr ""
+
+#. succès : trait-playful
+#: core/achievementLibrary.js
+msgid "Boule d'énergie"
+msgstr ""
+
+#. succès : trait-playful
+#: core/achievementLibrary.js
+msgid "Pile électrique"
+msgstr ""
+
+#. succès : trait-playful
+#: core/achievementLibrary.js
+msgid "Ouragan"
+msgstr ""
+
+#. succès : trait-playful
+#: core/achievementLibrary.js
+msgid "Jouer {n} fois (caractère joueur)"
+msgstr ""
+
+#. succès : trait-playful
+#: core/achievementLibrary.js
+msgid "ouragan de poche"
+msgstr ""
+
+#. succès : trait-lazy
+#: core/achievementLibrary.js
+msgid "Grasse matinée"
+msgstr ""
+
+#. succès : trait-lazy
+#: core/achievementLibrary.js
+msgid "Week-end prolongé"
+msgstr ""
+
+#. succès : trait-lazy
+#: core/achievementLibrary.js
+msgid "Marmotte"
+msgstr ""
+
+#. succès : trait-lazy
+#: core/achievementLibrary.js
+msgid "Dormir {n} h au total (caractère paresseux)"
+msgstr ""
+
+#. succès : trait-lazy
+#: core/achievementLibrary.js
+msgid "marmotte officielle"
+msgstr ""
+
+#. succès : trait-greedy
+#: core/achievementLibrary.js
+msgid "Gourmandise"
+msgstr ""
+
+#. succès : trait-greedy
+#: core/achievementLibrary.js
+msgid "Péché mignon"
+msgstr ""
+
+#. succès : trait-greedy
+#: core/achievementLibrary.js
+msgid "Fine gueule"
+msgstr ""
+
+#. succès : trait-greedy
+#: core/achievementLibrary.js
+msgid "Manger {n} fois son aliment préféré (caractère gourmand)"
+msgstr ""
+
+#. succès : trait-greedy
+#: core/achievementLibrary.js
+msgid "fine gueule"
+msgstr ""
+
+#. succès : trait-shy
+#: core/achievementLibrary.js
+msgid "Pas vu, pas pris"
+msgstr ""
+
+#. succès : trait-shy
+#: core/achievementLibrary.js
+msgid "Discrétion"
+msgstr ""
+
+#. succès : trait-shy
+#: core/achievementLibrary.js
+msgid "Ninja"
+msgstr ""
+
+#. succès : trait-shy
+#: core/achievementLibrary.js
+msgid "Fuir {n} fois (caractère timide)"
+msgstr ""
+
+#. succès : trait-shy
+#: core/achievementLibrary.js
+msgid "ninja du bureau"
+msgstr ""
+
+#. succès : foodsTasted
+#: core/achievementLibrary.js
+msgid "Palais curieux"
+msgstr ""
+
+#. succès : foodsTasted
+#: core/achievementLibrary.js
+msgid "Gastronomie"
+msgstr ""
+
+#. succès : foodsTasted
+#: core/achievementLibrary.js
+msgid "Tour du menu"
+msgstr ""
+
+#. succès : foodsTasted
+#: core/achievementLibrary.js
+msgid "Goûter {n} aliment{s} différent{s}"
+msgstr ""
+
+#. succès : foodsTasted
+#: core/achievementLibrary.js
+msgid "critique gastronomique"
+msgstr ""
+
+#. succès : toysTried
+#: core/achievementLibrary.js
+msgid "Coffre à jouets"
+msgstr ""
+
+#. succès : toysTried
+#: core/achievementLibrary.js
+msgid "Tous les jouets"
+msgstr ""
+
+#. succès : toysTried
+#: core/achievementLibrary.js
+msgid "Jouer avec {n} jouet{s} différent{s}"
+msgstr ""
+
+#. succès : accessoriesWorn
+#: core/achievementLibrary.js
+msgid "Première tenue"
+msgstr ""
+
+#. succès : accessoriesWorn
+#: core/achievementLibrary.js
+msgid "Défilé de mode"
+msgstr ""
+
+#. succès : accessoriesWorn
+#: core/achievementLibrary.js
+msgid "Garde-robe complète"
+msgstr ""
+
+#. succès : accessoriesWorn
+#: core/achievementLibrary.js
+msgid "Porter {n} accessoire{s} différent{s}"
+msgstr ""
+
+#. succès : accessoriesWorn
+#: core/achievementLibrary.js
+msgid "icône de mode"
+msgstr ""
+
+#. succès : giftsGiven
+#: core/achievementLibrary.js
+msgid "Petite attention"
+msgstr ""
+
+#. succès : giftsGiven
+#: core/achievementLibrary.js
+msgid "Cœur sur la patte"
+msgstr ""
+
+#. succès : giftsGiven
+#: core/achievementLibrary.js
+msgid "Distributeur de présents"
+msgstr ""
+
+#. succès : giftsGiven
+#: core/achievementLibrary.js
+msgid "Rapporter {n} présent{s}"
+msgstr ""
+
+#. succès : giftsGiven
+#: core/achievementLibrary.js
+msgid "cœur sur la patte"
+msgstr ""
+
+#. succès : giftKinds
+#: core/achievementLibrary.js
+msgid "Trois trésors"
+msgstr ""
+
+#. succès : giftKinds
+#: core/achievementLibrary.js
+msgid "Rapporter les {n} sortes de présents"
+msgstr ""
+
+#. succès : tricksLearned
+#: core/achievementLibrary.js
+msgid "Premier tour"
+msgstr ""
+
+#. succès : tricksLearned
+#: core/achievementLibrary.js
+msgid "Répertoire complet"
+msgstr ""
+
+#. succès : tricksLearned
+#: core/achievementLibrary.js
+msgid "Apprendre {n} tour{s}"
+msgstr ""
+
+#. succès : tricksLearned
+#: core/achievementLibrary.js
+msgid "bête de scène"
+msgstr ""
+
+#. succès : bedsTried
+#: core/achievementLibrary.js
+msgid "Critique de literie"
+msgstr ""
+
+#. succès : bedsTried
+#: core/achievementLibrary.js
+msgid "Dormir dans {n} modèles de lit"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "Collection naissante"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "Vitrine"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "Musée"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "Panthéon"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "Légende"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "Obtenir {n} succès"
+msgstr ""
+
+#. succès : achievementsUnlocked
+#: core/achievementLibrary.js
+msgid "légende vivante"
+msgstr ""
+
+#. succès : christmas
+#: core/achievementLibrary.js
+msgid "Joyeux Noël"
+msgstr ""
+
+#. succès : christmas
+#: core/achievementLibrary.js
+msgid "Être là à Noël"
+msgstr ""
+
+#. succès : newyear
+#: core/achievementLibrary.js
+msgid "Bonne année"
+msgstr ""
+
+#. succès : newyear
+#: core/achievementLibrary.js
+msgid "Être là le jour de l'An"
+msgstr ""
+
+#. succès : valentine
+#: core/achievementLibrary.js
+msgid "Cœur de Saint-Valentin"
+msgstr ""
+
+#. succès : valentine
+#: core/achievementLibrary.js
+msgid "Être là à la Saint-Valentin"
+msgstr ""
+
+#. succès : easter
+#: core/achievementLibrary.js
+msgid "Chasse aux œufs"
+msgstr ""
+
+#. succès : easter
+#: core/achievementLibrary.js
+msgid "Être là à Pâques"
+msgstr ""
+
+#. succès : halloween
+#: core/achievementLibrary.js
+msgid "Des bonbons ou un sort"
+msgstr ""
+
+#. succès : halloween
+#: core/achievementLibrary.js
+msgid "Être là à Halloween"
+msgstr ""
+
+#. succès : holidays
+#: core/achievementLibrary.js
+msgid "Esprit de fête"
+msgstr ""
+
+#. succès : holidays
+#: core/achievementLibrary.js
+msgid "Calendrier complet"
+msgstr ""
+
+#. succès : holidays
+#: core/achievementLibrary.js
+msgid "Vivre {n} fêtes différentes"
+msgstr ""
+
+#. succès : holidays
+#: core/achievementLibrary.js
+msgid "boute-en-train"
+msgstr ""
+
+#. succès : santa-worn
+#: core/achievementLibrary.js
+msgid "Esprit de Noël"
+msgstr ""
+
+#. succès : santa-worn
+#: core/achievementLibrary.js
+msgid "Porter le bonnet de Noël"
+msgstr ""
+
+#. succès : witch-worn
+#: core/achievementLibrary.js
+msgid "Sortilège"
+msgstr ""
+
+#. succès : witch-worn
+#: core/achievementLibrary.js
+msgid "Porter le chapeau de sorcière"
+msgstr ""
+
+#. succès : seasons
+#: core/achievementLibrary.js
+msgid "Première saison"
+msgstr ""
+
+#. succès : seasons
+#: core/achievementLibrary.js
+msgid "Deux saisons"
+msgstr ""
+
+#. succès : seasons
+#: core/achievementLibrary.js
+msgid "Trois saisons"
+msgstr ""
+
+#. succès : seasons
+#: core/achievementLibrary.js
+msgid "Quatre saisons"
+msgstr ""
+
+#. succès : seasons
+#: core/achievementLibrary.js
+msgid "Vivre {n} saison{s} différente{s}"
+msgstr ""
+
+#. succès : seasons
+#: core/achievementLibrary.js
+msgid "baromètre vivant"
+msgstr ""
+
+#. succès : egg-pets
+#: core/achievementLibrary.js
+msgid "Toc toc"
+msgstr ""
+
+#. succès : egg-pets
+#: core/achievementLibrary.js
+msgid "Obstination"
+msgstr ""
+
+#. succès : egg-pets
+#: core/achievementLibrary.js
+msgid "Caresser un œuf {n} fois"
+msgstr ""
+
+#. succès : egg-pets
+#: core/achievementLibrary.js
+msgid ""
+"Tu as caressé un œuf dix fois. Il ne s'est rien passé. Il ne se passera "
+"jamais rien."
+msgstr ""
+
+#. succès : egg-pets
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante caresses à une coquille. Nos spectateurs se demandent si tout va "
+"bien chez toi."
+msgstr ""
+
+#. succès : egg-pets
+#: core/achievementLibrary.js
+msgid "un écho"
+msgstr ""
+
+#. succès : tickles
+#: core/achievementLibrary.js
+msgid "Chatouilleux"
+msgstr ""
+
+#. succès : tickles
+#: core/achievementLibrary.js
+msgid "Supplice des plumes"
+msgstr ""
+
+#. succès : tickles
+#: core/achievementLibrary.js
+msgid "Être chatouillé {n} fois"
+msgstr ""
+
+#. succès : tickles
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante chatouilles. Il rit, mais à l'intérieur, il prépare sa vengeance."
+msgstr ""
+
+#. succès : tickles
+#: core/achievementLibrary.js
+msgid ""
+"Deux cent cinquante chatouilles. Le Système a prévenu une association. Elle "
+"n'a pas rappelé."
+msgstr ""
+
+#. succès : tickles
+#: core/achievementLibrary.js
+msgid "martyr des chatouilles"
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "Mal des transports"
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "Tapis volant"
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "Colis express"
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "Être porté à la souris {n} fois"
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "Vingt-cinq voyages en cabine souris. Aucun n'était demandé."
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid ""
+"Cent déménagements express. Voici une chaussette. Ne demande pas pourquoi."
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "Cinq cents livraisons. À ce tarif, tu devrais facturer."
+msgstr ""
+
+#. succès : drags
+#: core/achievementLibrary.js
+msgid "un sachet pour le mal de l'air"
+msgstr ""
+
+#. succès : drags, royal-nap, olympic-throw
+#: core/achievementLibrary.js
+msgid "3,14 pièces, arrondies à 3"
+msgstr ""
+
+#. succès : falls
+#: core/achievementLibrary.js
+msgid "Chute libre"
+msgstr ""
+
+#. succès : falls
+#: core/achievementLibrary.js
+msgid "Pilote d'essai"
+msgstr ""
+
+#. succès : falls
+#: core/achievementLibrary.js
+msgid "Tomber {n} fois"
+msgstr ""
+
+#. succès : falls
+#: core/achievementLibrary.js
+msgid "Cent chutes. La gravité te remercie pour ta fidélité."
+msgstr ""
+
+#. succès : falls
+#: core/achievementLibrary.js
+msgid ""
+"Cinq cents chutes. Tu as officiellement fait plus d'essais qu'un programme "
+"spatial."
+msgstr ""
+
+#. succès : falls
+#: core/achievementLibrary.js
+msgid "pilote d'essai en chute libre"
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid "Estomac en carton"
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid "Cobaye"
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid "Tomber malade {n} fois (nourriture moisie)"
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid ""
+"Il a mangé de la nourriture moisie. Tu l'as laissée moisir. Bravo à vous "
+"deux."
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid ""
+"Cinq intoxications. À ce stade, ce n'est plus de la négligence, c'est de la "
+"science."
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid "une ordonnance illisible"
+msgstr ""
+
+#. succès : sicknesses
+#: core/achievementLibrary.js
+msgid "frais de consultation"
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid "Oups"
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid "Récidive"
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid "Avoir {n} accident{s}"
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid "Un petit accident. Le Système a tout vu. Les spectateurs aussi."
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid ""
+"Dix accidents. Voici le cône de la honte. On ne sait pas encore qui doit le "
+"porter."
+msgstr ""
+
+#. succès : awakenings
+#: core/achievementLibrary.js
+msgid "Réveil brutal"
+msgstr ""
+
+#. succès : awakenings
+#: core/achievementLibrary.js
+msgid "Sommeil interdit"
+msgstr ""
+
+#. succès : awakenings
+#: core/achievementLibrary.js
+msgid "Être réveillé {n} fois"
+msgstr ""
+
+#. succès : awakenings
+#: core/achievementLibrary.js
+msgid "Dix réveils. Le sommeil était un droit. Était."
+msgstr ""
+
+#. succès : awakenings
+#: core/achievementLibrary.js
+msgid "Cinquante réveils. Il dort désormais les yeux ouverts, par précaution."
+msgstr ""
+
+#. succès : awakenings
+#: core/achievementLibrary.js
+msgid "un réveille-matin cassé"
+msgstr ""
+
+#. succès : startles
+#: core/achievementLibrary.js
+msgid "Cardiaque"
+msgstr ""
+
+#. succès : startles
+#: core/achievementLibrary.js
+msgid "Nerfs d'acier (non)"
+msgstr ""
+
+#. succès : startles
+#: core/achievementLibrary.js
+msgid "Sursauter {n} fois"
+msgstr ""
+
+#. succès : startles
+#: core/achievementLibrary.js
+msgid ""
+"Vingt-cinq sursauts. Arrête d'ouvrir des fenêtres comme si tu enfonçais une "
+"porte."
+msgstr ""
+
+#. succès : startles
+#: core/achievementLibrary.js
+msgid "Cent sursauts. Il ne s'y habituera jamais. Toi non plus, apparemment."
+msgstr ""
+
+#. succès : annoyances
+#: core/achievementLibrary.js
+msgid "Tu le fais exprès ?"
+msgstr ""
+
+#. succès : annoyances
+#: core/achievementLibrary.js
+msgid "Clic droit compulsif"
+msgstr ""
+
+#. succès : annoyances
+#: core/achievementLibrary.js
+msgid "Être agacé {n} fois (clic droit)"
+msgstr ""
+
+#. succès : annoyances
+#: core/achievementLibrary.js
+msgid ""
+"Vingt clics droits. Oui, tu le fais exprès. Le Système prélève des frais de "
+"dossier."
+msgstr ""
+
+#. succès : annoyances
+#: core/achievementLibrary.js
+msgid "Cent agacements. Il a fondé un groupe de soutien. Tu n'y es pas invité."
+msgstr ""
+
+#. succès : annoyances
+#: core/achievementLibrary.js
+msgid "souffre-douleur officiel"
+msgstr ""
+
+#. succès : night-owl
+#: core/achievementLibrary.js
+msgid "Noctambule"
+msgstr ""
+
+#. succès : night-owl
+#: core/achievementLibrary.js
+msgid "Être éveillé à 3 h du matin"
+msgstr ""
+
+#. succès : night-owl
+#: core/achievementLibrary.js
+msgid "Trois heures du matin et il est réveillé. Toi aussi. Va dormir."
+msgstr ""
+
+#. succès : night-owl
+#: core/achievementLibrary.js
+msgid "une tisane imaginaire"
+msgstr ""
+
+#. succès : leftovers
+#: core/achievementLibrary.js
+msgid "Anti-gaspi (raté)"
+msgstr ""
+
+#. succès : leftovers
+#: core/achievementLibrary.js
+msgid "Restes à volonté"
+msgstr ""
+
+#. succès : leftovers
+#: core/achievementLibrary.js
+msgid "Laisser {n} restes"
+msgstr ""
+
+#. succès : leftovers
+#: core/achievementLibrary.js
+msgid "Dix restes abandonnés. Quelque part, une grand-mère soupire."
+msgstr ""
+
+#. succès : leftovers
+#: core/achievementLibrary.js
+msgid "Cinquante restes. Ton bureau est officiellement un buffet froid."
+msgstr ""
+
+#. succès : hibernations
+#: core/achievementLibrary.js
+msgid "Hibernatus"
+msgstr ""
+
+#. succès : hibernations
+#: core/achievementLibrary.js
+msgid "Ours polaire"
+msgstr ""
+
+#. succès : hibernations
+#: core/achievementLibrary.js
+msgid "Hiberner {n} fois"
+msgstr ""
+
+#. succès : hibernations
+#: core/achievementLibrary.js
+msgid "Il a hiberné. Par manque de soins. Les tiens."
+msgstr ""
+
+#. succès : hibernations
+#: core/achievementLibrary.js
+msgid "Trois hibernations. Il a acheté un sac de couchage avec ses économies."
+msgstr ""
+
+#. succès : hibernations
+#: core/achievementLibrary.js
+msgid "une couverture de survie"
+msgstr ""
+
+#. succès : overfeeds
+#: core/achievementLibrary.js
+msgid "Gavage"
+msgstr ""
+
+#. succès : overfeeds
+#: core/achievementLibrary.js
+msgid "Buffet forcé"
+msgstr ""
+
+#. succès : overfeeds
+#: core/achievementLibrary.js
+msgid "Être nourri {n} fois sans avoir faim"
+msgstr ""
+
+#. succès : overfeeds
+#: core/achievementLibrary.js
+msgid "Il n'avait plus faim. Tu as insisté. Cinq fois."
+msgstr ""
+
+#. succès : overfeeds
+#: core/achievementLibrary.js
+msgid ""
+"Vingt-cinq repas de trop. Le Système t'a inscrit à un concours de "
+"pâtisserie. Tu as perdu."
+msgstr ""
+
+#. succès : pointless-brushes
+#: core/achievementLibrary.js
+msgid "Brossage de précision"
+msgstr ""
+
+#. succès : pointless-brushes
+#: core/achievementLibrary.js
+msgid "Lustrage"
+msgstr ""
+
+#. succès : pointless-brushes
+#: core/achievementLibrary.js
+msgid "Être brossé {n} fois alors que tout était propre"
+msgstr ""
+
+#. succès : pointless-brushes
+#: core/achievementLibrary.js
+msgid ""
+"Tu as brossé un animal déjà impeccable. Dix fois. Le poil n'en demandait pas "
+"tant."
+msgstr ""
+
+#. succès : pointless-brushes
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante brossages inutiles. Il brille tellement qu'on le voit depuis "
+"l'espace."
+msgstr ""
+
+#. succès : pointless-brushes
+#: core/achievementLibrary.js
+msgid "un poil"
+msgstr ""
+
+#. succès : trick-fails
+#: core/achievementLibrary.js
+msgid "Persévérance"
+msgstr ""
+
+#. succès : trick-fails
+#: core/achievementLibrary.js
+msgid "Toujours pas"
+msgstr ""
+
+#. succès : trick-fails
+#: core/achievementLibrary.js
+msgid "Rater {n} fois l'apprentissage d'un tour"
+msgstr ""
+
+#. succès : trick-fails
+#: core/achievementLibrary.js
+msgid "Dix échecs. L'important, c'est de participer. Non, en fait."
+msgstr ""
+
+#. succès : trick-fails
+#: core/achievementLibrary.js
+msgid "Cinquante échecs. Le problème vient peut-être du professeur."
+msgstr ""
+
+#. succès : trick-fails
+#: core/achievementLibrary.js
+msgid "cancre du cirque"
+msgstr ""
+
+#. succès : laser-chases
+#: core/achievementLibrary.js
+msgid "Point rouge"
+msgstr ""
+
+#. succès : laser-chases
+#: core/achievementLibrary.js
+msgid "Obsession écarlate"
+msgstr ""
+
+#. succès : laser-chases
+#: core/achievementLibrary.js
+msgid "Poursuivre le laser {n} fois"
+msgstr ""
+
+#. succès : laser-chases
+#: core/achievementLibrary.js
+msgid "Cent poursuites. Il ne l'attrapera jamais. Jamais."
+msgstr ""
+
+#. succès : laser-chases
+#: core/achievementLibrary.js
+msgid ""
+"Cinq cents poursuites. Toujours pas attrapé. Le point rouge remercie ses "
+"fans."
+msgstr ""
+
+#. succès : laser-chases
+#: core/achievementLibrary.js
+msgid "victime du point rouge"
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid "Crise d'identité"
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid "Témoin protégé"
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid "Être renommé {n} fois"
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid "Cinq noms différents. Il ne sait plus qui il est. Toi non plus."
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid ""
+"Vingt identités. Le programme de protection des témoins est impressionné."
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid "témoin protégé"
+msgstr ""
+
+#. succès : renames
+#: core/achievementLibrary.js
+msgid "un badge « Bonjour, je m’appelle… »"
+msgstr ""
+
+#. succès : hovers
+#: core/achievementLibrary.js
+msgid "Regard insistant"
+msgstr ""
+
+#. succès : hovers
+#: core/achievementLibrary.js
+msgid "Tu le fixes encore"
+msgstr ""
+
+#. succès : hovers
+#: core/achievementLibrary.js
+msgid "Être survolé {n} fois par le curseur"
+msgstr ""
+
+#. succès : hovers
+#: core/achievementLibrary.js
+msgid "Cinq cents survols. Il sait que tu le regardes."
+msgstr ""
+
+#. succès : hovers
+#: core/achievementLibrary.js
+msgid "Cinq mille survols. Ça devient gênant pour tout le monde."
+msgstr ""
+
+#. succès : starving
+#: core/achievementLibrary.js
+msgid "Régime extrême"
+msgstr ""
+
+#. succès : starving
+#: core/achievementLibrary.js
+msgid "Laisser la satiété tomber à zéro"
+msgstr ""
+
+#. succès : starving
+#: core/achievementLibrary.js
+msgid ""
+"Satiété à zéro. Il y avait de la nourriture. Quelque part. Chez quelqu'un "
+"d'autre."
+msgstr ""
+
+#. succès : filthy
+#: core/achievementLibrary.js
+msgid "Fleur de fumier"
+msgstr ""
+
+#. succès : filthy
+#: core/achievementLibrary.js
+msgid "Laisser la propreté tomber à zéro"
+msgstr ""
+
+#. succès : filthy
+#: core/achievementLibrary.js
+msgid "Propreté à zéro. Les mouches ont déposé une demande de résidence."
+msgstr ""
+
+#. succès : filthy
+#: core/achievementLibrary.js
+msgid "une pince à linge (pour le nez)"
+msgstr ""
+
+#. succès : perfect
+#: core/achievementLibrary.js
+msgid "Perfection (provisoire)"
+msgstr ""
+
+#. succès : perfect
+#: core/achievementLibrary.js
+msgid "Avoir toutes les jauges au maximum"
+msgstr ""
+
+#. succès : perfect
+#: core/achievementLibrary.js
+msgid "Toutes les jauges au maximum. Profite, ça ne durera pas trois minutes."
+msgstr ""
+
+#. succès : rock-bottom
+#: core/achievementLibrary.js
+msgid "Au fond du trou"
+msgstr ""
+
+#. succès : rock-bottom
+#: core/achievementLibrary.js
+msgid "Avoir toutes les jauges au plus bas"
+msgstr ""
+
+#. succès : rock-bottom
+#: core/achievementLibrary.js
+msgid ""
+"Toutes les jauges au plus bas. Le Système n'a pas de mots. Si, un seul : "
+"bravo."
+msgstr ""
+
+#. succès : rock-bottom
+#: core/achievementLibrary.js
+msgid "une pelle, pour creuser plus bas"
+msgstr ""
+
+#. succès : coma
+#: core/achievementLibrary.js
+msgid "Coma"
+msgstr ""
+
+#. succès : coma
+#: core/achievementLibrary.js
+msgid "Dormir 10 h d'affilée"
+msgstr ""
+
+#. succès : coma
+#: core/achievementLibrary.js
+msgid "Dix heures d'affilée. Vérifie qu'il respire. (Il respire.)"
+msgstr ""
+
+#. succès : hibernation-wakes
+#: core/achievementLibrary.js
+msgid "Réveil de l'ours"
+msgstr ""
+
+#. succès : hibernation-wakes
+#: core/achievementLibrary.js
+msgid "Printemps forcé"
+msgstr ""
+
+#. succès : hibernation-wakes
+#: core/achievementLibrary.js
+msgid "Être tiré {n} fois de son hibernation"
+msgstr ""
+
+#. succès : hibernation-wakes
+#: core/achievementLibrary.js
+msgid ""
+"Tu as tiré un hibernant de son sommeil. Il ne t'en veut pas. Pour l'instant."
+msgstr ""
+
+#. succès : hibernation-wakes
+#: core/achievementLibrary.js
+msgid ""
+"Dix réveils d'hibernation. Le printemps, c'est quand tu le décides, "
+"visiblement."
+msgstr ""
+
+#. succès : rare-feather
+#: core/achievementLibrary.js
+msgid "La plume rare"
+msgstr ""
+
+#. succès : rare-feather
+#: core/achievementLibrary.js
+msgid "Rapporter la plume rare"
+msgstr ""
+
+#. succès : rare-feather
+#: core/achievementLibrary.js
+msgid "Une plume rare ! Ta récompense : une plume. Oui, la même."
+msgstr ""
+
+#. succès : rare-feather
+#: core/achievementLibrary.js
+msgid "une plume"
+msgstr ""
+
+#. succès : tendinitis
+#: core/achievementLibrary.js
+msgid "Tendinite"
+msgstr ""
+
+#. succès : tendinitis
+#: core/achievementLibrary.js
+msgid "Recevoir 10 000 caresses"
+msgstr ""
+
+#. succès : tendinitis
+#: core/achievementLibrary.js
+msgid "Dix mille caresses. Ton poignet a déposé une réclamation."
+msgstr ""
+
+#. succès : black-hole
+#: core/achievementLibrary.js
+msgid "Trou noir"
+msgstr ""
+
+#. succès : black-hole
+#: core/achievementLibrary.js
+msgid "Faire 10 000 repas"
+msgstr ""
+
+#. succès : black-hole
+#: core/achievementLibrary.js
+msgid "Dix mille repas. Les astronomes s'intéressent à son cas."
+msgstr ""
+
+#. succès : black-hole
+#: core/achievementLibrary.js
+msgid "trou noir"
+msgstr ""
+
+#. succès : earthquake
+#: core/achievementLibrary.js
+msgid "Tremblement de terre"
+msgstr ""
+
+#. succès : earthquake
+#: core/achievementLibrary.js
+msgid "Savourer 1 000 séries de caresses"
+msgstr ""
+
+#. succès : earthquake
+#: core/achievementLibrary.js
+msgid ""
+"Mille séries de caresses. Les voisins pensent que c'est la machine à laver."
+msgstr ""
+
+#. succès : sleep-is-life
+#: core/achievementLibrary.js
+msgid "Dormir, c'est vivre"
+msgstr ""
+
+#. succès : sleep-is-life
+#: core/achievementLibrary.js
+msgid "Faire 5 000 siestes"
+msgstr ""
+
+#. succès : sleep-is-life
+#: core/achievementLibrary.js
+msgid "Cinq mille siestes. Il a compris quelque chose que tu n'as pas compris."
+msgstr ""
+
+#. succès : still-here
+#: core/achievementLibrary.js
+msgid "Tu es encore là ?"
+msgstr ""
+
+#. succès : still-here
+#: core/achievementLibrary.js
+msgid "Vivre 3 650 jours"
+msgstr ""
+
+#. succès : still-here
+#: core/achievementLibrary.js
+msgid ""
+"Dix ans. Ce succès a été écrit en pensant que personne ne l'obtiendrait. Le "
+"Système est ému. Un peu."
+msgstr ""
+
+#. succès : still-here
+#: core/achievementLibrary.js
+msgid "fossile de bureau"
+msgstr ""
+
+#. succès : bald
+#: core/achievementLibrary.js
+msgid "Chauve"
+msgstr ""
+
+#. succès : bald
+#: core/achievementLibrary.js
+msgid "Être brossé 1 000 fois"
+msgstr ""
+
+#. succès : bald
+#: core/achievementLibrary.js
+msgid ""
+"Mille brossages. Il ne lui reste plus un poil. (Si. C'était pour voir ta "
+"tête.)"
+msgstr ""
+
+#. succès : overpolite
+#: core/achievementLibrary.js
+msgid "Politesse excessive"
+msgstr ""
+
+#. succès : overpolite
+#: core/achievementLibrary.js
+msgid "Saluer ou être salué 500 fois"
+msgstr ""
+
+#. succès : overpolite
+#: core/achievementLibrary.js
+msgid "Cinq cents bonjours. Même le Système ne dit pas bonjour autant."
+msgstr ""
+
+#. succès : extinction
+#: core/achievementLibrary.js
+msgid "Extinction"
+msgstr ""
+
+#. succès : extinction
+#: core/achievementLibrary.js
+msgid "Attraper 1 000 proies"
+msgstr ""
+
+#. succès : extinction
+#: core/achievementLibrary.js
+msgid ""
+"Mille proies. Leur espèce a porté plainte. Le Système a classé l'affaire."
+msgstr ""
+
+#. succès : all-nighter
+#: core/achievementLibrary.js
+msgid "Nuit blanche"
+msgstr ""
+
+#. succès : all-nighter
+#: core/achievementLibrary.js
+msgid "Rester éveillé 24 h d'affilée"
+msgstr ""
+
+#. succès : all-nighter
+#: core/achievementLibrary.js
+msgid ""
+"Vingt-quatre heures sans dormir. Il tient debout grâce à la seule force de "
+"ta négligence."
+msgstr ""
+
+#. succès : ceiling-fall
+#: core/achievementLibrary.js
+msgid "Décollage du plafond"
+msgstr ""
+
+#. succès : ceiling-fall
+#: core/achievementLibrary.js
+msgid "Tomber du plafond"
+msgstr ""
+
+#. succès : ceiling-fall
+#: core/achievementLibrary.js
+msgid "Il est tombé du plafond. Tu as ri. Le Système a enregistré ton rire."
+msgstr ""
+
+#. succès : rescues
+#: core/achievementLibrary.js
+msgid "Porté disparu"
+msgstr ""
+
+#. succès : rescues
+#: core/achievementLibrary.js
+msgid "Triangle des Bermudes"
+msgstr ""
+
+#. succès : rescues
+#: core/achievementLibrary.js
+msgid "Sortir de l'écran {n} fois"
+msgstr ""
+
+#. succès : rescues
+#: core/achievementLibrary.js
+msgid ""
+"Il est sorti de l'écran. Le Système l'a rattrapé. Tu n'avais rien remarqué."
+msgstr ""
+
+#. succès : rescues
+#: core/achievementLibrary.js
+msgid "Dix disparitions. À ce stade, c'est un numéro de magie."
+msgstr ""
+
+#. succès : rescues
+#: core/achievementLibrary.js
+msgid "un avis de recherche"
+msgstr ""
+
+#. succès : pet-while-eating
+#: core/achievementLibrary.js
+msgid "Pas pendant le repas !"
+msgstr ""
+
+#. succès : pet-while-eating
+#: core/achievementLibrary.js
+msgid "Être caressé en mangeant"
+msgstr ""
+
+#. succès : pet-while-eating
+#: core/achievementLibrary.js
+msgid ""
+"Une caresse en plein repas. Tu aimes qu'on te tapote la tête au restaurant ?"
+msgstr ""
+
+#. succès : tickle-sleep
+#: core/achievementLibrary.js
+msgid "Cauchemar chatouilleux"
+msgstr ""
+
+#. succès : tickle-sleep
+#: core/achievementLibrary.js
+msgid "Être chatouillé en dormant"
+msgstr ""
+
+#. succès : tickle-sleep
+#: core/achievementLibrary.js
+msgid ""
+"Chatouiller quelqu'un qui dort. Même le Système trouve ça bas. Frais de "
+"dossier."
+msgstr ""
+
+#. succès : dinner-thief
+#: core/achievementLibrary.js
+msgid "Voleur de repas"
+msgstr ""
+
+#. succès : dinner-thief
+#: core/achievementLibrary.js
+msgid "Être soulevé en plein repas"
+msgstr ""
+
+#. succès : dinner-thief
+#: core/achievementLibrary.js
+msgid "Soulevé en plein repas. Il s'en souviendra. Longtemps."
+msgstr ""
+
+#. succès : sleepwalk
+#: core/achievementLibrary.js
+msgid "Somnambule"
+msgstr ""
+
+#. succès : sleepwalk
+#: core/achievementLibrary.js
+msgid "Être déplacé pendant son sommeil"
+msgstr ""
+
+#. succès : sleepwalk
+#: core/achievementLibrary.js
+msgid ""
+"Déplacé pendant son sommeil. Il se réveillera ailleurs, perplexe. Comme toi "
+"un lundi."
+msgstr ""
+
+#. succès : skydive
+#: core/achievementLibrary.js
+msgid "Saut sans parachute"
+msgstr ""
+
+#. succès : skydive
+#: core/achievementLibrary.js
+msgid "Tomber de toute la hauteur de l'écran"
+msgstr ""
+
+#. succès : skydive
+#: core/achievementLibrary.js
+msgid ""
+"Une chute de toute la hauteur de l'écran. Atterrissage parfait. Enfin, "
+"atterrissage."
+msgstr ""
+
+#. succès : royal-nap
+#: core/achievementLibrary.js
+msgid "Sieste royale"
+msgstr ""
+
+#. succès : royal-nap
+#: core/achievementLibrary.js
+msgid "Dormir en portant la couronne"
+msgstr ""
+
+#. succès : royal-nap
+#: core/achievementLibrary.js
+msgid "Dormir avec une couronne. Le luxe, le vrai."
+msgstr ""
+
+#. succès : glasses-nap
+#: core/achievementLibrary.js
+msgid "Lecture soporifique"
+msgstr ""
+
+#. succès : glasses-nap
+#: core/achievementLibrary.js
+msgid "Dormir avec ses lunettes"
+msgstr ""
+
+#. succès : glasses-nap
+#: core/achievementLibrary.js
+msgid ""
+"Il s'est endormi avec ses lunettes. Il lisait sûrement tes statistiques."
+msgstr ""
+
+#. succès : sock-play
+#: core/achievementLibrary.js
+msgid "Tenue décontractée"
+msgstr ""
+
+#. succès : sock-play
+#: core/achievementLibrary.js
+msgid "Jouer avec une chaussette sur la tête"
+msgstr ""
+
+#. succès : sock-play
+#: core/achievementLibrary.js
+msgid ""
+"Jouer avec une chaussette sur la tête. Le style n'a pas de règles. Enfin si, "
+"mais pas ici."
+msgstr ""
+
+#. succès : pet-while-relieving
+#: core/achievementLibrary.js
+msgid "Un peu d'intimité ?"
+msgstr ""
+
+#. succès : pet-while-relieving
+#: core/achievementLibrary.js
+msgid "Être caressé pendant qu'il se soulage"
+msgstr ""
+
+#. succès : pet-while-relieving
+#: core/achievementLibrary.js
+msgid ""
+"Une caresse pendant qu'il se soulage. Il existe des limites. Tu viens de les "
+"trouver."
+msgstr ""
+
+#. succès : bored-stiff
+#: core/achievementLibrary.js
+msgid "Ennui mortel"
+msgstr ""
+
+#. succès : bored-stiff
+#: core/achievementLibrary.js
+msgid "Laisser la stimulation tomber à zéro"
+msgstr ""
+
+#. succès : bored-stiff
+#: core/achievementLibrary.js
+msgid "Stimulation à zéro. Il compte les pixels de l'écran. Il en est à trois."
+msgstr ""
+
+#. succès : bored-stiff
+#: core/achievementLibrary.js
+msgid "un pixel à compter"
+msgstr ""
+
+#. succès : cone-worn
+#: core/achievementLibrary.js
+msgid "La honte, assumée"
+msgstr ""
+
+#. succès : cone-worn
+#: core/achievementLibrary.js
+msgid "Porter le cône de la honte"
+msgstr ""
+
+#. succès : cone-worn
+#: core/achievementLibrary.js
+msgid ""
+"Il porte le cône de la honte. Avec une certaine élégance, il faut bien le "
+"dire."
+msgstr ""
+
+#. succès : sock-worn
+#: core/achievementLibrary.js
+msgid "Chaussette de compétition"
+msgstr ""
+
+#. succès : sock-worn
+#: core/achievementLibrary.js
+msgid "Porter la chaussette"
+msgstr ""
+
+#. succès : sock-worn
+#: core/achievementLibrary.js
+msgid ""
+"Une chaussette sur la tête. Propre, on l'espère. Le Système préfère ne pas "
+"vérifier."
+msgstr ""
+
+#. succès : foilhat-worn
+#: core/achievementLibrary.js
+msgid "Ils nous écoutent"
+msgstr ""
+
+#. succès : foilhat-worn
+#: core/achievementLibrary.js
+msgid "Porter le chapeau en papier alu"
+msgstr ""
+
+#. succès : foilhat-worn
+#: core/achievementLibrary.js
+msgid ""
+"Chapeau en papier alu enfilé. Le Système ne capte plus ses pensées. Il n'y "
+"avait pas grand-chose à capter."
+msgstr ""
+
+#. succès : foilhat-worn
+#: core/achievementLibrary.js
+msgid "un rouleau d’aluminium entamé"
+msgstr ""
+
+#. succès : hungry-nap
+#: core/achievementLibrary.js
+msgid "Au lit sans dîner"
+msgstr ""
+
+#. succès : hungry-nap
+#: core/achievementLibrary.js
+msgid "S'endormir le ventre vide"
+msgstr ""
+
+#. succès : hungry-nap
+#: core/achievementLibrary.js
+msgid ""
+"Il s'est endormi le ventre vide. Il rêve de croquettes. Tu pourrais en "
+"poser, tu sais."
+msgstr ""
+
+#. succès : typing-watches
+#: core/achievementLibrary.js
+msgid "Spectateur de clavier"
+msgstr ""
+
+#. succès : typing-watches
+#: core/achievementLibrary.js
+msgid "Dactylo"
+msgstr ""
+
+#. succès : typing-watches
+#: core/achievementLibrary.js
+msgid "Te regarder taper {n} fois"
+msgstr ""
+
+#. succès : typing-watches
+#: core/achievementLibrary.js
+msgid "Il t'a regardé taper cent fois. Il pense que tu joues du piano. Mal."
+msgstr ""
+
+#. succès : typing-watches
+#: core/achievementLibrary.js
+msgid "Mille séances de dactylo. Il n'a toujours pas compris à quoi tu sers."
+msgstr ""
+
+#. succès : notification-fan
+#: core/achievementLibrary.js
+msgid "Fan de notifications"
+msgstr ""
+
+#. succès : notification-fan
+#: core/achievementLibrary.js
+msgid "Remarquer 100 notifications"
+msgstr ""
+
+#. succès : notification-fan
+#: core/achievementLibrary.js
+msgid ""
+"Cent notifications remarquées. Lui, au moins, il les lit. (Non. Personne ne "
+"les lit.)"
+msgstr ""
+
+#. succès : accessoriesOwned
+#: core/achievementLibrary.js
+msgid "Premier achat"
+msgstr ""
+
+#. succès : accessoriesOwned
+#: core/achievementLibrary.js
+msgid "Garde-robe"
+msgstr ""
+
+#. succès : accessoriesOwned
+#: core/achievementLibrary.js
+msgid "Collection de chapeaux"
+msgstr ""
+
+#. succès : accessoriesOwned
+#: core/achievementLibrary.js
+msgid "Posséder {n} accessoire{s}"
+msgstr ""
+
+#. succès : coinsSpent
+#: core/achievementLibrary.js
+msgid "Client"
+msgstr ""
+
+#. succès : coinsSpent
+#: core/achievementLibrary.js
+msgid "Client fidèle"
+msgstr ""
+
+#. succès : coinsSpent
+#: core/achievementLibrary.js
+msgid "Actionnaire"
+msgstr ""
+
+#. succès : coinsSpent
+#: core/achievementLibrary.js
+msgid "Dépenser {n} pièces"
+msgstr ""
+
+#. succès : messesCleaned
+#: core/achievementLibrary.js
+msgid "Coup de balai"
+msgstr ""
+
+#. succès : messesCleaned
+#: core/achievementLibrary.js
+msgid "Service de propreté"
+msgstr ""
+
+#. succès : messesCleaned
+#: core/achievementLibrary.js
+msgid "Brigade antipoussière"
+msgstr ""
+
+#. succès : messesCleaned
+#: core/achievementLibrary.js
+msgid "Nettoyer {n} traces"
+msgstr ""
+
+#. succès : giftsCollected
+#: core/achievementLibrary.js
+msgid "Merci !"
+msgstr ""
+
+#. succès : giftsCollected
+#: core/achievementLibrary.js
+msgid "Collection de babioles"
+msgstr ""
+
+#. succès : giftsCollected
+#: core/achievementLibrary.js
+msgid "Caverne aux trésors"
+msgstr ""
+
+#. succès : giftsCollected
+#: core/achievementLibrary.js
+msgid "Ramasser {n} cadeaux"
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Curiosité"
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Habitué du menu"
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Accro au menu"
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Tu n'as vraiment rien d'autre à faire ?"
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Ouvrir le menu {n} fois"
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Tu as ouvert le menu. Bravo. C'est le début d'une longue addiction."
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Cent ouvertures. Il n'y a toujours rien de nouveau dedans."
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid "Mille ouvertures. Le menu a demandé une mesure d'éloignement."
+msgstr ""
+
+#. succès : menu-opens
+#: core/achievementLibrary.js
+msgid ""
+"Dix mille ouvertures du menu. Le Système a vérifié : non, tu n'as vraiment "
+"rien d'autre à faire."
+msgstr ""
+
+#. succès : middle-click
+#: core/achievementLibrary.js
+msgid "Molette sensible"
+msgstr ""
+
+#. succès : middle-click
+#: core/achievementLibrary.js
+msgid "Ouvrir 50 fois le menu d'un animal (clic du milieu)"
+msgstr ""
+
+#. succès : middle-click
+#: core/achievementLibrary.js
+msgid "Cinquante clics du milieu. Ta molette demande un arrêt de travail."
+msgstr ""
+
+#. succès : settings-opens
+#: core/achievementLibrary.js
+msgid "Réglages compulsifs"
+msgstr ""
+
+#. succès : settings-opens
+#: core/achievementLibrary.js
+msgid "Complotiste des paramètres"
+msgstr ""
+
+#. succès : settings-opens
+#: core/achievementLibrary.js
+msgid "Ouvrir les réglages {n} fois"
+msgstr ""
+
+#. succès : settings-opens
+#: core/achievementLibrary.js
+msgid "Dix visites aux réglages. Rien n'a changé. Rien ne change jamais."
+msgstr ""
+
+#. succès : settings-opens
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante fois. Tu crois qu'on te cache un réglage ? Tiens, un chapeau en "
+"papier alu."
+msgstr ""
+
+#. succès : progress-opens
+#: core/achievementLibrary.js
+msgid "Obsession des stats"
+msgstr ""
+
+#. succès : progress-opens
+#: core/achievementLibrary.js
+msgid "Tableur vivant"
+msgstr ""
+
+#. succès : progress-opens
+#: core/achievementLibrary.js
+msgid "Ouvrir la fenêtre de progression {n} fois"
+msgstr ""
+
+#. succès : progress-opens
+#: core/achievementLibrary.js
+msgid ""
+"Vingt-cinq consultations. Les chiffres ne montent pas plus vite quand on les "
+"regarde."
+msgstr ""
+
+#. succès : progress-opens
+#: core/achievementLibrary.js
+msgid ""
+"Cent consultations. Le Système envisage de te facturer la bande passante."
+msgstr ""
+
+#. succès : journal-opens
+#: core/achievementLibrary.js
+msgid "Lecture du soir"
+msgstr ""
+
+#. succès : journal-opens
+#: core/achievementLibrary.js
+msgid "Archiviste"
+msgstr ""
+
+#. succès : journal-opens
+#: core/achievementLibrary.js
+msgid "Ouvrir le journal {n} fois"
+msgstr ""
+
+#. succès : journal-opens
+#: core/achievementLibrary.js
+msgid ""
+"Dix lectures du journal. C'est la même histoire, avec un peu plus de chutes."
+msgstr ""
+
+#. succès : journal-opens
+#: core/achievementLibrary.js
+msgid "Cinquante lectures. Tu pourrais le réciter. Ne le fais pas."
+msgstr ""
+
+#. succès : vacations
+#: core/achievementLibrary.js
+msgid "Tu l'abandonnes ?"
+msgstr ""
+
+#. succès : vacations
+#: core/achievementLibrary.js
+msgid "Globe-trotteur indigne"
+msgstr ""
+
+#. succès : vacations
+#: core/achievementLibrary.js
+msgid "Partir en vacances {n} fois"
+msgstr ""
+
+#. succès : vacations
+#: core/achievementLibrary.js
+msgid "Mode vacances. Il ne bougera plus. Toi, profite. Et culpabilise un peu."
+msgstr ""
+
+#. succès : vacations
+#: core/achievementLibrary.js
+msgid "Cinq départs en vacances. Il a arrêté de compter. Pas le Système."
+msgstr ""
+
+#. succès : vacations
+#: core/achievementLibrary.js
+msgid "une carte postale"
+msgstr ""
+
+#. succès : short-vacation
+#: core/achievementLibrary.js
+msgid "Vacances express"
+msgstr ""
+
+#. succès : short-vacation
+#: core/achievementLibrary.js
+msgid "Revenir de vacances en moins d'une minute"
+msgstr ""
+
+#. succès : short-vacation
+#: core/achievementLibrary.js
+msgid "Moins d'une minute de vacances. Même pas le temps de boucler la valise."
+msgstr ""
+
+#. succès : laser-toggles
+#: core/achievementLibrary.js
+msgid "Disco"
+msgstr ""
+
+#. succès : laser-toggles
+#: core/achievementLibrary.js
+msgid "Boule à facettes"
+msgstr ""
+
+#. succès : laser-toggles
+#: core/achievementLibrary.js
+msgid "Allumer le laser {n} fois"
+msgstr ""
+
+#. succès : laser-toggles
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante allumages du laser. Ce n'est plus un jeu, c'est une soirée disco."
+msgstr ""
+
+#. succès : laser-toggles
+#: core/achievementLibrary.js
+msgid "Deux cent cinquante allumages. Le laser a demandé une augmentation."
+msgstr ""
+
+#. succès : clears
+#: core/achievementLibrary.js
+msgid "Grand ménage"
+msgstr ""
+
+#. succès : clears
+#: core/achievementLibrary.js
+msgid "Table rase"
+msgstr ""
+
+#. succès : clears
+#: core/achievementLibrary.js
+msgid "Tout retirer du bureau {n} fois"
+msgstr ""
+
+#. succès : clears
+#: core/achievementLibrary.js
+msgid "Dix fois, tu as tout retiré. Le minimalisme te va bien. Enfin, bof."
+msgstr ""
+
+#. succès : clears
+#: core/achievementLibrary.js
+msgid "Cinquante grands ménages. Le vide, c'est ton style."
+msgstr ""
+
+#. succès : forced-tidy
+#: core/achievementLibrary.js
+msgid "Rangement forcé"
+msgstr ""
+
+#. succès : forced-tidy
+#: core/achievementLibrary.js
+msgid "Ranger les jouets 10 fois"
+msgstr ""
+
+#. succès : forced-tidy
+#: core/achievementLibrary.js
+msgid "Dix rangements de jouets. Il n'a même pas eu le temps de jouer."
+msgstr ""
+
+#. succès : right-click-revenge
+#: core/achievementLibrary.js
+msgid "Clic droit vengeur"
+msgstr ""
+
+#. succès : right-click-revenge
+#: core/achievementLibrary.js
+msgid "Retirer 50 objets d'un clic droit"
+msgstr ""
+
+#. succès : right-click-revenge
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante objets retirés d'un clic droit. Le Système voit se dessiner une "
+"tendance."
+msgstr ""
+
+#. succès : pet-hotel
+#: core/achievementLibrary.js
+msgid "Hôtel pour animaux"
+msgstr ""
+
+#. succès : pet-hotel
+#: core/achievementLibrary.js
+msgid "Avoir 10 lits posés en même temps"
+msgstr ""
+
+#. succès : pet-hotel
+#: core/achievementLibrary.js
+msgid "Dix lits en même temps. Il n'en utilise qu'un. Toujours le même."
+msgstr ""
+
+#. succès : toy-store
+#: core/achievementLibrary.js
+msgid "Magasin de jouets"
+msgstr ""
+
+#. succès : toy-store
+#: core/achievementLibrary.js
+msgid "Avoir 20 jouets posés en même temps"
+msgstr ""
+
+#. succès : toy-store
+#: core/achievementLibrary.js
+msgid "Vingt jouets posés. Il préfère jouer avec la gamelle."
+msgstr ""
+
+#. succès : bowl-collection
+#: core/achievementLibrary.js
+msgid "Collection de gamelles"
+msgstr ""
+
+#. succès : bowl-collection
+#: core/achievementLibrary.js
+msgid "Avoir 5 gamelles posées en même temps"
+msgstr ""
+
+#. succès : bowl-collection
+#: core/achievementLibrary.js
+msgid "Cinq gamelles. Il n'a qu'un estomac, tu sais ?"
+msgstr ""
+
+#. succès : olympic-throw
+#: core/achievementLibrary.js
+msgid "Lancer olympique"
+msgstr ""
+
+#. succès : olympic-throw
+#: core/achievementLibrary.js
+msgid "Lancer un objet à pleine vitesse"
+msgstr ""
+
+#. succès : olympic-throw
+#: core/achievementLibrary.js
+msgid "Objet lancé à pleine vitesse. Record homologué par personne."
+msgstr ""
+
+#. succès : bowl-overfills
+#: core/achievementLibrary.js
+msgid "Débordement"
+msgstr ""
+
+#. succès : bowl-overfills
+#: core/achievementLibrary.js
+msgid "Les yeux plus gros que la gamelle"
+msgstr ""
+
+#. succès : bowl-overfills
+#: core/achievementLibrary.js
+msgid "Remplir {n} fois une gamelle déjà pleine"
+msgstr ""
+
+#. succès : bowl-overfills
+#: core/achievementLibrary.js
+msgid ""
+"Remplir une gamelle déjà pleine, trois fois. La gravité et le Système "
+"désapprouvent."
+msgstr ""
+
+#. succès : bowl-overfills
+#: core/achievementLibrary.js
+msgid "Vingt débordements. Le bureau sent la croquette."
+msgstr ""
+
+#. succès : prey-drops
+#: core/achievementLibrary.js
+msgid "Buffet à volonté"
+msgstr ""
+
+#. succès : prey-drops
+#: core/achievementLibrary.js
+msgid "Élevage intensif"
+msgstr ""
+
+#. succès : prey-drops
+#: core/achievementLibrary.js
+msgid "Lâcher {n} proies"
+msgstr ""
+
+#. succès : prey-drops
+#: core/achievementLibrary.js
+msgid ""
+"Dix proies lâchées. Ce n'est plus de la chasse, c'est de la livraison à "
+"domicile."
+msgstr ""
+
+#. succès : prey-drops
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante proies. Le Système a prévenu les services vétérinaires. Ils sont "
+"en pause."
+msgstr ""
+
+#. succès : broke
+#: core/achievementLibrary.js
+msgid "Fauché"
+msgstr ""
+
+#. succès : broke
+#: core/achievementLibrary.js
+msgid "Tomber à zéro pièce après un achat"
+msgstr ""
+
+#. succès : broke
+#: core/achievementLibrary.js
+msgid ""
+"Zéro pièce. Le Système te donne un conseil gratuit : arrête d'acheter des "
+"chapeaux."
+msgstr ""
+
+#. succès : broke
+#: core/achievementLibrary.js
+msgid "un conseil (non remboursable)"
+msgstr ""
+
+#. succès : delusions-of-grandeur
+#: core/achievementLibrary.js
+msgid "Folie des grandeurs"
+msgstr ""
+
+#. succès : delusions-of-grandeur
+#: core/achievementLibrary.js
+msgid "Acheter la couronne"
+msgstr ""
+
+#. succès : delusions-of-grandeur
+#: core/achievementLibrary.js
+msgid ""
+"Quatre-vingts pièces pour une couronne. Il ne sait même pas ce qu'est un roi."
+msgstr ""
+
+#. succès : delusions-of-grandeur
+#: core/achievementLibrary.js
+msgid "une pièce de consolation"
+msgstr ""
+
+#. succès : dragon-hoard
+#: core/achievementLibrary.js
+msgid "Dragon sur son trésor"
+msgstr ""
+
+#. succès : dragon-hoard
+#: core/achievementLibrary.js
+msgid "Avoir 1 000 pièces en poche"
+msgstr ""
+
+#. succès : dragon-hoard
+#: core/achievementLibrary.js
+msgid "Mille pièces et tu ne dépenses rien. Le Système respecte. Un peu."
+msgstr ""
+
+#. succès : night-menu
+#: core/achievementLibrary.js
+msgid "Insomnie"
+msgstr ""
+
+#. succès : night-menu
+#: core/achievementLibrary.js
+msgid "Ouvrir le menu à 3 h du matin"
+msgstr ""
+
+#. succès : night-menu
+#: core/achievementLibrary.js
+msgid "Ouvrir le menu à 3 h du matin. Ton animal dort, lui."
+msgstr ""
+
+#. succès : janitor-reflexes
+#: core/achievementLibrary.js
+msgid "Réflexes de concierge"
+msgstr ""
+
+#. succès : janitor-reflexes
+#: core/achievementLibrary.js
+msgid "Nettoyer une trace moins de 3 s après son apparition"
+msgstr ""
+
+#. succès : janitor-reflexes
+#: core/achievementLibrary.js
+msgid "Nettoyé en moins de trois secondes. Tu attendais à côté ?"
+msgstr ""
+
+#. succès : food-thief
+#: core/achievementLibrary.js
+msgid "Voleur de goûter"
+msgstr ""
+
+#. succès : food-thief
+#: core/achievementLibrary.js
+msgid "Retirer la nourriture qu'un animal allait manger"
+msgstr ""
+
+#. succès : food-thief
+#: core/achievementLibrary.js
+msgid ""
+"Tu as retiré la nourriture qu'il allait manger. Le Système n'a rien vu. Si. "
+"Frais de dossier."
+msgstr ""

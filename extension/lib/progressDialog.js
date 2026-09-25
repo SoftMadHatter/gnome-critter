@@ -9,15 +9,16 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
-import { STAT_LABELS, CATEGORY_LABELS, statValue, formatJournalDate } from './progressLabels.js';
+import { statLabel, categoryLabel, statValue, formatJournalDate } from '../core/labels.js';
 import { formatCount } from '../core/achievements.js';
 import { rewardLabel } from '../core/narrator.js';
+import { _, N_, ngettext, fmt } from '../core/i18n.js';
 
 const TAB_KEYS = ['achievements', 'stats', 'journal'];
 const BAR_WIDTH = 160;
 /** Rubriques de succès cachés : un compte « découverts sur N ». */
 const HIDDEN_CATEGORIES = new Set(['mischief']);
-const TAB_LABELS = { achievements: 'Succès', stats: 'Statistiques', journal: 'Journal' };
+const TAB_LABELS = { achievements: N_('Succès'), stats: N_('Statistiques'), journal: N_('Journal') };
 
 export const ProgressDialog = GObject.registerClass(
   class ProgressDialog extends ModalDialog.ModalDialog {
@@ -51,13 +52,13 @@ export const ProgressDialog = GObject.registerClass(
       this._data = data;
       this._tabButtons = {};
       for (const key of TAB_KEYS) {
-        const button = new St.Button({ label: TAB_LABELS[key], style_class: 'button', can_focus: true });
+        const button = new St.Button({ label: _(TAB_LABELS[key]), style_class: 'button', can_focus: true });
         button.connect('clicked', () => this._showTab(key));
         tabs.add_child(button);
         this._tabButtons[key] = button;
       }
 
-      this.addButton({ label: 'Fermer', action: () => this.close(), key: Clutter.KEY_Escape, default: true });
+      this.addButton({ label: _('Fermer'), action: () => this.close(), key: Clutter.KEY_Escape, default: true });
       this._showTab(data.tab);
     }
 
@@ -80,16 +81,16 @@ export const ProgressDialog = GObject.registerClass(
 
     _fillAchievements() {
       const { achievements } = this._data;
-      this._row(`${achievements.done} / ${achievements.total} débloqués`, 'font-weight: bold;');
-      if (achievements.total === 0) this._row('Aucun succès pour cet animal.');
+      this._row(fmt(_('{done} / {total} débloqués'), { done: achievements.done, total: achievements.total }), 'font-weight: bold;');
+      if (achievements.total === 0) this._row(_('Aucun succès pour cet animal.'));
       for (const category of achievements.categories) this._category(category);
     }
 
     /** Rubrique repliée : un bouton avec le compte, qui déplie ses lignes. */
     _category(category) {
-      const name = CATEGORY_LABELS[category.id] ?? category.id;
+      const name = categoryLabel(category.id);
       const count = HIDDEN_CATEGORIES.has(category.id)
-        ? `${category.done} découverte${category.done > 1 ? 's' : ''} sur ${category.total}`
+        ? fmt(ngettext('{done} découverte sur {total}', '{done} découvertes sur {total}', category.done), { done: category.done, total: category.total })
         : `${category.done}/${category.total}`;
       const header = new St.Button({
         label: `▸ ${name} (${count})`,
@@ -105,8 +106,8 @@ export const ProgressDialog = GObject.registerClass(
       });
       this._list.add_child(header);
       this._list.add_child(box);
-      if (category.id === 'player') this._line(box, 'Tes succès à toi, partagés entre tous tes animaux.', 'opacity: 170;');
-      if (category.entries.length === 0) this._line(box, "Rien de découvert pour l'instant. Le Système attend.", 'opacity: 170;');
+      if (category.id === 'player') this._line(box, _('Tes succès à toi, partagés entre tous tes animaux.'), 'opacity: 170;');
+      if (category.entries.length === 0) this._line(box, _("Rien de découvert pour l'instant. Le Système attend."), 'opacity: 170;');
       for (const entry of category.entries) this._entry(box, entry);
     }
 
@@ -115,11 +116,13 @@ export const ProgressDialog = GObject.registerClass(
       const progress = entry.done || entry.target === null ? '' : ` — ${formatCount(entry.value)} / ${formatCount(entry.target)}`;
       this._line(box, `${entry.description}${progress}`, 'opacity: 200;');
       if (!entry.done && entry.target) box.add_child(progressBar(entry.value / entry.target));
-      if (entry.last) this._line(box, `Palier obtenu : ${entry.last.name} (${entry.tier}/${entry.tiers})`, 'opacity: 170;');
-      if (entry.done && entry.title) this._line(box, `Titre gagné : ${entry.title}`, 'font-style: italic;');
+      if (entry.last) {
+        this._line(box, fmt(_('Palier obtenu : {name} ({tier}/{tiers})'), { name: entry.last.name, tier: entry.tier, tiers: entry.tiers }), 'opacity: 170;');
+      }
+      if (entry.done && entry.title) this._line(box, fmt(_('Titre gagné : {title}'), { title: entry.title }), 'font-style: italic;');
       if (entry.troll) {
-        this._line(box, `« ${entry.quip} »`, 'font-style: italic; opacity: 190;');
-        this._line(box, `Récompense : ${rewardLabel(entry.reward)}`, 'opacity: 170;');
+        this._line(box, fmt(_('« {name} »'), { name: entry.quip }), 'font-style: italic; opacity: 190;');
+        this._line(box, fmt(_('Récompense : {reward}'), { reward: rewardLabel(entry.reward) }), 'opacity: 170;');
       }
     }
 
@@ -132,13 +135,13 @@ export const ProgressDialog = GObject.registerClass(
 
     _fillStats() {
       for (const [key, value] of this._data.stats) {
-        this._row(`${STAT_LABELS[key] ?? key} : ${statValue(key, value)}`);
+        this._row(fmt(_('{label} : {value}'), { label: statLabel(key), value: statValue(key, value) }));
       }
     }
 
     _fillJournal() {
       const entries = [...this._data.journal].reverse();
-      if (entries.length === 0) this._row('Rien pour le moment.');
+      if (entries.length === 0) this._row(_('Rien pour le moment.'));
       for (const entry of entries) this._row(`${formatJournalDate(entry.t)}   ${entry.text}`);
     }
   },

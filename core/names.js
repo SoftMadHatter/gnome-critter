@@ -1,12 +1,28 @@
 // Noms des créatures : nettoyage, listes par espèce, unicité. Module pur.
 
+import { language } from './i18n.js';
+
 export const MAX_NAME_LENGTH = 24;
 
-/** Prénoms de repli quand le pack n'en fournit pas. */
-export const GENERIC_NAMES = Object.freeze([
-  'Pixel', 'Nougat', 'Biscotte', 'Praline', 'Mochi', 'Cannelle', 'Pistache', 'Réglisse',
-  'Truffe', 'Noisette', 'Caramel', 'Bulle', 'Filou', 'Poucet', 'Zéphyr', 'Lutin',
-]);
+/** Prénoms de repli quand le pack n'en fournit pas, par langue (le français par défaut). */
+export const GENERIC_NAMES_BY_LANGUAGE = Object.freeze({
+  fr: Object.freeze([
+    'Pixel', 'Nougat', 'Biscotte', 'Praline', 'Mochi', 'Cannelle', 'Pistache', 'Réglisse',
+    'Truffe', 'Noisette', 'Caramel', 'Bulle', 'Filou', 'Poucet', 'Zéphyr', 'Lutin',
+  ]),
+  en: Object.freeze([
+    'Pixel', 'Nugget', 'Biscuit', 'Praline', 'Mochi', 'Cinnamon', 'Pistachio', 'Licorice',
+    'Truffle', 'Hazel', 'Caramel', 'Bubble', 'Rascal', 'Peanut', 'Zephyr', 'Sprite',
+  ]),
+});
+
+/** Prénoms de repli dans la langue affichée. */
+export function genericNames() {
+  return GENERIC_NAMES_BY_LANGUAGE[language()] ?? GENERIC_NAMES_BY_LANGUAGE.fr;
+}
+
+/** Prénoms de repli en français (compatibilité). */
+export const GENERIC_NAMES = GENERIC_NAMES_BY_LANGUAGE.fr;
 
 /**
  * Nettoie un nom saisi : caractères de contrôle retirés, espaces repliés,
@@ -75,7 +91,7 @@ export function uniqueName(name, taken) {
  * @param {string[]} taken
  */
 export function pickName(random, pool, taken) {
-  const source = pool.length > 0 ? pool : GENERIC_NAMES;
+  const source = pool.length > 0 ? pool : genericNames();
   const used = new Set(taken.map(norm));
   const free = source.filter((name) => !used.has(norm(name)));
   if (free.length > 0) return free[Math.min(free.length - 1, Math.floor(random() * free.length))];

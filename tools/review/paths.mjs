@@ -2,7 +2,8 @@
 // servies avec la disposition du dépôt (les modules de tools/review importent
 // le cœur par `../../core/...`, comme sous Node), plus deux alias qui imitent
 // le paquet construit par scripts/build.sh : les modules de extension/lib
-// importent `../core/...` et `../packs/...`.
+// importent `../core/...` et `../packs/...`. Les catalogues po/*.po servent
+// au choix de la langue.
 
 import { join, sep } from 'node:path';
 
@@ -14,6 +15,7 @@ export const ROUTES = Object.freeze([
   ['/extension/assets/', 'extension/assets'],
   ['/core/', 'core'],
   ['/packs/', 'packs'],
+  ['/po/', 'po'],
   ['/tools/review/', 'tools/review'],
 ]);
 

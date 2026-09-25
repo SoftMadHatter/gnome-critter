@@ -45,6 +45,19 @@ else
   echo "   le schéma n'est pas compilé (paquet 'libglib2.0-bin' / 'glib2-devel')." >&2
 fi
 
+# Traductions : chaque po/<langue>.po devient locale/<langue>/LC_MESSAGES/scamper.mo.
+if command -v msgfmt >/dev/null 2>&1; then
+  for po in "$ROOT_DIR"/po/*.po; do
+    [ -e "$po" ] || continue
+    lang="$(basename "$po" .po)"
+    mkdir -p "$BUILD_DIR/locale/$lang/LC_MESSAGES"
+    msgfmt -o "$BUILD_DIR/locale/$lang/LC_MESSAGES/scamper.mo" "$po"
+  done
+  echo "==> Traductions compilées."
+else
+  echo "!! msgfmt introuvable : l'extension restera en français (paquet 'gettext')." >&2
+fi
+
 ZIP_PATH="$DIST_DIR/$UUID.shell-extension.zip"
 rm -f "$ZIP_PATH"
 (cd "$BUILD_DIR" && zip -qr "$ZIP_PATH" .)

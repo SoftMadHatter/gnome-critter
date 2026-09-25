@@ -1,25 +1,32 @@
 // Accessoires cosmétiques (chapeaux, nœud, lunettes...) achetés à la boutique,
 // et points d'ancrage de la tête déclarés par les packs. Module pur.
 
+import { _, N_ } from './i18n.js';
+
 /**
  * `months` : mois (1-12) pendant lesquels l'accessoire est gratuit et disponible ; sans `months`, achat à `price`.
  * `trophy` : jamais en boutique, offert quand le joueur atteint ce nombre de succès.
  * `joke` : jamais en boutique, récompense farfelue de certains succès (et des boîtes du Système).
  */
 export const ACCESSORIES = Object.freeze({
-  partyhat: { label: 'Chapeau de fête', price: 20 },
-  bow: { label: 'Nœud', price: 15 },
-  glasses: { label: 'Lunettes', price: 30 },
-  crown: { label: 'Couronne', price: 80 },
-  santa: { label: 'Bonnet de Noël', price: 0, months: [12] },
-  witch: { label: 'Chapeau de sorcière', price: 0, months: [10] },
-  medal: { label: 'Médaille', trophy: 25 },
-  laurel: { label: 'Couronne de laurier', trophy: 50 },
-  halo: { label: 'Auréole', trophy: 100 },
-  cone: { label: 'Cône de la honte', joke: true },
-  sock: { label: 'Chaussette', joke: true },
-  foilhat: { label: 'Chapeau en papier alu', joke: true },
+  partyhat: { label: N_('Chapeau de fête'), price: 20 },
+  bow: { label: N_('Nœud'), price: 15 },
+  glasses: { label: N_('Lunettes'), price: 30 },
+  crown: { label: N_('Couronne'), price: 80 },
+  santa: { label: N_('Bonnet de Noël'), price: 0, months: [12] },
+  witch: { label: N_('Chapeau de sorcière'), price: 0, months: [10] },
+  medal: { label: N_('Médaille'), trophy: 25 },
+  laurel: { label: N_('Couronne de laurier'), trophy: 50 },
+  halo: { label: N_('Auréole'), trophy: 100 },
+  cone: { label: N_('Cône de la honte'), joke: true },
+  sock: { label: N_('Chaussette'), joke: true },
+  foilhat: { label: N_('Chapeau en papier alu'), joke: true },
 });
+
+/** Nom affiché d'un accessoire. */
+export function accessoryLabel(id) {
+  return ACCESSORIES[id] ? _(ACCESSORIES[id].label) : id;
+}
 
 /** Accessoire hors boutique (trophée ou farce), obtenu autrement qu'en l'achetant. */
 export function isSpecial(id) {
@@ -31,7 +38,7 @@ export function trophiesFor(count) {
   return Object.entries(ACCESSORIES)
     .filter(([, def]) => def.trophy && count >= def.trophy)
     .sort((a, b) => a[1].trophy - b[1].trophy)
-    .map(([id, def]) => ({ id, label: def.label }));
+    .map(([id]) => ({ id, label: accessoryLabel(id) }));
 }
 
 /** Prix en pièces d'un aliment premium (les autres sont gratuits). */
@@ -52,14 +59,14 @@ export function inSeason(id, date) {
 export function shopList(date, owned) {
   return Object.entries(ACCESSORIES)
     .filter(([id]) => !isSpecial(id) && inSeason(id, date))
-    .map(([id, def]) => ({ id, label: def.label, price: def.price, free: def.price === 0, owned: owned.includes(id) }));
+    .map(([id, def]) => ({ id, label: accessoryLabel(id), price: def.price, free: def.price === 0, owned: owned.includes(id) }));
 }
 
 /** Accessoires qu'un animal peut porter maintenant : achetés, gratuits de saison, trophées et farces obtenus. */
 export function equippable(date, owned) {
   const special = Object.entries(ACCESSORIES)
     .filter(([id]) => isSpecial(id) && owned.includes(id))
-    .map(([id, def]) => ({ id, label: def.label, price: 0, free: false, owned: true }));
+    .map(([id]) => ({ id, label: accessoryLabel(id), price: 0, free: false, owned: true }));
   return [...shopList(date, owned).filter((a) => a.owned || a.free), ...special];
 }
 

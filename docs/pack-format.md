@@ -157,7 +157,61 @@ les accessoires. Animations facultatives `trick_sit`, `trick_roll`,
 ## Noms (`names`)
 
 Liste optionnelle de prénoms tirés à la naissance (au moins 8, voir
-`docs/creatures.md`) ; liste générique en repli.
+`docs/creatures.md`), en français. Sans elle, le jeu prend une liste
+générique dans la langue de la session. Les prénoms des autres langues vont
+dans la section `translations`.
+
+## Traductions (`translations`)
+
+Section optionnelle : les textes du pack dans d'autres langues. Le français
+de `pack.json` reste la source, et chaque champ absent y retombe. Le jeu
+applique la section de la langue de la session au chargement du pack (voir
+`docs/i18n.md`).
+
+```jsonc
+"translations": {
+  "en": {                              // code de langue : 2 ou 3 lettres minuscules
+    "displayName": "Cat",
+    "names": ["Whiskers", "Mocha", "Cuddles", "Pixel", "Nougat", "Purrcy", "Tiger", "Luna"],
+    "achievements": {
+      // clé : la `series` ou l'`id` d'une entrée de "achievements" du pack
+      "hunts": {
+        "names": ["First mouse", "Mouser", "Scourge of mice", "Rodents' nightmare"],
+        "description": "Catch {n} mice",
+        "title": "rodents' nightmare"
+      },
+      "cat-early-meal": { "name": "Alarm clock", "description": "Eat between 5 and 6 a.m.", "quip": "…" }
+    }
+  }
+}
+```
+
+Champs d'un succès :
+
+- textes :
+  - `name` ;
+  - `description` ;
+  - `quip` (commentaire du Système) ;
+  - `title` ;
+- listes :
+  - `names` (un par palier) ;
+  - `descriptions` ;
+  - `quips` ;
+  - `rewardTexts` (textes des récompenses qui ont un `text`, dans l'ordre).
+
+Règles :
+
+- Une liste doit avoir la longueur de l'originale, sinon elle est ignorée. Un
+  élément `null` garde le texte français.
+- Les espaces réservés du français se retrouvent dans la traduction : `{n}`
+  (le palier), `{s}` (« s » au-delà de 1), que chaque langue place où il lui
+  convient.
+- Seuls les succès **propres au pack** se traduisent ici. Ceux de la
+  bibliothèque commune passent par le catalogue du jeu (`po/`).
+- Une clé mal formée est ignorée, avec un avertissement dans le journal de
+  GNOME Shell. L'onglet Contrôles de l'outil de revue la signale aussi.
+- Pour les packs du dépôt, `tests/i18n.test.js` exige une section `en`
+  complète : nom, prénoms (au moins 8), tous les textes des succès du pack.
 
 ## Règle du spritesheet
 

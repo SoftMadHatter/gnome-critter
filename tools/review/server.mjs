@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { resolvePath, HOME } from './paths.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const WATCHED = ['core', 'packs', 'extension', 'tools/review'];
+const WATCHED = ['core', 'packs', 'po', 'extension', 'tools/review'];
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -23,6 +23,7 @@ const TYPES = {
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.wav': 'audio/wav',
+  '.po': 'text/plain; charset=utf-8',
 };
 
 const portArg = process.argv.indexOf('--port');

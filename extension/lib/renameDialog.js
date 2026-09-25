@@ -7,6 +7,7 @@ import St from 'gi://St';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
 import { MAX_NAME_LENGTH } from '../core/names.js';
+import { _, fmt } from '../core/i18n.js';
 
 export const RenameDialog = GObject.registerClass(
   class RenameDialog extends ModalDialog.ModalDialog {
@@ -19,21 +20,21 @@ export const RenameDialog = GObject.registerClass(
       this._onDone = onDone;
 
       this.contentLayout.add_child(
-        new St.Label({ text: 'Nom de la créature', style: 'font-weight: bold; padding-bottom: 8px;' }),
+        new St.Label({ text: _('Nom de la créature'), style: 'font-weight: bold; padding-bottom: 8px;' }),
       );
       this._entry = new St.Entry({
         text: currentName,
         style: 'min-width: 280px;',
         can_focus: true,
-        hint_text: `${MAX_NAME_LENGTH} caractères au plus`,
+        hint_text: fmt(_('{n} caractères au plus'), { n: MAX_NAME_LENGTH }),
       });
       this._entry.clutter_text.set_max_length(MAX_NAME_LENGTH);
       this._entry.clutter_text.connect('activate', () => this._validate());
       this.contentLayout.add_child(this._entry);
       this.setInitialKeyFocus(this._entry.clutter_text);
 
-      this.addButton({ label: 'Annuler', action: () => this.close(), key: Clutter.KEY_Escape });
-      this.addButton({ label: 'OK', action: () => this._validate(), default: true });
+      this.addButton({ label: _('Annuler'), action: () => this.close(), key: Clutter.KEY_Escape });
+      this.addButton({ label: _('OK'), action: () => this._validate(), default: true });
     }
 
     _validate() {
