@@ -66,6 +66,7 @@ export class CritterActor {
     this._nameTag = new NameTag();
     this._bubble = Object.keys(bubbleIcons).length > 0 ? new ThoughtBubble(bubbleIcons) : null;
     this._menu = menuOwner ? new CritterMenu(critter, pack, menuOwner) : null;
+    this._titleOf = menuOwner?.titleOf ?? (() => null);
 
     this.actor = new Clutter.Actor({
       reactive: true,
@@ -245,6 +246,7 @@ export class CritterActor {
     this._nameTag.update(
       dt,
       snapshot.name,
+      this._titleOf(this.critter),
       {
         x: this.critter.x - size.width / 2,
         y: snapshot.state === State.CEILING ? this.critter.y : this.critter.y - size.height,

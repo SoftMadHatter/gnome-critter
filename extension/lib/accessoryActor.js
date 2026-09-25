@@ -7,12 +7,8 @@ import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { ACCESSORIES } from '../core/accessories.js';
+import { ACCESSORIES, accessoryPlacement } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
-
-/** Décalage vers le bas (fraction de la taille) : les chapeaux reposent sur
- * l'ancrage, le nœud et les lunettes se placent plus bas. */
-const OFFSETS = { glasses: 0.45, bow: 0.3 };
 
 /**
  * @param {string} dir extension/assets/accessories
@@ -61,12 +57,9 @@ export class AccessoryActor {
       this._id = id;
       this.actor.content = image;
     }
-    const size = Math.max(6, Math.round(box.width / 2));
-    const head = this._anchors.head;
-    const ax = box.x + (facing >= 0 ? head.x : 1 - head.x) * box.width;
-    const ay = box.y + head.y * box.height + (OFFSETS[id] ?? 0) * size;
+    const { x, y, size } = accessoryPlacement(id, box, this._anchors.head, facing);
     this.actor.set_size(size, size);
-    this.actor.set_position(Math.round(ax - size / 2), Math.round(ay - size));
+    this.actor.set_position(x, y);
     this.actor.scale_x = facing < 0 ? -1 : 1;
     if (!this.actor.visible) this.actor.show();
   }

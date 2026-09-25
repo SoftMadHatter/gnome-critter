@@ -260,7 +260,7 @@ sprites dans `core/itemLooks.js`, vérifiés contre les fichiers par
 `tests/itemLooks.test.js`. Corrigé au passage : les menus « Donner à manger »
 proposaient les plantes du régime, qui posaient un aliment invisible.
 
-## 15. Grande bibliothèque de succès
+## 15. Grande bibliothèque de succès — à tester
 
 Définir puis générer une grosse bibliothèque de succès (des dizaines à des
 centaines), propres aux espèces et aux caractères : paliers (10, 50, 200...),
@@ -270,6 +270,17 @@ supplémentaires à suivre dans `core/stats.js`, format des paliers et de la
 génération (gabarits dans les packs plutôt que des listes écrites à la main),
 récompenses, affichage groupé dans le menu, validation automatique de la
 bibliothèque par les tests.
+
+Livré : gabarits à paliers (`core/achievements.js`), bibliothèque commune
+(`core/achievementLibrary.js`) complétée par chaque pack, de 200 à 260 succès
+par espèce en huit rubriques (Soins, Jeu, Exploration, Vie, Collection,
+Saisons, Bêtises, Toi). Plus de 40 % de **bêtises** façon IA de Dungeon Crawler
+Carl : cachées jusqu'à leur découverte, commentées par **le Système**
+(narrateur sarcastique de toutes les notifications), récompenses farfelues
+(rien, pièces absurdes, frais de dossier, boîtes, accessoires ridicules).
+Titres à choisir, trophées (médaille, laurier, auréole), succès du joueur,
+saisons et fêtes (Pâques calculée). Une cinquantaine de compteurs et des
+marques par animal. Voir `docs/progression.md`.
 
 ## 16. Langues et traductions
 

@@ -1,17 +1,22 @@
 // Fenêtre de détail de la progression : succès, statistiques et journal, avec
-// défilement. Les succès non débloqués sont masqués et floutés (seul leur
-// nombre apparaît dans le menu) : on ne voit ni leur nom ni leur objectif.
+// défilement. Les succès sont rangés par rubrique dépliable : une série montre
+// son dernier palier et le suivant avec sa progression ; les bêtises (succès
+// « troll ») restent cachées tant qu'elles ne sont pas découvertes, seul leur
+// nombre apparaît.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
-import { STAT_LABELS, statValue, formatJournalDate, maskText } from './progressLabels.js';
+import { STAT_LABELS, CATEGORY_LABELS, statValue, formatJournalDate } from './progressLabels.js';
+import { formatCount } from '../core/achievements.js';
+import { rewardLabel } from '../core/narrator.js';
 
-// Texte transparent + ombre portée : rendu « flou » du texte masqué.
-const BLUR_STYLE = 'color: transparent; text-shadow: 0 0 7px rgba(200,200,200,0.9);';
 const TAB_KEYS = ['achievements', 'stats', 'journal'];
+const BAR_WIDTH = 160;
+/** Rubriques de succès cachés : un compte « découverts sur N ». */
+const HIDDEN_CATEGORIES = new Set(['mischief']);
 const TAB_LABELS = { achievements: 'Succès', stats: 'Statistiques', journal: 'Journal' };
 
 export const ProgressDialog = GObject.registerClass(
@@ -20,7 +25,7 @@ export const ProgressDialog = GObject.registerClass(
      * @param {{
      *   title: string,
      *   tab: 'achievements'|'stats'|'journal',
-     *   achievements: {def: object, unlocked: boolean, progress: number}[],
+     *   achievements: {done: number, total: number, categories: {id: string, done: number, total: number, entries: object[]}[]},
      *   stats: [string, number][],
      *   journal: {t: number, text: string}[],
      * }} data
@@ -75,18 +80,54 @@ export const ProgressDialog = GObject.registerClass(
 
     _fillAchievements() {
       const { achievements } = this._data;
-      const done = achievements.filter((a) => a.unlocked).length;
-      this._row(`${done} / ${achievements.length} débloqués`, 'font-weight: bold;');
-      for (const { def, unlocked } of achievements) {
-        if (unlocked) {
-          this._row(`✓ ${def.name}`, 'font-weight: bold;');
-          this._row(def.description, 'opacity: 190; padding-bottom: 4px;');
-        } else {
-          this._row(maskText(def.name), `${BLUR_STYLE} font-weight: bold;`);
-          this._row(maskText(def.description), `${BLUR_STYLE} padding-bottom: 4px;`);
-        }
+      this._row(`${achievements.done} / ${achievements.total} débloqués`, 'font-weight: bold;');
+      if (achievements.total === 0) this._row('Aucun succès pour cet animal.');
+      for (const category of achievements.categories) this._category(category);
+    }
+
+    /** Rubrique repliée : un bouton avec le compte, qui déplie ses lignes. */
+    _category(category) {
+      const name = CATEGORY_LABELS[category.id] ?? category.id;
+      const count = HIDDEN_CATEGORIES.has(category.id)
+        ? `${category.done} découverte${category.done > 1 ? 's' : ''} sur ${category.total}`
+        : `${category.done}/${category.total}`;
+      const header = new St.Button({
+        label: `▸ ${name} (${count})`,
+        style_class: 'button',
+        x_align: Clutter.ActorAlign.START,
+        can_focus: true,
+        style: 'margin-top: 4px;',
+      });
+      const box = new St.BoxLayout({ vertical: true, x_expand: true, visible: false, style: 'spacing: 2px; padding-left: 12px;' });
+      header.connect('clicked', () => {
+        box.visible = !box.visible;
+        header.label = `${box.visible ? '▾' : '▸'} ${name} (${count})`;
+      });
+      this._list.add_child(header);
+      this._list.add_child(box);
+      if (category.id === 'player') this._line(box, 'Tes succès à toi, partagés entre tous tes animaux.', 'opacity: 170;');
+      if (category.entries.length === 0) this._line(box, "Rien de découvert pour l'instant. Le Système attend.", 'opacity: 170;');
+      for (const entry of category.entries) this._entry(box, entry);
+    }
+
+    _entry(box, entry) {
+      this._line(box, `${entry.done ? '✓ ' : ''}${entry.name}`, 'font-weight: bold; padding-top: 3px;');
+      const progress = entry.done || entry.target === null ? '' : ` — ${formatCount(entry.value)} / ${formatCount(entry.target)}`;
+      this._line(box, `${entry.description}${progress}`, 'opacity: 200;');
+      if (!entry.done && entry.target) box.add_child(progressBar(entry.value / entry.target));
+      if (entry.last) this._line(box, `Palier obtenu : ${entry.last.name} (${entry.tier}/${entry.tiers})`, 'opacity: 170;');
+      if (entry.done && entry.title) this._line(box, `Titre gagné : ${entry.title}`, 'font-style: italic;');
+      if (entry.troll) {
+        this._line(box, `« ${entry.quip} »`, 'font-style: italic; opacity: 190;');
+        this._line(box, `Récompense : ${rewardLabel(entry.reward)}`, 'opacity: 170;');
       }
-      if (achievements.length === 0) this._row('Aucun succès pour cet animal.');
+    }
+
+    _line(box, text, style = '') {
+      const label = new St.Label({ text, style });
+      label.clutter_text.line_wrap = true;
+      box.add_child(label);
+      return label;
     }
 
     _fillStats() {
@@ -102,3 +143,18 @@ export const ProgressDialog = GObject.registerClass(
     }
   },
 );
+
+/** Barre de progression horizontale (fraction de 0 à 1). */
+function progressBar(fraction) {
+  const bar = new St.Widget({
+    width: BAR_WIDTH,
+    height: 5,
+    style: 'background-color: rgba(255,255,255,0.15); border-radius: 3px; margin-bottom: 2px;',
+  });
+  bar.add_child(new St.Widget({
+    width: Math.round(BAR_WIDTH * Math.min(1, Math.max(0, fraction))),
+    height: 5,
+    style: 'background-color: #62a0ea; border-radius: 3px;',
+  }));
+  return bar;
+}

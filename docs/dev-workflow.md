@@ -127,3 +127,52 @@ Tous les réglages de la fenêtre « Réglages… » (menu de l'icône) s'appliq
 recharger l'extension. Pour les tester : `gsettings --schemadir
 dist/desktop-critter@beedi.xyz/schemas set org.gnome.shell.extensions.scamper
 critter-count 3` fait apparaître deux animaux de plus tout de suite.
+
+## Outil de revue (succès, titres, récompenses, créatures, objets)
+
+Une page locale, en **lecture seule**, pour relire le contenu du jeu tel que le
+moteur le calcule, sans lancer GNOME Shell :
+
+```bash
+scripts/review.sh --open        # http://127.0.0.1:8765/ ; --port N pour un autre port
+```
+
+Le mini serveur (`tools/review/server.mjs`, Node, sans dépendance) n'écoute que
+sur 127.0.0.1, ne répond qu'aux lectures (GET) et ne sert que `core/`,
+`packs/`, `extension/lib/`, `extension/assets/` et `tools/review/`. La page
+charge directement les modules du cœur (`buildAchievements`,
+`achievementView`, le Système, les boîtes, `shiftPixels`...) : ce qu'elle
+affiche est exactement ce que calcule le jeu. Quand un fichier change, elle se
+recharge seule en gardant l'onglet et les filtres (dans l'adresse) : on
+corrige dans l'éditeur, on vérifie dans la page. `tools/` n'est pas copié par
+`scripts/build.sh` : rien n'est livré avec l'extension.
+
+Onglets :
+
+- **Succès** : tous les succès d'une espèce, filtrés par caractère, rubrique,
+  type (vrais, bêtises, joueur) ou texte ; condition, récompense, titre,
+  exigences, commentaire du Système, origine (bibliothèque, pack, remplacé par
+  le pack). « Copier » copie le gabarit source en JSON pour en ajouter un.
+- **Vue en jeu** : on règle compteurs et marques (préréglages : animal neuf,
+  un mois de vie, tout débloqué ; aussi dans l'adresse avec `&preset=all`) ;
+  la fenêtre de progression s'affiche telle que le joueur la voit, avec les
+  annonces du Système. Le scénario est gardé par pack dans le navigateur.
+- **Titres** : chaque titre, le succès qui le donne, sa condition, les alertes.
+- **Récompenses** : lots et probabilités des boîtes, simulation de 1 000
+  ouvertures, budget de pièces par rubrique, trophées et farces.
+- **Le Système** : annonces d'un succès (plusieurs tirages), rafales, trophée,
+  phrases d'ouverture et de conclusion, commentaires triés par longueur.
+- **Créatures** : fiche du pack, lecteur d'animation (stade, vitesse, taille,
+  lissage, retournement, couleurs, accessoire sur la tête), planche de toutes
+  les animations d'un stade.
+- **Objets** : tous les sprites du catalogue, à la taille d'affichage et au
+  double.
+- **Contrôles** : erreurs de structure (les règles de `tests/packs.test.js`)
+  et textes à relire (typographie, doublons, longueurs, titres genrés,
+  descriptions de paliers identiques) ; leur nombre s'affiche sur l'onglet.
+
+Limites : aucune écriture (les corrections se font dans l'éditeur) ; ce n'est
+pas le rendu réel de GNOME Shell (menus, notifications, HiDPI, filtres de
+Clutter) : les sprites sont rejoués dans un canevas du navigateur. Pour une
+capture sans interface (`chromium --headless`), ajouter `?noreload` à
+l'adresse : sans cela, le flux de rechargement garde la page ouverte.

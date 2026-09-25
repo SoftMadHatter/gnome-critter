@@ -57,10 +57,15 @@ Une seule rangée repliable est ouverte à la fois.
 ## Fenêtre de progression
 
 « Succès », « Statistiques » et « Journal » ouvrent une fenêtre à onglets avec
-défilement : les succès de l'animal choisi, ses statistiques, le journal
-(50 dernières entrées). Le menu n'affiche que le **nombre** de succès
-débloqués ; dans la fenêtre, les succès non débloqués sont **masqués et
-floutés** (ni nom ni objectif lisibles), seuls les débloqués se lisent.
+défilement : les succès de l'animal choisi (puis les tiens, rubrique « Toi »),
+ses statistiques, le journal (50 dernières entrées). Le menu n'affiche que le
+**nombre** de succès débloqués. Dans la fenêtre, les succès sont rangés par
+rubriques dépliables ; une série montre son dernier palier obtenu et le
+suivant, avec la progression ; les bêtises restent cachées jusqu'à leur
+découverte (voir `docs/progression.md`).
+
+La rangée « Titre » du menu de l'animal liste les titres qu'il a gagnés ; le
+titre choisi s'affiche sous son nom au survol et dans les en-têtes des menus.
 
 Toutes les rangées dépliables du menu sont cliquables sur toute la zone en
 surbrillance, et ne referment pas le menu.

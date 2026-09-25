@@ -148,8 +148,9 @@ feuilles par stade (`stages`, ex. `"baby": { "folder": "sprites/baby" }`). Anima
 
 ## Progression (`achievements`, `tricks`, `anchors`)
 
-Sections optionnelles décrites dans `docs/progression.md` : succès propres à
-l'espèce et au caractère, tours de l'espèce, point d'ancrage de la tête pour
+Sections optionnelles décrites dans `docs/progression.md` : succès de
+l'espèce (gabarits qui complètent, remplacent ou retirent ceux de la
+bibliothèque commune), tours de l'espèce, point d'ancrage de la tête pour
 les accessoires. Animations facultatives `trick_sit`, `trick_roll`,
 `trick_flip` (l'une par tour déclaré) et `gift`.
 

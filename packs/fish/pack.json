@@ -16,13 +16,6 @@
   },
   "achievements": [
     {
-      "id": "big-swimmer",
-      "name": "Grand nageur",
-      "description": "Faire 200 nages",
-      "condition": { "stat": "swims", "atLeast": 200 },
-      "coins": 15
-    },
-    {
       "id": "laser-dancer",
       "name": "Danseur laser",
       "description": "Jouer 15 fois",
@@ -39,11 +32,34 @@
       "coins": 15
     },
     {
-      "id": "krill-feast",
-      "name": "Festin de krill",
-      "description": "Attraper 30 proies",
-      "condition": { "stat": "hunts", "atLeast": 30 },
-      "coins": 15
+      "series": "hunts",
+      "category": "exploration",
+      "stat": "hunts",
+      "tiers": [
+        5,
+        { "at": 30, "id": "krill-feast" },
+        100,
+        500
+      ],
+      "names": [
+        "Premier krill",
+        "Festin de krill",
+        "Baleine de bureau",
+        "Aspirateur à krill"
+      ],
+      "description": "Gober {n} krill",
+      "title": "aspirateur à krill",
+      "requires": { "can": "hunt" }
+    },
+    {
+      "id": "fish-memory",
+      "troll": true,
+      "stat": "swims",
+      "atLeast": 1000,
+      "name": "Mémoire de poisson rouge",
+      "description": "Faire 1 000 tours de nage",
+      "quip": "Mille tours de bocal. À chaque tour, il découvre le décor. Il est très heureux.",
+      "reward": { "coins": 0 }
     }
   ],
   "anchors": {

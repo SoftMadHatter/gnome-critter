@@ -15,33 +15,6 @@ const THROW_WINDOW_US = 100_000; // fenêtre de mesure de la vitesse du glisser
 const MAX_THROW_SPEED = 900; // px/s
 const PREY_FRAME_SECONDS = 0.18; // cadence des deux frames de marche
 
-export const FOOD_LABELS = {
-  meat: 'Viande',
-  fish: 'Poisson',
-  pate: 'Pâtée',
-  kibble: 'Croquettes',
-  seeds: 'Graines',
-  mealworms: 'Vers de farine',
-  apple: 'Pomme',
-  plankton: 'Plancton',
-  flakes: 'Flocons',
-};
-
-import { FOOD_PRICES } from '../core/accessories.js';
-
-/** Libellé d'un aliment avec son prix (aliments premium seulement), pour `portions` portions. */
-export function foodLabel(kind, portions = 1) {
-  const price = (FOOD_PRICES[kind] ?? 0) * portions;
-  return `${FOOD_LABELS[kind] ?? kind}${price > 0 ? ` (${price} pièces)` : ''}`;
-}
-
-export const TOY_LABELS = { ball: 'Balle', yarn: 'Pelote de laine', plush: 'Peluche', ring: 'Anneau flottant' };
-export const BED_LABELS = { cushion: 'Coussin', basket: 'Panier', cradle: 'Couffin' };
-export const BOWL_LABELS = { ceramic: 'Céramique', steel: 'Inox', wood: 'Bois' };
-
-export const PREY_LABELS = { mouse: 'Souris', beetle: 'Scarabée', aphid: 'Puceron', krill: 'Krill' };
-export const PLANT_LABELS = { grass: 'Herbe', berries: 'Baies', leaf: 'Feuille', algae: 'Algue' };
-
 /**
  * Sprites d'objets (noms : core/itemLooks.js), chargés à la première demande
  * puis gardés en cache ; un sprite absent n'est signalé qu'une fois.
@@ -122,6 +95,7 @@ export class ItemActor {
     });
     remove.connect('recognize', () => {
       this.item.removed = true;
+      this.item.removedByPlayer = true; // compté pour les succès du joueur
     });
     this.actor.add_action(remove);
 
@@ -154,7 +128,11 @@ export class ItemActor {
       if (first && last && last.t - first.t > 20_000) {
         const seconds = (last.t - first.t) / 1_000_000;
         const clampSpeed = (v) => Math.max(-MAX_THROW_SPEED, Math.min(MAX_THROW_SPEED, v));
-        throwItem(this.item, clampSpeed((last.x - first.x) / seconds), clampSpeed((last.y - first.y) / seconds));
+        const vx = (last.x - first.x) / seconds;
+        const vy = (last.y - first.y) / seconds;
+        throwItem(this.item, clampSpeed(vx), clampSpeed(vy));
+        // Lancé à la vitesse maximale : le Manager en fait un succès du joueur.
+        if (Math.max(Math.abs(vx), Math.abs(vy)) >= MAX_THROW_SPEED) this.item.yeeted = true;
       }
       this._samples = [];
     });

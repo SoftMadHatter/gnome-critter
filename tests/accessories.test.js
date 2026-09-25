@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shopList, equippable, inSeason, anchorsOverrides, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
+import { shopList, equippable, inSeason, anchorsOverrides, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
 import { Life } from '../core/life.js';
 import { Critter } from '../core/critter.js';
 
@@ -27,7 +27,7 @@ test('equippable : achetés ou gratuits de saison seulement', () => {
 });
 
 test('prix : accessoires et aliments premium', () => {
-  assert.ok(Object.values(ACCESSORIES).every((a) => a.price >= 0));
+  assert.ok(Object.values(ACCESSORIES).every((a) => a.trophy > 0 || a.joke === true || a.price >= 0));
   assert.ok(FOOD_PRICES.fish > 0 && FOOD_PRICES.meat > 0 && FOOD_PRICES.kibble === undefined);
 });
 
@@ -69,4 +69,15 @@ test('un critter porte, sauvegarde et restaure son accessoire', () => {
   const old = new Critter({}, { x: 0, y: 0 });
   old.restore({ x: 1, y: 1, facing: 1, extra: { accessory: 42 } });
   assert.equal(old.accessory, null);
+});
+
+test('trophées et farces : jamais en boutique, portables une fois obtenus', () => {
+  const date = new Date(2026, 5, 1);
+  assert.ok(!shopList(date, []).some((a) => isSpecial(a.id)));
+  assert.deepEqual(trophiesFor(24), []);
+  assert.deepEqual(trophiesFor(60).map((t) => t.id), ['medal', 'laurel']);
+  assert.deepEqual(trophiesFor(1000).map((t) => t.id), ['medal', 'laurel', 'halo']);
+  const wearable = equippable(date, ['medal', 'cone', 'bow']).map((a) => a.id);
+  assert.deepEqual(wearable.sort(), ['bow', 'cone', 'medal']);
+  assert.ok(!equippable(date, []).some((a) => isSpecial(a.id)));
 });

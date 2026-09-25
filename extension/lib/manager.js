@@ -20,14 +20,17 @@ import { Player } from '../core/player.js';
 import { tricksOverrides } from '../core/tricks.js';
 import { PreySpawner, pickSpawnPoint, PREY, FLEE_ANIMAL_RADIUS, FLEE_POINTER_RADIUS } from '../core/prey.js';
 import { namesOverrides, pickName, sanitizeName, uniqueName } from '../core/names.js';
-import { anchorsOverrides, shopList, equippable, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
-import { achievementsOverrides, isEligible } from '../core/achievements.js';
-import { CONDITION_STATS } from '../core/stats.js';
+import { anchorsOverrides, shopList, equippable, trophiesFor, ACCESSORIES, FOOD_PRICES } from '../core/accessories.js';
+import {
+  buildAchievements, speciesProfile, newlyUnlocked, titlesFor, achievementView, achievementCount,
+} from '../core/achievements.js';
+import { openBox } from '../core/lootBoxes.js';
+import { announceUnlock, announceBurst, announceTrophy } from '../core/narrator.js';
 import { STAGE_LABELS } from './lifeLabels.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
   createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
-  pickVariant, toyFits,
+  pickVariant, toyFits, BOWL_CAPACITY,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
 import { CritterActor } from './critterActor.js';
@@ -43,6 +46,8 @@ import { ProgressDialog } from './progressDialog.js';
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
 const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
+const BURST_SIZE = 3; // au-delà, une rafale de succès n'a qu'une notification
+const OVERFED_SATIETY = 95; // nourrir un animal aussi rassasié est une bêtise
 
 export class Manager {
   /**
@@ -66,7 +71,10 @@ export class Manager {
     this._preySpawner = new PreySpawner();
     this._plantTimer = 0;
     this._player = new Player();
+    /** Succès des animaux et du joueur, développés depuis la bibliothèque et le pack. */
     this._achievements = [];
+    this._playerAchievements = [];
+    this._vacationSince = null; // début des vacances en cours (ms), pour « Vacances express »
     this._lastSavedPlayer = null;
     this._sensors = null;
     this._idleTracker = new IdleTracker();
@@ -131,11 +139,12 @@ export class Manager {
       console.warn(`Scamper: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
     }
     const namesList = namesOverrides(this.pack.meta.names).list;
-    const achievements = achievementsOverrides(this.pack.meta.achievements);
+    const achievements = buildAchievements(this.pack.meta.achievements, speciesProfile(this.pack.meta));
     if (achievements.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", succès ignorés : ${achievements.ignored.join(', ')}`);
     }
-    this._achievements = achievements.list;
+    this._achievements = achievements.critter;
+    this._playerAchievements = achievements.player;
     const tricks = tricksOverrides(this.pack.meta.tricks);
     if (tricks.ignored.length > 0) {
       console.warn(`Scamper: pack "${this.pack.meta.id}", tours ignorés : ${tricks.ignored.join(', ')}`);
@@ -218,6 +227,7 @@ export class Manager {
       this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyLifeAgeScale()));
     }
     this._settingsIds.push(this.settings.connect('changed::autonomy', () => this._applyAutonomy()));
+    this._settingsIds.push(this.settings.connect('changed::vacation-mode', () => this._onVacationChanged()));
     this._settingsIds.push(this.settings.connect('changed::show-indicator', () => this._syncIndicator()));
     this._syncIndicator();
 
@@ -270,12 +280,47 @@ export class Manager {
       this._reminderUntilUs = nowUs + 90_000_000;
     }
     if (!this._breakTracker.enabled || nowUs > this._reminderUntilUs) this._reminder = null;
+    this._evaluatePlayer(nowUs);
+  }
+
+  /** Succès du joueur (gestes dans les menus, bureau encombré...), une fois par seconde. */
+  _evaluatePlayer(nowUs) {
+    const count = (type) => this._items.filter(({ item }) => item.type === type && !item.removed).length;
+    if (count('bed') >= 10) this._player.stats.mark('desk', 'beds');
+    if (count('toy') >= 20) this._player.stats.mark('desk', 'toys');
+    if (count('bowl') >= 5) this._player.stats.mark('desk', 'bowls');
+    const ids = newlyUnlocked(this._playerAchievements, { facts: this._player.progressFacts() }, this._player.unlocked);
+    if (ids.length === 0) return;
+    for (const id of ids) this._player.unlocked.add(id);
+    const defs = ids.map((id) => this._playerAchievements.find((def) => def.id === id));
+    this._announce(defs, { who: null, key: 'player', nowSeconds: nowUs / 1_000_000 });
+  }
+
+  /** Vacances : comptées au départ ; un retour en moins d'une minute est une bêtise. */
+  _onVacationChanged() {
+    if (this.settings.get_boolean('vacation-mode')) {
+      this._player.stats.add('vacations');
+      this._vacationSince = Date.now();
+    } else if (this._vacationSince !== null) {
+      if (Date.now() - this._vacationSince < 60_000) this._player.stats.mark('moment', 'short-vacation');
+      this._vacationSince = null;
+    }
+  }
+
+  /** Geste du joueur compté pour ses succès (ouverture d'un menu...), avec la bêtise de 3 h du matin. */
+  _noteMenuOpen(key) {
+    this._player.stats.add(key);
+    if (new Date().getHours() === 3) this._player.stats.mark('moment', 'night-menu');
   }
 
   /** Débite `price` pièces ; sans assez de pièces, prévient et refuse. */
   _pay(price) {
     if (price <= 0) return true;
-    if (this._player.spend(price)) return true;
+    if (this._player.spend(price)) {
+      this._player.stats.add('coinsSpent', price);
+      if (this._player.coins === 0) this._player.stats.mark('state', 'broke');
+      return true;
+    }
     Main.notify('Critter', `Pièces insuffisantes (${price} nécessaires, ${this._player.coins} en poche).`);
     return false;
   }
@@ -285,6 +330,7 @@ export class Manager {
     if (!def || this._player.owns(id) || def.price === 0) return;
     if (!this._pay(def.price)) return;
     this._player.own(id);
+    if (id === 'crown') this._player.stats.mark('shop', 'crown');
     this._player.log(`Accessoire acheté : ${def.label}.`, Date.now());
     Main.notify('Critter', `${def.label} acheté (-${def.price} pièces).`);
   }
@@ -301,16 +347,31 @@ export class Manager {
       .sort((a, b) => b[1] - a[1])
       .map(([kind]) => kind);
     const kind = kinds.find((k) => !(FOOD_PRICES[k] > 0)) ?? kinds.sort((a, b) => (FOOD_PRICES[a] ?? 0) - (FOOD_PRICES[b] ?? 0))[0];
-    if (kind && this._pay(FOOD_PRICES[kind] ?? 0)) this._dropNear('food', kind, critter);
+    if (kind) this._feed(kind, critter);
   }
 
-  /** Fenêtre de détail : succès (les non débloqués sont floutés), statistiques, journal. */
+  /** Pose un aliment (payé s'il est premium) près de l'animal ; nourrir un animal repu est compté. */
+  _feed(kind, critter) {
+    if (!this._pay(FOOD_PRICES[kind] ?? 0)) return;
+    if (critter && critter.needs.values.satiety >= OVERFED_SATIETY) critter.noteAction('overfeed');
+    this._dropNear('food', kind, critter);
+  }
+
+  /** Fenêtre de détail : succès par catégorie (ceux de l'animal, puis les tiens), statistiques, journal. */
   openProgress(critter, tab) {
-    const values = { ...critter.stats.counters, daysAlive: Math.floor(critter.life.ageSeconds / 86400) };
+    this._player.stats.add(tab === 'journal' ? 'journalOpens' : 'progressOpens');
+    const facts = critter.progressFacts();
+    const mine = achievementView(this._achievements, { trait: critter.life.trait, unlocked: critter.unlocked, facts });
+    const yours = achievementView(this._playerAchievements, { unlocked: this._player.unlocked, facts: this._player.progressFacts() });
+    const { stageReached, tricksLearned, achievementsUnlocked, ...values } = facts.stats;
     new ProgressDialog({
       title: `${critter.name ?? 'Sans nom'} — progression`,
       tab,
-      achievements: this.achievementsFor(critter),
+      achievements: {
+        done: mine.done + yours.done,
+        total: mine.total + yours.total,
+        categories: [...mine.categories, ...yours.categories],
+      },
       stats: Object.entries(values),
       journal: this._player.journal,
     }).open();
@@ -331,16 +392,65 @@ export class Manager {
     this._player.log(`${previous ?? 'Une créature'} est rebaptisé(e) ${critter.name}.`, Date.now());
   }
 
-  /** Succès qu'un animal peut obtenir (espèce et caractère compatibles), avec leur état. */
-  achievementsFor(critter) {
-    return this._achievements
-      .filter((def) => isEligible(def, { trait: critter.life.trait }))
-      .map((def) => ({ def, unlocked: critter.unlocked.has(def.id), progress: this._statOf(critter, def.condition.stat) }));
+  /** Succès obtenus / possibles pour un animal (espèce et caractère compatibles). */
+  achievementSummary(critter) {
+    return achievementCount(this._achievements, { trait: critter.life.trait, unlocked: critter.unlocked });
   }
 
-  _statOf(critter, stat) {
-    if (!CONDITION_STATS.includes(stat)) return 0;
-    return stat === 'daysAlive' ? Math.floor(critter.life.ageSeconds / 86400) : critter.stats.get(stat);
+  /** Texte du titre porté par un animal, ou null. */
+  titleOf(critter) {
+    return this._achievements.find((def) => def.id === critter.title)?.title ?? null;
+  }
+
+  /**
+   * Récompenses, journal et annonces du Système pour des succès tout juste
+   * obtenus (par un animal, ou par le joueur quand `who` est null).
+   */
+  _announce(defs, { who, key, nowSeconds }) {
+    let coins = 0;
+    const outcomes = defs.map((def) => {
+      const outcome = this._grant(def, key, nowSeconds);
+      coins += outcome.coins;
+      return outcome;
+    });
+    const subject = who ?? 'Toi';
+    if (defs.length > BURST_SIZE) {
+      const { title, body } = announceBurst({ who, defs, coins });
+      Main.notify(title, body);
+      this._player.log(`${subject} : ${defs.length} succès d'un coup.`, Date.now());
+    } else {
+      defs.forEach((def, i) => {
+        const { title, body } = announceUnlock({ def, who, outcome: outcomes[i] });
+        Main.notify(title, body);
+        this._player.log(`${subject} : ${def.troll ? 'bêtise' : 'succès'} « ${def.name} ».`, Date.now());
+      });
+    }
+    this._player.achievementCount += defs.length;
+    for (const trophy of trophiesFor(this._player.achievementCount)) {
+      if (this._player.owns(trophy.id)) continue;
+      this._player.own(trophy.id);
+      const { title, body } = announceTrophy({ label: trophy.label, count: ACCESSORIES[trophy.id].trophy });
+      Main.notify(title, body);
+      this._player.log(`Trophée obtenu : ${trophy.label}.`, Date.now());
+    }
+  }
+
+  /** Applique la récompense d'un succès et décrit ce qui s'est passé (pour l'annonce). */
+  _grant(def, key, nowSeconds) {
+    const reward = def.reward ?? {};
+    const outcome = { coins: 0 };
+    if (reward.coins > 0) outcome.coins = this._player.award(`achievement:${key}:${def.id}`, reward.coins, nowSeconds);
+    else if (reward.coins < 0) outcome.paid = this._player.spend(-reward.coins); // frais de dossier, si on peut payer
+    if (reward.box) {
+      outcome.box = openBox(reward.box, Math.random, { owned: this._player.owned });
+      if (outcome.box.coins > 0) outcome.coins += this._player.award(`box:${key}:${def.id}`, outcome.box.coins, nowSeconds);
+      if (outcome.box.accessory) this._player.own(outcome.box.accessory);
+    }
+    if (reward.accessory) {
+      this._player.own(reward.accessory);
+      outcome.accessoryLabel = ACCESSORIES[reward.accessory]?.label;
+    }
+    return outcome;
   }
 
   /**
@@ -362,13 +472,8 @@ export class Manager {
     if (mess) this._addItem(createItem('mess', null, mess.x, mess.y - 4));
     const gift = critter.takeGift();
     if (gift) this._addItem(createItem('gift', gift.kind, gift.x, gift.y));
-    for (const id of critter.takeUnlocked()) {
-      const def = this._achievements.find((a) => a.id === id);
-      if (!def) continue;
-      this._player.award(`achievement:${index}:${id}`, def.coins, nowSeconds);
-      this._player.log(`${name} : succès « ${def.name} ».`, Date.now());
-      Main.notify('Critter', `${name} : succès « ${def.name} » (+${def.coins} pièces)`);
-    }
+    const defs = critter.takeUnlocked().map((id) => this._achievements.find((def) => def.id === id)).filter(Boolean);
+    if (defs.length > 0) this._announce(defs, { who: name, key: `${index}`, nowSeconds });
   }
 
   /** Espèces de proies chassées par l'animal affiché (section `needs.prey` du pack). */
@@ -457,7 +562,7 @@ export class Manager {
           title: this.pack.meta.displayName ?? this.pack.meta.id,
           ...this._menuOwner(),
           getPlayer: () => this._player,
-          achievementsFor: (critter) => this.achievementsFor(critter),
+          achievementSummary: (critter) => this.achievementSummary(critter),
           foods: () => this._foods(),
           clearItems: () => this.clearItems(),
         },
@@ -476,13 +581,19 @@ export class Manager {
   _menuOwner() {
     return {
       rename: (critter) => this.openRename(critter),
-      openSettings: () => this._openSettings(),
+      openSettings: () => {
+        this._player.stats.add('settingsOpens');
+        this._openSettings();
+      },
+      noteMenuOpen: () => this._noteMenuOpen('menuOpens'),
+      noteContextMenuOpen: () => this._noteMenuOpen('contextMenuOpens'),
+      titles: (critter) => titlesFor(this._achievements, critter.unlocked),
+      setTitle: (critter, id) => critter.setTitle(id),
+      titleOf: (critter) => this.titleOf(critter),
       openProgress: (critter, tab) => this.openProgress(critter, tab),
       quickFeed: (critter) => this.quickFeed(critter),
       pet: (critter) => (critter.life.hibernating ? critter.wake() : critter.pet()),
-      dropFood: (kind, critter) => {
-        if (this._pay(FOOD_PRICES[kind] ?? 0)) this._dropNear('food', kind, critter);
-      },
+      dropFood: (kind, critter) => this._feed(kind, critter),
       fillBowl: (kind, critter) => {
         if (this._pay((FOOD_PRICES[kind] ?? 0) * 5)) this._fillBowl(kind, critter);
       },
@@ -501,7 +612,10 @@ export class Manager {
       plantKinds: () => this._plantKinds(),
       dropLitter: () => this._dropNear('litter', null, null),
       cleanAll: () => this.cleanAll(),
-      dropPrey: (kind) => this._dropNear('prey', kind ?? this._preyKinds()[0], null),
+      dropPrey: (kind) => {
+        this._player.stats.add('preyDrops');
+        this._dropNear('prey', kind ?? this._preyKinds()[0], null);
+      },
       dropPlant: (kind) => this._dropNear('plant', kind ?? this._plantKinds()[0], null),
       wake: (critter) => critter.wake(),
       setLaser: (on) => this.setLaser(on),
@@ -552,10 +666,12 @@ export class Manager {
     const bowl =
       bowls.sort((a, b) => Math.abs(a.x - reference.x) - Math.abs(b.x - reference.x))[0] ??
       this._dropNear('bowl', kind, critter);
-    if (bowl) fillBowl(bowl, kind);
+    if (bowl.kind === kind && bowl.portions >= BOWL_CAPACITY) this._player.stats.add('bowlOverfills');
+    fillBowl(bowl, kind);
   }
 
   clearItems() {
+    this._player.stats.add('clears');
     for (const { item } of this._items) item.removed = true;
   }
 
@@ -569,22 +685,32 @@ export class Manager {
   }
 
   clearToys() {
+    this._player.stats.add('tidies');
     for (const { item } of this._items) if (isToy(item)) item.removed = true;
   }
 
   setLaser(on) {
+    if (on && !this._laser) this._player.stats.add('laserToggles');
     this._laser = Boolean(on);
   }
 
   _removeGoneItems() {
     this._items = this._items.filter((entry) => {
-      if (!isGone(entry.item)) return true;
-      if (entry.item.collected && entry.item.type === 'gift') {
-        const coins = GIFTS[entry.item.kind]?.coins ?? 0;
+      const { item } = entry;
+      if (!isGone(item)) return true;
+      if (item.collected && item.type === 'gift') {
+        const coins = GIFTS[item.kind]?.coins ?? 0;
         this._player.award('gift', coins, 0);
+        this._player.stats.add('giftsCollected');
         this._player.log(`Cadeau ramassé : +${coins} pièces.`, Date.now());
-      } else if (entry.item.collected && entry.item.type === 'mess') {
+      } else if (item.collected && item.type === 'mess') {
         this._player.award('clean', 1, 0); // service rendu : une pièce par trace nettoyée
+        this._player.stats.add('messesCleaned');
+        if (item.age < 3) this._player.stats.mark('moment', 'fast-clean');
+      }
+      if (item.removedByPlayer) this._player.stats.add('itemsRemoved');
+      if (item.removed && item.type === 'food' && !item.consumed && item.claimedBy) {
+        this._player.stats.mark('moment', 'food-thief');
       }
       Main.layoutManager.removeChrome(entry.actor.actor);
       entry.actor.destroy();
@@ -717,6 +843,10 @@ export class Manager {
       { x: pointer.x, y: pointer.y, radius: FLEE_POINTER_RADIUS },
     ];
     for (const { item, actor } of this._items) {
+      if (item.yeeted) {
+        item.yeeted = false;
+        this._player.stats.mark('moment', 'yeet');
+      }
       rescueItem(item, monitors);
       tickItem(item, dt, surfaces, worldBounds, { threats, random: Math.random });
       actor.sync();
@@ -727,12 +857,13 @@ export class Manager {
     this._laserDot?.update(pointer, this._laser);
 
     this._worldTick(dt, nowUs);
+    const progress = { now: Date.now() };
     this._critters.forEach(({ critter, actor }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
       critter.ensureVisible(monitors, this.pack.spriteSize.height);
       const ambient = this._ambientFor(critter);
       const snapshot = critter.tick(dt, surfaces, {
-        worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient,
+        worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient, progress,
       });
       actor.setNight(ambient.night);
       this._processProgress(i, critter, snapshot, nowUs);

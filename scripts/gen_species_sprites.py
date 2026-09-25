@@ -842,12 +842,21 @@ def save_sheet(path, frames):
 
 def compact_json(data):
     text = json.dumps(data, indent=2, ensure_ascii=False)
+    # Les chaînes sont mises de côté : leurs accolades (« {n} » des succès) ne doivent pas être reformatées.
+    strings = []
+
+    def stash(m):
+        strings.append(m.group(0))
+        return f'"\x00{len(strings) - 1}\x00"'
+
+    text = re.sub(r'"(?:[^"\\]|\\.)*"', stash, text)
     text = re.sub(r"\[\s*([-\d.,\s]+?)\s*\]", lambda m: "[" + re.sub(r"\s+", " ", m.group(1)) + "]", text)
     text = re.sub(
         r"\{\s*([^{}]*?)\s*\}",
         lambda m: "{ " + re.sub(r"\s*\n\s*", " ", m.group(1)) + " }",
         text,
     )
+    text = re.sub(r'"\x00(\d+)\x00"', lambda m: strings[int(m.group(1))], text)
     return text + "\n"
 
 

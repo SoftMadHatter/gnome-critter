@@ -11,7 +11,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { foodLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from './itemActor.js';
+import { foodLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from './itemLabels.js';
 import { isBowlFood } from '../core/items.js';
 import { buildCritterActions } from './critterActions.js';
 import { lifeSummary } from './lifeLabels.js';
@@ -38,7 +38,7 @@ function moodIcon(mood) {
 export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
-     * @param {object} owner API du Manager : getCritters, getPlayer, achievementsFor, shopList, buyAccessory, foods,
+     * @param {object} owner API du Manager : getCritters, getPlayer, achievementSummary, shopList, buyAccessory, foods,
      *   dropFood, fillBowl, dropBed, dropBowl, dropToy, toyKinds, setLaser, isLaser, hasToys, clearToys, clearItems, openSettings, pet,
      *   quickFeed, et les actions d'un animal (rename, brush, train, perform, equip, equippable, wake)
      * @param {Gio.Settings} settings
@@ -62,6 +62,7 @@ export const CritterIndicator = GObject.registerClass(
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
         if (!open) return;
+        this._owner.noteMenuOpen(); // le Système compte (voir les bêtises du joueur)
         this._laser.setToggleState(this._owner.isLaser());
         this._tidy.setSensitive(this._owner.hasToys());
         this._actions.refresh();
@@ -192,8 +193,8 @@ export const CritterIndicator = GObject.registerClass(
       this._progress.setTitle(`Pièces : ${player.coins}`);
 
       const critter = this._critter();
-      const list = this._owner.achievementsFor(critter);
-      this._achievements.label.text = `Succès (${list.filter((a) => a.unlocked).length}/${list.length})`;
+      const { done, total } = this._owner.achievementSummary(critter);
+      this._achievements.label.text = `Succès (${done}/${total})`;
 
       this._shop.section.removeAll();
       for (const { id, label, price, owned, free } of this._owner.shopList()) {
@@ -224,7 +225,8 @@ export const CritterIndicator = GObject.registerClass(
           button.style = index === this._selected ? 'font-weight: bold;' : '';
         });
       }
-      this._title.text = `${critter.name ?? 'Sans nom'} — ${lifeSummary(critter.life)}`;
+      const title = this._owner.titleOf(critter);
+      this._title.text = `${critter.name ?? 'Sans nom'}${title ? `, ${title}` : ''} — ${lifeSummary(critter.life)}`;
       for (const [key] of GAUGES) this._gauges[key].update(critter.needs.values[key]);
 
       // Œuf : rien ne marche ; hibernation : seul « Câlin » (il réveille).

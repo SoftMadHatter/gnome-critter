@@ -50,25 +50,40 @@
       "coins": 10
     },
     {
-      "id": "old-timer",
-      "name": "Doyen",
-      "description": "Vivre 30 jours",
-      "condition": { "stat": "daysAlive", "atLeast": 30 },
-      "coins": 25
-    },
-    {
-      "id": "mouser",
-      "name": "Chasseur de souris",
-      "description": "Attraper 20 proies",
-      "condition": { "stat": "hunts", "atLeast": 20 },
-      "coins": 15
-    },
-    {
       "id": "salad",
       "name": "Amateur de verdure",
       "description": "Grignoter 15 fois de l'herbe",
       "condition": { "stat": "grazes", "atLeast": 15 },
       "coins": 10
+    },
+    {
+      "series": "hunts",
+      "category": "exploration",
+      "stat": "hunts",
+      "tiers": [
+        5,
+        { "at": 20, "id": "mouser" },
+        100,
+        500
+      ],
+      "names": [
+        "Première souris",
+        "Chasseur de souris",
+        "Fléau des souris",
+        "Cauchemar des rongeurs"
+      ],
+      "description": "Attraper {n} souris",
+      "title": "cauchemar des rongeurs",
+      "requires": { "can": "hunt" }
+    },
+    {
+      "id": "cat-early-meal",
+      "troll": true,
+      "mark": "moment:early-meal",
+      "name": "Réveil-matin",
+      "description": "Manger entre 5 h et 6 h du matin",
+      "quip": "Cinq heures du matin, et il mange. Si tu dors encore, c'est qu'il n'a pas encore commencé à miauler.",
+      "reward": { "coins": 0 }
     }
   ],
   "anchors": {

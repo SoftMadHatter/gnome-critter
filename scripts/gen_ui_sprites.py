@@ -720,7 +720,96 @@ def witch():
     return d.finish(c(22, 12, 36))
 
 
-ACCESSORY_SPRITES = {"partyhat": partyhat, "bow": bow, "glasses": glasses, "crown": crown, "santa": santa, "witch": witch}
+# Trophées (offerts au 25e, 50e et 100e succès) et farces (récompenses du Système).
+
+
+def medal():
+    """Cocarde de concours épinglée sur la tête : rubans qui pendent, rosette bleue, cœur doré."""
+    d = Canvas(16, 16, 2)
+    blue = c(60, 110, 210)
+    d.poly([(6.6, 8.5), (4.4, 15.6), (6.2, 14.6), (7.6, 15.8), (8.4, 9)], mix(blue, (0, 0, 0), 0.15))
+    d.poly([(9.4, 8.5), (11.6, 15.6), (9.8, 14.6), (8.4, 15.8), (7.6, 9)], blue)
+    for i in range(12):
+        a = 2 * math.pi * i / 12
+        x, y = 8 + 4.2 * math.cos(a), 6.5 + 4.2 * math.sin(a)
+        d.oval(x - 1.6, y - 1.6, x + 1.6, y + 1.6, blue if i % 2 else mix(blue, (255, 255, 255), 0.25))
+    cblob(d, 5.2, 3.7, 10.8, 9.3, c(245, 200, 60))
+    star = [(8 + (1.7 if i % 2 == 0 else 0.7) * math.cos(math.radians(-90 + i * 36)),
+             6.5 + (1.7 if i % 2 == 0 else 0.7) * math.sin(math.radians(-90 + i * 36))) for i in range(10)]
+    d.poly(star, c(255, 240, 170))
+    return d.finish(c(30, 50, 110))
+
+
+def laurel():
+    """Couronne de laurier posée de profil : deux rangs de feuilles autour d'un bandeau."""
+    d = Canvas(16, 16, 2)
+    back, front = c(70, 130, 60), c(110, 176, 84)
+    for layer, color, t0, t1 in ((0, back, math.pi, 2 * math.pi), (1, front, 0, math.pi)):
+        for i in range(8):
+            t = t0 + (t1 - t0) * (i + 0.5) / 8
+            x, y = 8 + 6.4 * math.cos(t), 11.6 + 2.6 * math.sin(t)
+            leaf = rotated(ellipse_points(x, y - 1.2, 0.9, 1.8, n=12), x, y, math.degrees(t) + 90)
+            d.shaded("poly", leaf, *tones(color))
+    d.stroke([(3.2, 13.4), (8, 14.6), (12.8, 13.4)], 0.5, c(220, 170, 40))  # bandeau doré
+    return d.finish(c(30, 64, 26))
+
+
+def halo():
+    """Auréole dorée qui flotte au-dessus de la tête, avec un léger halo."""
+    d = Canvas(16, 16, 2)
+    d.oval(0.6, 10, 15.4, 15.6, c(255, 236, 140, 70))
+    d.ellipse((2, 11, 13, 14), outline=c(230, 180, 40), width=1.3)
+    d.ellipse((2.4, 11.2, 12.6, 13.6), outline=c(255, 232, 130), width=0.5)
+    return d.finish(None)
+
+
+def cone():
+    """Cône de la honte (collerette de vétérinaire), vu de profil, ouvert vers l'avant."""
+    d = Canvas(16, 16, 2)
+    d.poly([(4, 6), (13.6, 1), (13.6, 15), (4, 10)], c(210, 232, 250, 150))
+    d.stroke([(4, 6), (13.6, 1)], 0.5, c(120, 160, 200))
+    d.stroke([(4, 10), (13.6, 15)], 0.5, c(120, 160, 200))
+    d.stroke([(13.6, 1), (13.6, 15)], 0.9, c(150, 190, 225))
+    d.stroke([(4, 6), (4, 10)], 0.7, c(120, 160, 200))
+    for x in (6.6, 9.2, 11.8):  # plis du plastique
+        h = 2 + (x - 4) * 0.52
+        d.stroke([(x, 8 - h), (x, 8 + h)], 0.25, c(240, 248, 255, 200))
+    return d.finish(None)
+
+
+def sock():
+    """Chaussette rayée posée sur la tête, la pointe qui retombe."""
+    d = Canvas(16, 16, 2)
+    red, white = c(220, 70, 70), c(246, 244, 240)
+    body = [(1.4, 8.2), (11.2, 8.2), (13.2, 9.4), (14.2, 12.4), (13.4, 15.4), (10.4, 15.4), (10.2, 12.6), (1.4, 12.6)]
+    d.shaded("poly", body, *tones(red))
+    stripes = Canvas(16, 16, 2)
+    for x in (4, 7, 10):
+        stripes.rectangle((x, 7, x + 1, 13), fill=white)
+    stripes.rectangle((10, 13.4, 15, 14.2), fill=white)
+    d.composite(stripes, clip=("poly", body))
+    d.shaded("rounded", ((0.6, 7.4, 3.4, 13.4), 0.8), *tones(white))  # revers côtelé
+    for y in (8.6, 10.2, 11.8):
+        d.stroke([(1.0, y), (3.0, y)], 0.25, c(200, 196, 190))
+    return d.finish(c(110, 30, 30))
+
+
+def foilhat():
+    """Chapeau pointu en papier aluminium, froissé et brillant."""
+    d = Canvas(16, 16, 2)
+    d.shaded("poly", [(8.2, 0.8), (2.6, 14.6), (13.6, 14.6)], *tones(c(190, 196, 206)))
+    for a, b, col in (((8.2, 1.5), (5.4, 9.5), c(236, 240, 246)), ((7.4, 5), (11.6, 12), c(150, 156, 170)),
+                      ((4.4, 11), (9.6, 13.8), c(236, 240, 246)), ((9.6, 6.5), (6.4, 12.6), c(160, 166, 180))):
+        d.stroke([a, b], 0.35, col)
+    d.oval(6.2, 4.2, 7.6, 6.2, c(255, 255, 255))  # reflet
+    d.shaded("rounded", ((1.6, 13.4, 14.6, 15.2), 0.6), *tones(c(176, 182, 194)))
+    return d.finish(c(70, 76, 90))
+
+
+ACCESSORY_SPRITES = {
+    "partyhat": partyhat, "bow": bow, "glasses": glasses, "crown": crown, "santa": santa, "witch": witch,
+    "medal": medal, "laurel": laurel, "halo": halo, "cone": cone, "sock": sock, "foilhat": foilhat,
+}
 
 
 # --- bulles de pensée ------------------------------------------------------------------

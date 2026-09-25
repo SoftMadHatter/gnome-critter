@@ -1,8 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Stats, STAT_KEYS } from '../core/stats.js';
-import { achievementsOverrides, newlyUnlocked, isEligible } from '../core/achievements.js';
+import { buildAchievements, newlyUnlocked, isEligible, CAPABILITIES } from '../core/achievements.js';
 import { Player, COIN_REWARDS } from '../core/player.js';
+
+/** Succès écrits pour le test seuls (sans la bibliothèque commune), pour une espèce qui sait tout faire. */
+const build = (entries) => buildAchievements(entries, { can: new Set(CAPABILITIES), diet: [], toys: [], tricks: [] }, []);
+const facts = (stats, marks = []) => ({ stats, marks: new Set(marks) });
 
 const napKing = {
   id: 'nap-king', name: 'Roi de la sieste', description: 'Dormir 15 minutes d\'affilée',
@@ -32,8 +36,8 @@ test('Stats : add, max, bornes, sérialisation tolérante', () => {
   assert.ok(STAT_KEYS.every((k) => Number.isFinite(t.get(k))));
 });
 
-test('achievementsOverrides : valide, complète les pièces, signale le reste', () => {
-  const { list, ignored } = achievementsOverrides([
+test("buildAchievements : l'ancien format reste valide, pièces complétées, rejets signalés", () => {
+  const { critter, player, ignored } = build([
     napKing,
     { ...napKing },
     { id: 'x', name: 'X', description: '', condition: { stat: 'pasUnStat', atLeast: 1 } },
@@ -42,27 +46,33 @@ test('achievementsOverrides : valide, complète les pièces, signale le reste', 
     { id: 'ok', name: 'Ok', description: 'd', condition: { stat: 'daysAlive', atLeast: 30 } },
     null,
   ]);
-  assert.deepEqual(list.map((a) => a.id), ['nap-king', 'ok']);
-  assert.equal(list[1].coins, 10);
-  assert.deepEqual(ignored, ['nap-king', 'x', 'y', 'z', '#6']);
-  assert.deepEqual(achievementsOverrides(undefined), { list: [], ignored: [] });
-  assert.deepEqual(achievementsOverrides('oups').ignored, ['achievements']);
+  assert.deepEqual(critter.map((a) => a.id), ['nap-king', 'ok']);
+  assert.deepEqual(player, []);
+  assert.equal(critter[0].reward.coins, 15);
+  assert.equal(critter[1].reward.coins, 10, 'pièces par défaut');
+  assert.equal(critter[0].category, 'life', "catégorie déduite de la stat dans l'ancien format");
+  assert.deepEqual([...ignored].sort(), ['#6', 'nap-king', 'x', 'y', 'z']);
+  assert.deepEqual(build(undefined).ignored, []);
+  assert.deepEqual(build('oups').ignored, ['achievements']);
 });
 
 test('newlyUnlocked : seuil, caractère, stade, déjà obtenu', () => {
-  const defs = achievementsOverrides([
+  const defs = build([
     napKing,
     { id: 'meals', name: 'M', description: '', condition: { stat: 'meals', atLeast: 5 } },
     { id: 'elder', name: 'E', description: '', requires: { stage: 'senior' }, condition: { stat: 'daysAlive', atLeast: 1 } },
-  ]).list;
-  const stats = { longestSleepSeconds: 1000, meals: 5, daysAlive: 40 };
+  ]).critter;
+  const stats = facts({ longestSleepSeconds: 1000, meals: 5, daysAlive: 40 });
   const unlocked = new Set();
 
-  assert.deepEqual(newlyUnlocked(defs, { trait: 'lazy', stage: 'adult', stats }, unlocked), ['nap-king', 'meals']);
-  assert.deepEqual(newlyUnlocked(defs, { trait: 'playful', stage: 'adult', stats }, unlocked), ['meals'], 'caractère différent');
-  assert.deepEqual(newlyUnlocked(defs, { trait: 'lazy', stage: 'senior', stats }, unlocked), ['nap-king', 'meals', 'elder']);
+  assert.deepEqual(newlyUnlocked(defs, { trait: 'lazy', stage: 'adult', facts: stats }, unlocked), ['nap-king', 'meals']);
+  assert.deepEqual(newlyUnlocked(defs, { trait: 'playful', stage: 'adult', facts: stats }, unlocked), ['meals'], 'caractère différent');
+  assert.deepEqual(newlyUnlocked(defs, { trait: 'lazy', stage: 'senior', facts: stats }, unlocked), ['nap-king', 'meals', 'elder']);
   unlocked.add('meals');
-  assert.deepEqual(newlyUnlocked(defs, { trait: 'lazy', stage: 'adult', stats: { ...stats, meals: 99 } }, unlocked), ['nap-king']);
+  assert.deepEqual(
+    newlyUnlocked(defs, { trait: 'lazy', stage: 'adult', facts: facts({ ...stats.stats, meals: 99 }) }, unlocked),
+    ['nap-king'],
+  );
   assert.equal(isEligible(defs[0], { trait: 'shy' }), false);
   assert.equal(isEligible(defs[1], { trait: 'shy' }), true);
 });
@@ -105,4 +115,33 @@ test('Player : journal borné, sérialisation et lecture tolérante', () => {
   assert.equal(messy.coins, 0);
   assert.deepEqual(messy.owned, ['ok']);
   assert.equal(messy.journal.length, 1);
+});
+
+test('Player : gestes, marques, succès du joueur et total sauvegardés, anciennes sauvegardes relues', () => {
+  const p = new Player({ coins: 40, owned: ['bow'] });
+  p.stats.add('menuOpens', 3);
+  p.stats.mark('moment', 'yeet');
+  p.unlocked.add('menu-opens-1');
+  p.achievementCount = 26;
+  const facts = p.progressFacts();
+  assert.equal(facts.stats.menuOpens, 3);
+  assert.equal(facts.stats.coins, 40);
+  assert.equal(facts.stats.accessoriesOwned, 1);
+  assert.ok(facts.marks.has('moment:yeet'));
+
+  const back = Player.parse(p.serialize());
+  assert.equal(back.stats.get('menuOpens'), 3);
+  assert.ok(back.stats.hasMark('moment:yeet'));
+  assert.ok(back.unlocked.has('menu-opens-1'));
+  assert.equal(back.achievementCount, 26);
+
+  const old = Player.parse(JSON.stringify({ version: 1, coins: 5, owned: [], journal: [] }));
+  assert.equal(old.achievementCount, 0);
+  assert.equal(old.unlocked.size, 0);
+  assert.equal(old.stats.get('menuOpens'), 0);
+  const messy = new Player({ stats: { menuOpens: -3, marks: ['ok:yes', 'PAS BON', 7] }, unlocked: ['a', 3], achievementCount: -2 });
+  assert.equal(messy.stats.get('menuOpens'), 0);
+  assert.deepEqual([...messy.stats.marks], ['ok:yes']);
+  assert.deepEqual([...messy.unlocked], ['a']);
+  assert.equal(messy.achievementCount, 0);
 });

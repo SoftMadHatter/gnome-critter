@@ -42,7 +42,9 @@ export class CritterMenu {
 
   /** @param {number} spriteHeight hauteur affichée de l'animal (varie avec son stade) */
   open(spriteHeight) {
-    this._header.label.text = `${this._critter.name ?? 'Sans nom'} — ${lifeSummary(this._critter.life)}`;
+    const title = this._owner.titleOf(this._critter);
+    this._header.label.text = `${this._critter.name ?? 'Sans nom'}${title ? `, ${title}` : ''} — ${lifeSummary(this._critter.life)}`;
+    if (!this.menu.isOpen) this._owner.noteContextMenuOpen(); // le Système compte
     this._actions.refresh();
     this._laser.setToggleState(this._owner.isLaser());
     this._tidy.setSensitive(this._owner.hasToys());

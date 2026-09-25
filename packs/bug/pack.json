@@ -18,13 +18,6 @@
   },
   "achievements": [
     {
-      "id": "alpinist",
-      "name": "Alpiniste",
-      "description": "Grimper 100 fois",
-      "condition": { "stat": "climbs", "atLeast": 100 },
-      "coins": 15
-    },
-    {
       "id": "small-but-strong",
       "name": "Petit mais costaud",
       "description": "Jouer 20 fois",
@@ -33,18 +26,36 @@
       "coins": 15
     },
     {
-      "id": "speedster",
-      "name": "Éclair",
-      "description": "Courir 50 fois",
-      "condition": { "stat": "runs", "atLeast": 50 },
-      "coins": 10
+      "series": "hunts",
+      "category": "exploration",
+      "stat": "hunts",
+      "tiers": [
+        5,
+        { "at": 20, "id": "aphid-hunter" },
+        100,
+        500
+      ],
+      "names": [
+        "Premier puceron",
+        "Terreur des pucerons",
+        "Fléau des pucerons",
+        "Ami des jardiniers"
+      ],
+      "description": "Attraper {n} puceron{s}",
+      "title": "ami des jardiniers",
+      "requires": { "can": "hunt" }
     },
     {
-      "id": "aphid-hunter",
-      "name": "Terreur des pucerons",
-      "description": "Attraper 20 proies",
-      "condition": { "stat": "hunts", "atLeast": 20 },
-      "coins": 15
+      "id": "bug-unbreakable",
+      "troll": true,
+      "stat": "falls",
+      "atLeast": 50,
+      "requires": { "can": "ground" },
+      "name": "Increvable",
+      "description": "Tomber 50 fois",
+      "title": "cafard immortel",
+      "quip": "Cinquante chutes et pas une égratignure. C'est presque vexant.",
+      "reward": { "box": "bronze" }
     }
   ],
   "anchors": {

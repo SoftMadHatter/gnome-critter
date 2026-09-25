@@ -1,47 +1,111 @@
 # Progression : compteurs, succès, pièces, journal
 
-## Compteurs
+## Compteurs et marques
 
-Chaque animal compte ce qu'il fait (`core/stats.js`) : repas (et repas de
-l'aliment préféré), parties de jeu, coups de balle, brossages, ronronnements,
-caresses, salutations, escalades, vols, piqués, nages, courses, siestes, plus
-longue sieste, jours de vie. Ils sont sauvegardés avec l'animal et visibles dans
-le menu de l'icône de barre (« Statistiques »). Un œuf ne compte rien.
+Chaque animal compte ce qu'il fait (`core/stats.js`) : repas, parties, coups de
+balle, brossages, caresses, escalades, vols, nages, siestes, temps de sommeil,
+chutes, voyages à la souris, chatouilles, sursauts, restes laissés, tours
+ratés... (une cinquantaine de compteurs, tous visibles dans « Statistiques »),
+plus des **marques** de ce qu'il a connu : aliments goûtés, jouets essayés,
+accessoires portés, sortes de cadeaux, lits, saisons et fêtes vécues, moments
+insolites (éveillé à 3 h du matin, tombé du plafond...). Le joueur a les siens
+(`core/player.js`) : ouvertures des menus, des réglages et du journal,
+vacances, laser, objets retirés, pièces dépensées... Tout est sauvegardé ; un
+œuf ne compte rien (sauf les caresses qu'on lui fait).
 
-## Succès propres à chaque espèce et à chaque caractère
+## Succès
 
-Déclarés dans `pack.json`, section `achievements` :
+Environ 200 à 260 succès par espèce, développés à partir de **gabarits**
+(`core/achievements.js`) : une bibliothèque commune (`core/achievementLibrary.js`)
+et la section `achievements` du pack. Ils se rangent en rubriques : Soins, Jeu,
+Exploration, Vie, Collection, Saisons, **Bêtises** (les succès « troll » de
+l'animal) et **Toi** (les succès du joueur, partagés entre ses animaux). Plus de
+40 % sont des bêtises : inutiles, moqueuses, aux récompenses farfelues.
 
-```json
-"achievements": [
-  { "id": "nap-king", "name": "Roi de la sieste",
-    "description": "Dormir 15 minutes d'affilée",
-    "requires": { "trait": "lazy" },
-    "condition": { "stat": "longestSleepSeconds", "atLeast": 900 },
-    "coins": 15 }
-]
+### Gabarits
+
+Une **série** donne plusieurs paliers :
+
+```jsonc
+{
+  "series": "meals", "category": "care", "stat": "meals",
+  "tiers": [10, 50, 200, 1000, 5000],
+  "names": ["Petit creux", "Bon appétit", "Belle fourchette", "Estomac sur pattes", "Gouffre sans fond"],
+  "description": "Faire {n} repas",   // {n} : le palier (« 1 000 »), {s} : « s » au pluriel
+  "title": "gouffre sans fond"          // titre gagné au dernier palier (facultatif)
+}
 ```
 
-- `condition.stat` : un compteur ci-dessus ou `daysAlive` ; `atLeast` : le seuil.
-- `requires` (facultatif) : caractère (`playful`, `lazy`, `greedy`, `shy`)
-  et/ou stade. Un succès n'est visible et gagnable que par un animal
-  compatible.
-- `coins` : récompense (10 par défaut).
-- Débloqué une seule fois par animal, sauvegardé. Une notification GNOME
-  l'annonce et l'entrée est ajoutée au journal.
+- Condition : `stat` (un compteur, ou `daysAlive`, `stageReached`,
+  `tricksLearned`, `achievementsUnlocked`), ou `marks` (nombre de marques d'une
+  famille : `food`, `toy`, `accessory`, `gift`, `bed`, `season`, `holiday`...).
+- `tiers` : des nombres croissants, `"all"` (tout ce que l'espèce peut
+  collectionner : tous les aliments de son régime, tous ses jouets, tous ses
+  tours...), ou `{ "at": 100, "id": "traveler" }` pour garder un ancien
+  identifiant (les sauvegardes restent valides). `unit` : 3600 pour des
+  paliers en heures ; `descriptions` : une description par palier.
+- Pièces par défaut selon le rang du palier : 5, 10, 20, 40, 80, 150 (ou
+  `coins`, un tableau).
 
-Succès livrés : chat (Roi de la sieste, Chasseur de balle, Gourmet, Câlin
-professionnel, Doyen), oiseau (Ailes de foudre, Grand voyageur, Picoreur, Nid
-douillet), insecte (Alpiniste, Petit mais costaud, Éclair), poisson (Grand
-nageur, Danseur laser, Glouton). `tests/packs.test.js` valide la section de
-chaque pack.
+Un **succès unique** : `{ "id", "category", "name", "description", "stat" +
+"atLeast" | "marks" + "atLeast" | "mark": "holiday:christmas", "coins" }`.
+L'ancien format `"condition": { "stat", "atLeast" }` reste accepté.
+
+Communs aux deux :
+
+- `requires` : `trait` (`playful`, `lazy`, `greedy`, `shy`), `stage`, et `can`
+  (`ground`, `wall`, `ceiling`, `air`, `water`, `hunt`, `graze`, `relieve`,
+  `sleep`, `groom`, `tricks`) : un succès impossible pour l'espèce (voler pour
+  un chat, dormir pour un poisson) est écarté d'office.
+- `scope: "player"` : succès du joueur (rubrique « Toi »), sur ses propres
+  compteurs (`menuOpens`, `coinsSpent`, `coins`, `accessoriesOwned`...).
+- Un pack remplace une entrée de la bibliothèque en reprenant son `series`
+  (ou son `id`), ou la retire avec `{ "series": "...", "disabled": true }`.
+
+### Bêtises (succès « troll ») et le Système
+
+`"troll": true` : le succès est **caché** jusqu'à sa découverte (la rubrique
+n'en donne que le nombre), et porte un `quip`, le commentaire du Système. Sa
+`reward` est farfelue : `{ "coins": 0 }` (rien), une somme absurde
+(`{ "coins": 3, "text": "3,14 pièces, arrondies à 3" }`), des frais de dossier
+(`{ "coins": -1 }`, jamais sous zéro), une **boîte** (`{ "box": "bronze" }`,
+`silver`, `gold`, `platinum`, `legendary` : ouverte d'office, le plus souvent
+vide ou presque, parfois un vrai lot), un accessoire ridicule
+(`{ "accessory": "cone" }`) ou un simple texte (`{ "text": "une plume" }`).
+Exemples : caresser un œuf 10 fois, 500 chutes, ouvrir le menu 10 000 fois,
+remplir une gamelle déjà pleine, être éveillé à 3 h du matin.
+
+**Le Système** (`core/narrator.js`) annonce tous les succès, en tutoyant le
+joueur : sobre pour un vrai succès, sarcastique pour une bêtise (spectateurs et
+sponsors imaginaires ; il se moque du joueur, jamais de l'animal). Plus de trois
+succès d'un coup (un animal ancien qui rattrape son retard) donnent une seule
+notification et une seule ligne de journal.
+
+### Récompenses
+
+- **Pièces** : selon le palier, ou la valeur du succès.
+- **Titres** : chaque série terminée (et quelques bêtises) donne un titre
+  invariable (« as de la sieste », « pilote d'essai en chute libre »). Il se
+  choisit dans la rangée « Titre » du menu de l'animal, s'affiche sous son nom
+  au survol et dans les en-têtes des menus (« Minou, as de la sieste — Adulte… »).
+- **Trophées** : médaille (25 succès), couronne de laurier (50), auréole (100),
+  au total des succès du joueur (animaux et joueur confondus, il ne redescend
+  jamais). Offerts d'office, jamais en boutique.
+- **Accessoires ridicules** : cône de la honte, chaussette, chapeau en papier
+  alu, gagnés par certaines bêtises ou dans les boîtes.
+
+`tests/packs.test.js` valide la bibliothèque de chaque pack : aucune entrée
+rejetée, au moins 150 succès dont 40 % de bêtises, chaque rubrique
+représentée, au moins 20 titres, identifiants historiques préservés, aucun
+doublon.
 
 ## Pièces
 
 Gagnées en s'occupant des animaux : repas +1, jeu +2, brossage +1,
 ronronnement +1 (ces quatre-là espacés de 30 s par animal pour empêcher de les
 enchaîner), éclosion +10, nouveau stade +15, succès (leur valeur). Le solde,
-les achats et le journal sont sauvegardés à part (`saved-player`).
+les achats, le journal, les compteurs et succès du joueur sont sauvegardés à
+part (`saved-player`).
 
 ## Journal
 
@@ -52,7 +116,8 @@ dernières lignes dans le menu de l'icône (« Journal »).
 
 Menu de l'icône de barre, « Boutique » : chapeau de fête (20 pièces), nœud
 (15), lunettes (30), couronne (80), plus des accessoires **gratuits de
-saison** (bonnet de Noël en décembre, chapeau de sorcière en octobre). Une
+saison** (bonnet de Noël en décembre, chapeau de sorcière en octobre).
+Trophées et accessoires ridicules ne s'achètent pas (voir Récompenses). Une
 fois acheté, un accessoire se porte via « Accessoires » dans le menu de
 l'animal (clic milieu). Il se pose sur la tête, suit le sens de marche et
 l'échelle du stade, et disparaît dans l'œuf. Le point d'ancrage de la tête

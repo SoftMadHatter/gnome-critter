@@ -24,13 +24,6 @@
       "coins": 15
     },
     {
-      "id": "traveler",
-      "name": "Grand voyageur",
-      "description": "Faire 100 vols",
-      "condition": { "stat": "flights", "atLeast": 100 },
-      "coins": 15
-    },
-    {
       "id": "pecker",
       "name": "Picoreur",
       "description": "Faire 40 repas",
@@ -46,11 +39,34 @@
       "coins": 10
     },
     {
-      "id": "bug-hunter",
-      "name": "Chasseur d'insectes",
-      "description": "Attraper 20 proies",
-      "condition": { "stat": "hunts", "atLeast": 20 },
-      "coins": 15
+      "series": "hunts",
+      "category": "exploration",
+      "stat": "hunts",
+      "tiers": [
+        5,
+        { "at": 20, "id": "bug-hunter" },
+        100,
+        500
+      ],
+      "names": [
+        "Premier scarabée",
+        "Chasseur d'insectes",
+        "Terreur des scarabées",
+        "Fléau des coléoptères"
+      ],
+      "description": "Attraper {n} scarabée{s}",
+      "title": "fléau des coléoptères",
+      "requires": { "can": "hunt" }
+    },
+    {
+      "id": "bird-restless",
+      "troll": true,
+      "stat": "flights",
+      "atLeast": 300,
+      "name": "Bougeotte",
+      "description": "S'envoler 300 fois",
+      "quip": "Trois cents envols. Il ne s'est jamais posé plus de cinq minutes. Il tient ça de qui ?",
+      "reward": { "coins": 1 }
     }
   ],
   "anchors": {

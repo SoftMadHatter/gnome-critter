@@ -1,8 +1,9 @@
 import { clamp, sign } from './vec2.js';
 import { Needs, needMultiplier, NEED_GAUGES } from './needs.js';
-import { Life, modifiersFor } from './life.js';
+import { Life, modifiersFor, STAGES } from './life.js';
 import { Stats } from './stats.js';
 import { newlyUnlocked } from './achievements.js';
+import { seasonOf, holidaysOn } from './calendar.js';
 import { edibleFor, consume, bedsOn, toysFor, kick, push, pickGift, litterFor, isDirty, isOldMess } from './items.js';
 import { TrickBook, TRICKS } from './tricks.js';
 import { sanitizeName } from './names.js';
@@ -85,6 +86,8 @@ const INTERACTION_REACTIONS = {
 /** Compteur incrémenté à chaque événement d'animal. */
 const EVENT_STATS = {
   ate: 'meals', played: 'playSessions', brushed: 'brushes', purring: 'purrs', petted: 'pets', greeted: 'greets',
+  tickled: 'tickles', startled: 'startles', awakened: 'awakenings', annoyed: 'annoyances', sick: 'sicknesses',
+  birthday: 'birthdays',
 };
 
 /** Compteurs d'activité : entrée dans un état depuis un état qui n'en fait pas partie. */
@@ -95,6 +98,13 @@ const STATE_GROUPS = [
   ['swims', new Set(['swim', 'swimFast'])],
   ['runs', new Set(['run'])],
   ['naps', new Set(['sleep'])],
+  ['drags', new Set(['drag'])],
+  ['falls', new Set(['fall'])],
+  ['follows', new Set(['follow'])],
+  ['flees', new Set(['flee'])],
+  ['chases', new Set(['chase'])],
+  ['washes', new Set(['wash'])],
+  ['ceilingWalks', new Set(['ceiling'])],
 ];
 
 const ACTIVE_STATES = new Set([
@@ -350,7 +360,12 @@ export class Critter {
     /** Succès déjà obtenus et ceux à annoncer (voir takeUnlocked). */
     this.unlocked = new Set();
     this._pendingUnlocked = [];
+    /** Titre choisi (id du succès qui l'a donné), ou null. */
+    this.title = null;
     this._sleepStreak = 0;
+    this._awakeStreak = 0; // secondes éveillé d'affilée (bêtise « Nuit blanche »)
+    this._fallStartY = null; // hauteur de départ de la chute en cours (bêtise « Saut sans parachute »)
+    this._now = null; // date courante (ms), fournie par le Manager (options.progress.now)
     this._achieveTimer = 0;
   }
 
@@ -392,6 +407,7 @@ export class Critter {
   /** Le joueur réveille l'animal hibernant (soin) : jauges remontées, retour au repos. */
   wake() {
     if (!this.life.wake()) return;
+    this.stats.add('hibernationWakes');
     this.needs.revive();
     this._enterState(State.IDLE);
     this._pendingEvent = 'awakened';
@@ -402,8 +418,8 @@ export class Critter {
     if (EVENT_STATS[event]) this.stats.add(EVENT_STATS[event]);
   }
 
-  /** Compteurs d'activité, plus longue sieste et évaluation des succès (une fois par seconde). */
-  _trackProgress(dt, previousState) {
+  /** Compteurs d'activité, sommeil, marques et évaluation des succès (une fois par seconde). */
+  _trackProgress(dt, previousState, options = {}) {
     if (this._lifeFrozen()) {
       this._sleepStreak = 0;
       return;
@@ -412,34 +428,97 @@ export class Critter {
       for (const [key, states] of STATE_GROUPS) {
         if (states.has(this.state) && !states.has(previousState)) this.stats.add(key);
       }
+      if (this.state === State.FALL) {
+        this._fallStartY = this.y;
+        if (previousState === State.CEILING) this.stats.mark('moment', 'ceiling-fall');
+      } else if (previousState === State.FALL && this._fallStartY !== null) {
+        // Chute de presque toute la hauteur de l'écran.
+        if (this.y - this._fallStartY >= (options.worldBounds?.height ?? 800) * 0.75) this.stats.mark('moment', 'skydive');
+        this._fallStartY = null;
+      }
+      if (this.state === State.SLEEP && this.needs.values.satiety < 10) this.stats.mark('state', 'hungry-nap');
     }
     if (this.state === State.SLEEP) {
       this._sleepStreak += dt;
+      this._awakeStreak = 0;
+      this.stats.add('sleepSeconds', dt);
       this.stats.max('longestSleepSeconds', Math.floor(this._sleepStreak));
     } else {
       this._sleepStreak = 0;
+      this._awakeStreak += dt;
     }
 
     this._achieveTimer += dt;
-    if (this._achieveTimer < 1 || this.config.achievements.length === 0) return;
+    if (this._achieveTimer < 1) return;
     this._achieveTimer = 0;
-    const stats = { ...this.stats.counters, daysAlive: Math.floor(this.life.ageSeconds / 86400) };
-    for (const id of newlyUnlocked(this.config.achievements, { trait: this.life.trait, stage: this.life.stage, stats }, this.unlocked)) {
+    this._markMoments();
+    if (this.config.achievements.length === 0) return;
+    const context = { trait: this.life.trait, stage: this.life.stage, facts: this.progressFacts() };
+    for (const id of newlyUnlocked(this.config.achievements, context, this.unlocked)) {
       this.unlocked.add(id);
       this._pendingUnlocked.push(id);
     }
   }
 
+  /** Marques relevées une fois par seconde : saison, fêtes, heure, jauges extrêmes, tenue du moment. */
+  _markMoments() {
+    if (this._now !== null) {
+      const date = new Date(this._now);
+      this.stats.mark('season', seasonOf(date));
+      for (const holiday of holidaysOn(date)) this.stats.mark('holiday', holiday);
+      if (date.getHours() === 3 && this.state !== State.SLEEP) this.stats.mark('moment', 'night-owl');
+    }
+    if (this._awakeStreak >= 24 * 3600) this.stats.mark('moment', 'all-nighter');
+    const levels = this.needs.values;
+    if (levels.satiety <= 0) this.stats.mark('state', 'starving');
+    if (levels.cleanliness <= 0) this.stats.mark('state', 'filthy');
+    if (levels.stimulation <= 0) this.stats.mark('state', 'bored-stiff');
+    if (NEED_GAUGES.every((gauge) => levels[gauge] >= 95) && levels.health >= 95) this.stats.mark('state', 'perfect');
+    if (NEED_GAUGES.every((gauge) => levels[gauge] < 10)) this.stats.mark('state', 'rock-bottom');
+    if (this.state === State.SLEEP && this.accessory === 'crown') this.stats.mark('state', 'royal-nap');
+    if (this.state === State.SLEEP && this.accessory === 'glasses') this.stats.mark('state', 'glasses-nap');
+    if (this.state === State.PLAY && this.accessory === 'sock') this.stats.mark('state', 'sock-play');
+  }
+
+  /** Faits des succès : compteurs, âge, stade atteint, tours appris, succès obtenus, marques. */
+  progressFacts() {
+    return {
+      stats: {
+        ...this.stats.counters,
+        daysAlive: Math.floor(this.life.ageSeconds / 86400),
+        stageReached: Math.max(0, STAGES.indexOf(this.life.stage)),
+        tricksLearned: this.tricks.learned().length,
+        achievementsUnlocked: this.unlocked.size,
+      },
+      marks: this.stats.marks,
+    };
+  }
+
+  /** Geste du joueur envers l'animal, compté pour les succès : 'overfeed' (nourri alors qu'il n'a pas faim). */
+  noteAction(kind) {
+    if (this.life.stage === 'egg') return;
+    if (kind === 'overfeed') this.stats.add('overfeeds');
+  }
+
+  /** Choisit un titre parmi ceux gagnés (id du succès qui l'a donné) ; null ou un titre non gagné l'enlève. */
+  setTitle(id) {
+    this.title = typeof id === 'string' && this.unlocked.has(id) ? id : null;
+  }
+
   /** Nomme la créature ; un texte vide ou invalide ne change rien. */
   setName(text) {
     const name = sanitizeName(text);
-    if (name !== null) this.name = name;
+    if (name !== null) {
+      if (this.name !== null && name !== this.name) this.stats.add('renames');
+      this.name = name;
+    }
     return this.name;
   }
 
   /** Équipe un accessoire (le Manager vérifie qu'il est acheté ou de saison) ; null pour l'enlever. */
   equip(id) {
     this.accessory = typeof id === 'string' ? id : null;
+    if (this.accessory && this.life.stage !== 'egg') this.stats.mark('accessory', this.accessory);
   }
 
   /** Succès débloqués depuis le dernier appel (chacun une seule fois). */
@@ -463,6 +542,7 @@ export class Critter {
         achievements: [...this.unlocked],
         accessory: this.accessory,
         name: this.name,
+        title: this.title,
         tricks: this.tricks.serialize(),
       },
     };
@@ -482,6 +562,7 @@ export class Critter {
     if (Array.isArray(saved.extra?.achievements)) {
       this.unlocked = new Set(saved.extra.achievements.filter((id) => typeof id === 'string'));
     }
+    this.setTitle(saved.extra?.title);
     this._recomputeConfig();
     this.needs.restore(saved.extra?.needs);
     if (!this._lifeFrozen()) this.needs.catchUp(elapsedSeconds);
@@ -515,6 +596,7 @@ export class Critter {
     this.vy = 0;
     this.currentSurface = null;
     this._enterState(State.FALL);
+    this.stats.add('rescues');
     return true;
   }
 
@@ -535,6 +617,10 @@ export class Critter {
   // --- Interactions utilisateur -------------------------------------------------
 
   startDrag() {
+    if (this.life.stage !== 'egg') {
+      if (this.state === State.SLEEP) this.stats.mark('state', 'sleepwalk');
+      if (this.state === State.EAT) this.stats.mark('state', 'dinner-thief');
+    }
     this._releaseFood();
     this._playTarget = null;
     this._huntTarget = null;
@@ -568,12 +654,21 @@ export class Critter {
    */
   interact(kind) {
     // Dans l'œuf : aucune interaction (ni réaction, ni caresse) ; seul le glisser reste possible.
-    if (this.life.stage === 'egg') return;
+    if (this.life.stage === 'egg') {
+      if (kind === 'click') this.stats.add('eggPets'); // il ne se passe rien, mais le Système compte
+      return;
+    }
     let event = INTERACTION_REACTIONS[kind];
     if (kind === 'typing') {
       if (this._clock - this._lastTypingAt < this.config.typingCooldown) return;
       this._lastTypingAt = this._clock;
+      this.stats.add('typingWatches');
     }
+    if (kind === 'hover') this.stats.add('hovers');
+    if (kind === 'notification') this.stats.add('notificationsSeen');
+    if (kind === 'click' && this.state === State.EAT) this.stats.mark('state', 'pet-while-eating');
+    if (kind === 'click' && this.state === State.RELIEVE) this.stats.mark('state', 'pet-while-relieving');
+    if (kind === 'doubleClick' && this.state === State.SLEEP) this.stats.mark('state', 'tickle-sleep');
     if (kind === 'userReturned' && this.state === State.SLEEP) this._enterState(State.IDLE); // il t'accueille
     if (kind === 'click' && this.state === State.REMIND) {
       this._acknowledged = true; // le joueur a vu le rappel
@@ -620,6 +715,7 @@ export class Critter {
    * @param {{worldBounds: {x:number,y:number,width:number,height:number}, pointer: {x:number,y:number}, otherCritters: {x:number,y:number,critter?:Critter}[]}} options bornes globales (union des moniteurs, utilisées par FLY/sécurité), position du curseur (utilisée par FOLLOW) et positions des autres critters, avec référence optionnelle à l'instance (utilisées par GREET pour cibler et, en arrivant, déclencher une réaction sur elle)
    */
   tick(dt, surfaces, options = {}) {
+    this._now = options.progress?.now ?? null;
     this.lastEvent = this._pendingEvent;
     this._pendingEvent = null;
     // L'événement venu de l'extérieur agit sur les jauges tout de suite : la
@@ -754,7 +850,7 @@ export class Critter {
       this.needs.apply(this.lastEvent);
       this._countEvent(this.lastEvent);
     }
-    this._trackProgress(dt, previousState);
+    this._trackProgress(dt, previousState, options);
 
     return this.snapshot();
   }
@@ -1457,6 +1553,8 @@ export class Critter {
     const { item, gain } = target;
     const { sick, fraction, finished } = consume(item);
     this.needs.feed(gain * fraction);
+    if (item.kind) this.stats.mark('food', item.kind);
+    if (this._now !== null && new Date(this._now).getHours() === 5) this.stats.mark('moment', 'early-meal');
     if (sick) {
       // Nourriture moisie : un petit coup de santé, une bulle « malade » à soigner.
       this.needs.boost('health', -this.config.moldSickness);
@@ -1469,6 +1567,7 @@ export class Critter {
         this.stateTimer = randRange(this.config.eatDuration, this.config.random);
         return;
       }
+      if (!finished) this.stats.add('leftovers');
       if (finished && item.type === 'food' && gain >= Math.max(...Object.values(this.config.needsDiet))) {
         this.needs.boost('affection', 5);
         this.stats.add('mealsFavorite');
@@ -1662,6 +1761,7 @@ export class Critter {
   // --- Jeu, caresses, brossage ------------------------------------------------
 
   _startPlay(target) {
+    if (target.laser) this.stats.add('laserChases');
     this._playTarget = target;
     this._kickTimer = 0;
     this.state = State.PLAY;
@@ -1670,6 +1770,7 @@ export class Critter {
 
   /** Fin d'une session (jouée jusqu'au bout : récompense) ou abandon. */
   _endPlay(completed) {
+    if (completed && this._playTarget?.item) this.stats.mark('toy', this._playTarget.item.kind);
     this._playTarget = null;
     if (completed) this.lastEvent = 'played';
     const roam = this._groundlessRoamState();
@@ -1726,7 +1827,7 @@ export class Critter {
         this._kickTimer -= dt;
         if (this._kickTimer <= 0) {
           this._kickTimer = this.config.kickInterval;
-          push(target.item, tx - this.x || this.facing, ty - this.y);
+          if (push(target.item, tx - this.x || this.facing, ty - this.y)) this.stats.add('ringPushes');
         }
       }
       return;
@@ -1760,6 +1861,7 @@ export class Critter {
         this.lastEvent = 'birthday';
       } else if (transition === 'hibernated') {
         this.lastEvent = 'hibernated';
+        this.stats.add('hibernations');
         this._releaseFood();
         this._playTarget = null;
         if (this.state !== State.DRAG && this.state !== State.FALL) this.state = State.HIBERNATE;
@@ -1803,7 +1905,10 @@ export class Critter {
     if (!this._canPerform(name)) return false;
     const { success, learned } = this.tricks.train(name, this.config.random, this.life.trait);
     if (success) this._startTrick(name);
-    else this._pendingEvent = 'noticed'; // il hésite
+    else {
+      this._pendingEvent = 'noticed'; // il hésite
+      this.stats.add('trickFails');
+    }
     if (learned) this._pendingEvent = 'trickLearned';
     return success;
   }
@@ -1872,6 +1977,7 @@ export class Critter {
     }
     if (distance < this.config.kickDistance * 1.5) {
       this._pendingGift = { kind: pickGift(this.config.random), x: this.x, y: this.y - 16 };
+      this.stats.mark('gift', this._pendingGift.kind);
       this._lastGiftAt = this._clock;
       this.stats.add('giftsGiven');
       this.lastEvent = 'gift';
@@ -1938,6 +2044,7 @@ export class Critter {
       return;
     }
     if (!this.currentSurface || blocked.includes(this.state) || this.state === State.EGG) return;
+    if (this.needs.values.cleanliness >= 95) this.stats.add('pointlessBrushes');
     this._releaseFood();
     this._playTarget = null;
     this.state = State.BRUSHED;
@@ -1958,7 +2065,9 @@ export class Critter {
   _bedSleepFactor(options) {
     if (this.state !== State.SLEEP || !this.currentSurface || !options?.items) return 1;
     const bed = bedsOn(options.items, this.currentSurface.surfaceId, this.x)[0];
-    return bed && Math.abs(bed.x - this.x) < this.config.bedRadius ? this.config.bedSleepFactor : 1;
+    if (!bed || Math.abs(bed.x - this.x) >= this.config.bedRadius) return 1;
+    if (bed.model) this.stats.mark('bed', bed.model);
+    return this.config.bedSleepFactor;
   }
 
   _tickSeekWall(dt, surfaces) {

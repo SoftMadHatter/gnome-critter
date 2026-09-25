@@ -4,7 +4,7 @@
 // Chaque action vise l'animal passé en paramètre.
 
 
-import { foodLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from './itemActor.js';
+import { foodLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from './itemLabels.js';
 import { expandableRow } from './menuWidgets.js';
 import { TRICKS } from '../core/tricks.js';
 import { FOODS, isBowlFood, toyFits } from '../core/items.js';
@@ -16,7 +16,7 @@ const TRICK_LABELS = Object.fromEntries(Object.entries(TRICKS).map(([name, def])
  * Ajoute les actions d'un animal à `menu` (un PopupMenu ou un PopupMenuSection).
  * @param {PopupMenu.PopupMenuBase} menu
  * @param {import('../core/critter.js').Critter} critter
- * @param {{rename: Function, dropFood: Function, fillBowl: Function, dropBed: Function, dropBowl: Function, dropToy: Function, brush: Function, train: Function, perform: Function, equip: Function, equippable: Function, wake: Function}} owner
+ * @param {{rename: Function, dropFood: Function, fillBowl: Function, dropBed: Function, dropBowl: Function, dropToy: Function, brush: Function, train: Function, perform: Function, equip: Function, equippable: Function, titles: Function, setTitle: Function, wake: Function}} owner
  * @returns {{refresh: () => void}} refresh : à appeler à l'ouverture du menu
  */
 export function buildCritterActions(menu, critter, owner) {
@@ -55,6 +55,7 @@ export function buildCritterActions(menu, critter, owner) {
   }
 
   const accessories = trackRow(expandableRow(menu, 'Accessoires'));
+  const titles = trackRow(expandableRow(menu, 'Titre'));
   const tricks = trackRow(expandableRow(menu, 'Tours'));
   const wake = menu.addAction('Réveiller', () => owner.wake(critter));
   track(wake);
@@ -75,6 +76,17 @@ export function buildCritterActions(menu, critter, owner) {
     accessories.section.addAction(worn === null ? '✓ Aucun' : 'Aucun', () => owner.equip(critter, null));
     for (const { id, label } of owner.equippable()) {
       accessories.section.addAction(worn === id ? `✓ ${label}` : label, () => owner.equip(critter, id));
+    }
+  };
+
+  // Titres gagnés (séries terminées, certaines bêtises) : un seul porté à la fois.
+  const rebuildTitles = () => {
+    titles.section.removeAll();
+    const earned = owner.titles(critter);
+    titles.setVisible(earned.length > 0 && critter.life.stage !== 'egg');
+    titles.section.addAction(critter.title === null ? '✓ Aucun' : 'Aucun', () => owner.setTitle(critter, null));
+    for (const { id, title } of earned) {
+      titles.section.addAction(critter.title === id ? `✓ ${title}` : title, () => owner.setTitle(critter, id));
     }
   };
 
@@ -99,6 +111,7 @@ export function buildCritterActions(menu, critter, owner) {
       wake.actor.visible = !egg && critter.life.hibernating;
       if (!egg) {
         rebuildAccessories();
+        rebuildTitles();
         rebuildTricks();
       }
     },

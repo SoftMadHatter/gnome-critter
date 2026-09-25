@@ -1,5 +1,8 @@
-// État du joueur : pièces, achats, journal. Module pur, sauvegardé à part de
-// celui des animaux (clé GSettings `saved-player`).
+// État du joueur : pièces, achats, journal, gestes comptés et succès du
+// joueur. Module pur, sauvegardé à part de celui des animaux (clé GSettings
+// `saved-player`).
+
+import { Stats, PLAYER_STAT_KEYS } from './stats.js';
 
 /** Gains de pièces par événement d'animal. */
 export const COIN_REWARDS = Object.freeze({
@@ -20,14 +23,32 @@ const COOLDOWN_SECONDS = 30;
 const JOURNAL_LIMIT = 50;
 
 export class Player {
-  /** @param {{coins?: number, owned?: string[], journal?: {t:number, text:string}[]}} [state] */
-  constructor({ coins = 0, owned = [], journal = [] } = {}) {
+  /**
+   * @param {{coins?: number, owned?: string[], journal?: {t:number, text:string}[], stats?: object,
+   *   unlocked?: string[], achievementCount?: number}} [state]
+   */
+  constructor({ coins = 0, owned = [], journal = [], stats = null, unlocked = [], achievementCount = 0 } = {}) {
     this.coins = Number.isFinite(coins) && coins >= 0 ? Math.floor(coins) : 0;
     this.owned = Array.isArray(owned) ? owned.filter((id) => typeof id === 'string') : [];
     this.journal = Array.isArray(journal)
       ? journal.filter((e) => e && Number.isFinite(e.t) && typeof e.text === 'string').slice(-JOURNAL_LIMIT)
       : [];
+    /** Gestes du joueur (menus, bureau...) et marques, base des succès du joueur. */
+    this.stats = new Stats(PLAYER_STAT_KEYS);
+    this.stats.restore(stats);
+    /** Succès du joueur obtenus. */
+    this.unlocked = new Set(Array.isArray(unlocked) ? unlocked.filter((id) => typeof id === 'string') : []);
+    /** Total des succès obtenus (animaux et joueur), qui ne redescend jamais : base des trophées. */
+    this.achievementCount = Number.isFinite(achievementCount) && achievementCount >= 0 ? Math.floor(achievementCount) : 0;
     this._lastAward = new Map();
+  }
+
+  /** Faits des succès du joueur : compteurs, solde, accessoires possédés, marques. */
+  progressFacts() {
+    return {
+      stats: { ...this.stats.counters, coins: this.coins, accessoriesOwned: this.owned.length },
+      marks: this.stats.marks,
+    };
   }
 
   /**
@@ -75,7 +96,15 @@ export class Player {
   }
 
   serialize() {
-    return JSON.stringify({ version: 1, coins: this.coins, owned: this.owned, journal: this.journal });
+    return JSON.stringify({
+      version: 1,
+      coins: this.coins,
+      owned: this.owned,
+      journal: this.journal,
+      stats: this.stats.serialize(),
+      unlocked: [...this.unlocked],
+      achievementCount: this.achievementCount,
+    });
   }
 
   /** Relit une sauvegarde sans jamais lever d'exception (joueur neuf si illisible). */

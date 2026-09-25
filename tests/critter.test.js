@@ -2384,7 +2384,15 @@ test('œuf et hibernation ignorent tout le contexte du monde', () => {
 
 // --- Compteurs et succès ---------------------------------------------------------------
 
-import { achievementsOverrides } from '../core/achievements.js';
+import { buildAchievements, CAPABILITIES } from '../core/achievements.js';
+
+/** Succès écrits pour le test seuls (sans la bibliothèque commune), pour une espèce qui sait tout faire. */
+function defsOf(entries) {
+  const profile = { can: new Set(CAPABILITIES), diet: ['fish', 'meat'], toys: ['ball', 'yarn', 'plush'], tricks: ['sit'] };
+  const { critter, ignored } = buildAchievements(entries, profile, []);
+  assert.deepEqual(ignored, []);
+  return critter;
+}
 
 test('les événements alimentent les compteurs (repas, jeu, caresses, brossage)', () => {
   const { c, surfaces } = worldCritter();
@@ -2455,10 +2463,10 @@ test('entrées dans un état : escalade, vol, piqué, course ; plus longue siest
 });
 
 test('succès : débloqué une seule fois quand la condition est remplie, seulement pour le bon caractère', () => {
-  const defs = achievementsOverrides([
+  const defs = defsOf([
     { id: 'nap', name: 'Sieste', description: 'd', requires: { trait: 'lazy' }, condition: { stat: 'longestSleepSeconds', atLeast: 100 }, coins: 15 },
     { id: 'pets', name: 'Câlins', description: 'd', condition: { stat: 'pets', atLeast: 2 } },
-  ]).list;
+  ]);
   const { c, surfaces } = worldCritter({ achievements: defs });
   c.setLife(new Life({ trait: 'lazy' }));
   c.state = State.SLEEP;
@@ -2482,7 +2490,7 @@ test('succès : débloqué une seule fois quand la condition est remplie, seulem
 });
 
 test('compteurs et succès sont sauvegardés et restaurés sans être ré-annoncés', () => {
-  const defs = achievementsOverrides([{ id: 'pets', name: 'C', description: 'd', condition: { stat: 'pets', atLeast: 1 } }]).list;
+  const defs = defsOf([{ id: 'pets', name: 'C', description: 'd', condition: { stat: 'pets', atLeast: 1 } }]);
   const { c, surfaces } = worldCritter({ achievements: defs });
   c.stateTimer = 1e9;
   c.pet();
@@ -2500,7 +2508,7 @@ test('compteurs et succès sont sauvegardés et restaurés sans être ré-annonc
 });
 
 test('un œuf ne compte ni ne débloque rien', () => {
-  const defs = achievementsOverrides([{ id: 'x', name: 'X', description: 'd', condition: { stat: 'pets', atLeast: 1 } }]).list;
+  const defs = defsOf([{ id: 'x', name: 'X', description: 'd', condition: { stat: 'pets', atLeast: 1 } }]);
   const { c, surfaces } = worldCritter({ achievements: defs });
   c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
   c.interact('click');
@@ -2717,4 +2725,108 @@ test("un poisson qui s'ennuie va pousser l'anneau flottant", () => {
   assert.ok(seen.has(State.PLAY));
   assert.ok(pushed, "l'anneau a été poussé");
   assert.equal(c.lastEvent, 'played');
+});
+
+// --- Étape 15 : compteurs, marques, titres ------------------------------------------------
+
+test('bêtises : œuf caressé, chatouilles, survols, caresse en plein repas, sommeil dérangé', () => {
+  const egg = worldCritter();
+  egg.c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
+  egg.c.interact('click');
+  egg.c.interact('click');
+  assert.equal(egg.c.stats.get('eggPets'), 2, "l'œuf ne réagit pas, mais le Système compte");
+
+  const { c, surfaces } = worldCritter();
+  c.stateTimer = 1e9;
+  c.interact('doubleClick');
+  c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  c.interact('hover');
+  c.tick(1 / 30, surfaces, { worldBounds: monitor });
+  assert.equal(c.stats.get('tickles'), 1);
+  assert.equal(c.stats.get('hovers'), 1);
+  c.state = State.EAT;
+  c.interact('click');
+  assert.ok(c.stats.hasMark('state:pet-while-eating'));
+  c.state = State.SLEEP;
+  c.interact('doubleClick');
+  assert.ok(c.stats.hasMark('state:tickle-sleep'));
+  c.state = State.SLEEP;
+  c.startDrag();
+  assert.ok(c.stats.hasMark('state:sleepwalk'));
+});
+
+test('marques : aliment goûté, jouet essayé, accessoire porté, cadeau, fête et nuit blanche à 3 h', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces);
+  const c = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
+  c.needs.values.satiety = 10;
+  run(c, surfaces, [fish], 30, () => fish.consumed);
+  assert.ok(c.stats.hasMark('food:fish'));
+
+  const yarn = settleItem(createItem('toy', 'yarn', 300, 50), surfaces);
+  const player = playerOf({ playDuration: [3, 3] }, [yarn], surfaces);
+  player.needs.values.stimulation = 5;
+  runPlay(player, surfaces, { items: [yarn] }, 20, () => player.lastEvent === 'played');
+  assert.ok(player.stats.hasMark('toy:yarn'));
+
+  c.equip('bow');
+  assert.ok(c.stats.hasMark('accessory:bow'));
+
+  const christmas3am = new Date(2026, 11, 25, 3, 0, 0).getTime();
+  c.state = State.IDLE;
+  c.stateTimer = 1e9;
+  c.tick(1.1, surfaces, { worldBounds: monitor, progress: { now: christmas3am } });
+  assert.ok(c.stats.hasMark('holiday:christmas'));
+  assert.ok(c.stats.hasMark('season:winter'));
+  assert.ok(c.stats.hasMark('moment:night-owl'));
+});
+
+test('compteurs de sommeil, de renommage et de repas forcé ; faits dérivés', () => {
+  const { c, surfaces } = worldCritter();
+  c.setName('Minou');
+  c.setName('Minou');
+  c.setName('Pistache');
+  assert.equal(c.stats.get('renames'), 1, 'le premier nom et un nom inchangé ne comptent pas');
+  c.noteAction('overfeed');
+  assert.equal(c.stats.get('overfeeds'), 1);
+  c.state = State.SLEEP;
+  c.stateTimer = 1e9;
+  for (let i = 0; i < 10; i++) c.tick(1, surfaces, { worldBounds: monitor });
+  assert.ok(c.stats.get('sleepSeconds') >= 9);
+  const facts = c.progressFacts();
+  assert.equal(facts.stats.stageReached, 3, 'adulte');
+  assert.equal(facts.stats.achievementsUnlocked, 0);
+});
+
+test('un animal ancien débloque d’un coup tous les paliers atteints, une seule fois', () => {
+  const defs = defsOf([
+    { series: 'pets', category: 'care', stat: 'pets', tiers: [1, 2, 3, 100], names: ['A', 'B', 'C', 'D'], description: 'd' },
+  ]);
+  const { c, surfaces } = worldCritter({ achievements: defs });
+  c.stats.add('pets', 5);
+  c.stateTimer = 1e9;
+  c.tick(1.1, surfaces, { worldBounds: monitor });
+  assert.deepEqual(c.takeUnlocked(), ['pets-1', 'pets-2', 'pets-3']);
+  c.tick(1.1, surfaces, { worldBounds: monitor });
+  assert.deepEqual(c.takeUnlocked(), []);
+});
+
+test('titre : seulement un titre gagné, sauvegardé et relu', () => {
+  const defs = defsOf([
+    { series: 'pets', category: 'care', stat: 'pets', tiers: [1], names: ['A'], description: 'd', title: 'aimant à caresses' },
+  ]);
+  const { c, surfaces } = worldCritter({ achievements: defs });
+  c.setTitle('pets-1');
+  assert.equal(c.title, null, 'pas encore gagné');
+  c.stats.add('pets', 1);
+  c.stateTimer = 1e9;
+  c.tick(1.1, surfaces, { worldBounds: monitor });
+  c.setTitle('pets-1');
+  assert.equal(c.title, 'pets-1');
+  const back = new Critter({ achievements: defs }, { x: 0, y: 0 });
+  back.restore(c.serialize());
+  assert.equal(back.title, 'pets-1');
+  assert.ok(back.stats.marks instanceof Set);
+  back.setTitle(null);
+  assert.equal(back.title, null);
 });

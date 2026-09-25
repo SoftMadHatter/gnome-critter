@@ -8,12 +8,22 @@ import { Locomotion, behaviorOverrides } from '../core/critter.js';
 import { needsOverrides } from '../core/needs.js';
 import { appearanceOverrides } from '../core/colorShift.js';
 import { stagesOverrides } from '../core/life.js';
-import { achievementsOverrides } from '../core/achievements.js';
+import {
+  buildAchievements, speciesProfile, CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY,
+} from '../core/achievements.js';
 import { anchorsOverrides } from '../core/accessories.js';
 import { tricksOverrides } from '../core/tricks.js';
 import { namesOverrides } from '../core/names.js';
 
 const PACKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs');
+
+/** Succès des packs d'avant l'étape 15 : leurs identifiants sont dans les sauvegardes, ils doivent rester obtenables. */
+const LEGACY_ACHIEVEMENTS = {
+  cat: ['nap-king', 'ball-hunter', 'gourmet', 'cuddle-pro', 'old-timer', 'mouser', 'salad'],
+  bird: ['sky-lightning', 'traveler', 'pecker', 'cozy-nest', 'bug-hunter'],
+  bug: ['alpinist', 'small-but-strong', 'speedster', 'aphid-hunter'],
+  fish: ['big-swimmer', 'laser-dancer', 'glutton', 'krill-feast'],
+};
 const LOCOMOTIONS = new Set(Object.values(Locomotion));
 
 /** Largeur/hauteur d'un PNG, lues dans l'en-tête IHDR (octets 16 à 24). */
@@ -127,8 +137,30 @@ for (const id of packIds) {
   });
 
   test(`pack "${id}" : succès valides`, () => {
-    const { ignored } = achievementsOverrides(meta.achievements);
+    const { ignored } = buildAchievements(meta.achievements, speciesProfile(meta));
     assert.deepEqual(ignored, [], `succès ignorés : ${ignored.join(', ')}`);
+  });
+
+  test(`pack "${id}" : bibliothèque de succès complète, avec une grosse part de bêtises`, () => {
+    const profile = speciesProfile(meta);
+    const { critter, player } = buildAchievements(meta.achievements, profile);
+    const all = [...critter, ...player];
+    assert.ok(all.length >= 150, `${all.length} succès`);
+    const trolls = all.filter((def) => def.troll).length;
+    assert.ok(trolls / all.length >= 0.4, `${trolls} bêtises sur ${all.length}`);
+    for (const category of [...CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY]) {
+      assert.ok(all.some((def) => def.category === category), `catégorie ${category} vide`);
+    }
+    assert.ok(all.filter((def) => def.title).length >= 20, 'au moins 20 titres');
+    assert.equal(new Set(all.map((def) => def.id)).size, all.length, 'ids uniques');
+    assert.ok(all.every((def) => def.requires.can.every((c) => profile.can.has(c))), 'rien d’impossible pour l’espèce');
+    for (const legacy of LEGACY_ACHIEVEMENTS[id] ?? []) {
+      assert.ok(all.some((def) => def.id === legacy), `identifiant historique « ${legacy} » perdu (sauvegardes)`);
+    }
+    // Deux succès identiques (même condition, même caractère et stade) feraient doublon.
+    const keys = all.map((def) => JSON.stringify([def.scope, def.condition, def.requires.trait, def.requires.stage]));
+    const twins = keys.filter((key, i) => keys.indexOf(key) !== i);
+    assert.deepEqual(twins, [], 'succès en double');
   });
 
   test(`pack "${id}" : ancrages valides`, () => {
