@@ -4,7 +4,7 @@
 
 import { PREY, PREY_TTL, movePreyOnSurface, movePreyFloating } from './prey.js';
 import {
-  findSurfaceBelow, findSegmentById, isOnSegment, isInsideAnyMonitor, respawnPoint,
+  findSurfaceBelow, findSegmentById, isOnSegment, isInsideAnyMonitor, respawnPoint, groundPoint,
 } from './surfaceMap.js';
 
 /** Aliments connus : durée de vie en secondes, nombre de bouchées (un reste
@@ -347,6 +347,23 @@ export function push(item, dx, dy) {
 export function rescueItem(item, monitors) {
   if (item.grabbed || monitors.length === 0 || isInsideAnyMonitor(monitors, item.x, item.y - 1)) return false;
   const point = respawnPoint(monitors, item.x, item.y, 16);
+  if (!point) return false;
+  item.x = point.x;
+  item.y = point.y;
+  item.vx = 0;
+  item.vy = 0;
+  item.surface = null;
+  return true;
+}
+
+/**
+ * Après une veille : remet au sol (bas du moniteur le plus proche) tout objet posé ou en chute,
+ * pour qu'il ne reste pas coincé sur la barre du haut ou sur une fenêtre. Les objets saisis
+ * ou flottants ne bougent pas.
+ */
+export function regroundItem(item, monitors) {
+  if (item.grabbed || item.caught || item.floating) return false;
+  const point = groundPoint(monitors, item.x, item.y);
   if (!point) return false;
   item.x = point.x;
   item.y = point.y;

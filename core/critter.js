@@ -19,6 +19,7 @@ import {
   findReachableShelf,
   isInsideAnyMonitor,
   respawnPoint,
+  groundPoint,
 } from './surfaceMap.js';
 
 /** États possibles. Volontairement une simple union de chaînes : facile à
@@ -597,6 +598,25 @@ export class Critter {
     this.currentSurface = null;
     this._enterState(State.FALL);
     this.stats.add('rescues');
+    return true;
+  }
+
+  /**
+   * Après une veille : ramène l'animal au sol (bas du moniteur le plus proche) au lieu de le
+   * laisser coincé sur la barre du haut ou sur une fenêtre. Ignore l'animal saisi et les
+   * espèces sans sol (poisson, volants), qui ne « retombent » pas.
+   * @returns {boolean} vrai si l'animal a été déplacé
+   */
+  regroundAfterResume(monitors) {
+    if (this.state === State.DRAG || !this.supports(Locomotion.GROUND)) return false;
+    const point = groundPoint(monitors, this.x, this.y);
+    if (!point) return false;
+    this.x = point.x;
+    this.y = point.y;
+    this.vx = 0;
+    this.vy = 0;
+    this.currentSurface = null;
+    this._enterState(State.FALL);
     return true;
   }
 

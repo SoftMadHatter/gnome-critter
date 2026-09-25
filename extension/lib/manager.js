@@ -31,7 +31,7 @@ import { _, ngettext, fmt } from '../core/i18n.js';
 import { translationsOverrides } from '../core/packTranslations.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 import {
-  createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, rescueItem, serializeItems, parseSavedItems, GIFTS,
+  createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, rescueItem, regroundItem, serializeItems, parseSavedItems, GIFTS,
   pickVariant, toyFits, BOWL_CAPACITY,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
@@ -47,6 +47,8 @@ import { ProgressDialog } from './progressDialog.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
+const RESUME_GAP_S = 3; // un écart aussi long entre deux frames (horloge murale) signe une veille
+const SETTLE_S = 2.5; // après une veille ou un changement d'écrans : on laisse le bureau se stabiliser
 const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
 const BURST_SIZE = 3; // au-delà, une rafale de succès n'a qu'une notification
 const OVERFED_SATIETY = 95; // nourrir un animal aussi rassasié est une bêtise
@@ -95,6 +97,11 @@ export class Manager {
     this._saveTimeoutId = null;
     this._lastSavedState = null;
     this._lastTickUs = null;
+    /** Fin de la stabilisation après veille / changement d'écrans (0 : aucune en cours). */
+    this._settleUntilUs = 0;
+    this._lastRealUs = 0;
+    this._pendingReground = false;
+    this._monitorsChangedId = 0;
     /** @type {Set<number>|null} null tant que le premier tick n'a pas eu
      * lieu, pour ne jamais réagir aux fenêtres déjà ouvertes au démarrage. */
     this._knownWindowIds = null;
@@ -729,6 +736,8 @@ export class Manager {
   start() {
     if (this._timeoutId) return;
     this._lastTickUs = GLib.get_monotonic_time();
+    this._lastRealUs = GLib.get_real_time();
+    this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => this._beginSettling());
     this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_INTERVAL_MS, () => {
       this._tick();
       return GLib.SOURCE_CONTINUE;
@@ -763,6 +772,10 @@ export class Manager {
   }
 
   stop() {
+    if (this._monitorsChangedId) {
+      Main.layoutManager.disconnect(this._monitorsChangedId);
+      this._monitorsChangedId = 0;
+    }
     if (this._saveTimeoutId) {
       GLib.source_remove(this._saveTimeoutId);
       this._saveTimeoutId = null;
@@ -796,12 +809,37 @@ export class Manager {
     this._laserDot = null;
   }
 
+  /**
+   * Veille ou changement d'écrans : GNOME reconfigure moniteurs et fenêtres pendant un instant. On
+   * gèle les objets et les animaux (rien ne tombe sur une surface transitoire : barre du haut,
+   * fenêtre), puis on remet tout au sol une fois la géométrie stable.
+   */
+  _beginSettling() {
+    this._settleUntilUs = GLib.get_monotonic_time() + SETTLE_S * 1_000_000;
+    this._pendingReground = true;
+  }
+
+  _reground(monitors) {
+    for (const { item } of this._items) regroundItem(item, monitors);
+    for (const { critter } of this._critters) critter.regroundAfterResume(monitors);
+  }
+
   _tick() {
     const nowUs = GLib.get_monotonic_time();
-    const dt = Math.min((nowUs - this._lastTickUs) / 1_000_000, 0.25); // clamp anti-rattrapage après une pause (veille, etc.)
+    const dt = Math.min((nowUs - this._lastTickUs) / 1_000_000, 0.25); // clamp anti-rattrapage après une pause
     this._lastTickUs = nowUs;
 
+    // CLOCK_MONOTONIC (get_monotonic_time) s'arrête pendant la veille : seule l'horloge murale la voit.
+    const realUs = GLib.get_real_time();
+    if ((realUs - this._lastRealUs) / 1_000_000 > RESUME_GAP_S) this._beginSettling();
+    this._lastRealUs = realUs;
+    if (nowUs < this._settleUntilUs) return;
+
     const monitors = getMonitors();
+    if (this._pendingReground) {
+      this._pendingReground = false;
+      this._reground(monitors);
+    }
     const windows = getWindows();
     const surfaces = computeSurfaces({ monitors, windows });
     const worldBounds = computeWorldBounds(monitors);

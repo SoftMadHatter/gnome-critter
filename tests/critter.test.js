@@ -2030,6 +2030,48 @@ test('un objet hors écran est ramené en haut de l\'écran le plus proche', asy
   assert.equal(rescueItem(ok, monitors), false);
 });
 
+test('après une veille, un objet coincé en haut ou sur une fenêtre est remis au sol', async () => {
+  const { createItem, regroundItem } = await import('../core/items.js');
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  const stuck = createItem('toy', 'ball', 300, 32); // sous la barre du haut
+  stuck.vx = 40;
+  stuck.surface = { type: 'shelf', surfaceId: 7, y: 32, x1: 0, x2: 1000 };
+  assert.equal(regroundItem(stuck, monitors), true);
+  assert.equal(stuck.y, 500);
+  assert.equal(stuck.x, 300);
+  assert.equal(stuck.vx, 0);
+  assert.equal(stuck.surface, null);
+
+  const grabbed = createItem('toy', 'ball', 300, 32);
+  grabbed.grabbed = true;
+  assert.equal(regroundItem(grabbed, monitors), false);
+  assert.equal(grabbed.y, 32);
+});
+
+test('après une veille, un animal est remis au sol et retombe ; pas celui qu\'on glisse', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  const c = new Critter({}, { x: 400, y: 32 });
+  c.state = State.IDLE;
+  c.currentSurface = { type: 'shelf', surfaceId: 7, y: 32, x1: 0, x2: 1000 };
+  assert.equal(c.regroundAfterResume(monitors), true);
+  assert.equal(c.y, 500);
+  assert.equal(c.currentSurface, null);
+  assert.equal(c.state, State.FALL);
+
+  const dragged = new Critter({}, { x: 400, y: 32 });
+  dragged.startDrag();
+  assert.equal(dragged.regroundAfterResume(monitors), false);
+  assert.equal(dragged.y, 32);
+  assert.equal(dragged.state, State.DRAG);
+});
+
+test('après une veille, une espèce sans sol n\'est pas déplacée', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  const fish = new Critter({ supportedSurfaces: new Set([Locomotion.WATER]) }, { x: 400, y: 200 });
+  assert.equal(fish.regroundAfterResume(monitors), false);
+  assert.equal(fish.y, 200);
+});
+
 // --- Vie : œuf, stades, personnalité, hibernation --------------------------------
 
 import { Life } from '../core/life.js';

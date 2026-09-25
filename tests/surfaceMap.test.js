@@ -8,6 +8,7 @@ import {
   findCeilingAbove,
   findReachableWall,
   findReachableShelf,
+  groundPoint,
 } from '../core/surfaceMap.js';
 
 test('computeSurfaces génère sol, plafond et murs pour chaque moniteur', () => {
@@ -158,4 +159,20 @@ test('findReachableShelf trouve le rebord le plus proche au même niveau, hors l
 
   assert.equal(findReachableShelf(segments, 250, 300, 'unrelated', 10), null, 'trop loin pour maxDistance=10');
   assert.equal(findReachableShelf(segments, 450, 999, 'unrelated'), null, 'aucun rebord à ce niveau');
+});
+
+// --- Point au sol (remise en place après une veille) -----------------------------
+
+test('groundPoint : bas du moniteur sous le point, abscisse ramenée dans ses bornes', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
+  assert.deepEqual(groundPoint(monitors, 400, 30), { x: 400, y: 500 });
+  assert.deepEqual(groundPoint(monitors, 5000, 900), { x: 984, y: 500 });
+  assert.equal(groundPoint([], 10, 10), null);
+});
+
+test('groundPoint : deux écrans de hauteurs différentes, prend le plus proche', () => {
+  const left = { x: 0, y: 0, width: 800, height: 600 };
+  const right = { x: 800, y: 100, width: 800, height: 400 };
+  assert.deepEqual(groundPoint([left, right], 300, 20), { x: 300, y: 600 });
+  assert.deepEqual(groundPoint([left, right], 1200, 120), { x: 1200, y: 500 });
 });
