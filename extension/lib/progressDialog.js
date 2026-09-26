@@ -28,7 +28,8 @@ export const ProgressDialog = GObject.registerClass(
      *   tab: 'achievements'|'stats'|'journal',
      *   achievements: {done: number, total: number, categories: {id: string, done: number, total: number, entries: object[]}[]},
      *   stats: [string, number][],
-     *   journal: {t: number, text: string}[],
+     *   journal: {id: number, t: number, text: string, body?: string, unread?: boolean}[],
+     *   onRead?: (id: number) => void, onReadAll?: () => void,
      * }} data
      */
     _init(data) {
@@ -50,6 +51,7 @@ export const ProgressDialog = GObject.registerClass(
       this.contentLayout.add_child(scroll);
 
       this._data = data;
+      this._unreadOnly = false;
       this._tabButtons = {};
       for (const key of TAB_KEYS) {
         const button = new St.Button({ label: _(TAB_LABELS[key]), style_class: 'button', can_focus: true });
@@ -140,9 +142,49 @@ export const ProgressDialog = GObject.registerClass(
     }
 
     _fillJournal() {
-      const entries = [...this._data.journal].reverse();
-      if (entries.length === 0) this._row(_('Rien pour le moment.'));
-      for (const entry of entries) this._row(`${formatJournalDate(entry.t)}   ${entry.text}`);
+      const journal = this._data.journal;
+      const unread = journal.filter((e) => e.unread).length;
+
+      const bar = new St.BoxLayout({ style: 'spacing: 6px; padding-bottom: 4px;' });
+      const filter = new St.Button({
+        label: this._unreadOnly ? _('Tout afficher') : _('Non lus seulement'),
+        style_class: 'button',
+        can_focus: true,
+      });
+      filter.connect('clicked', () => {
+        this._unreadOnly = !this._unreadOnly;
+        this._showTab('journal');
+      });
+      bar.add_child(filter);
+      const readAll = new St.Button({ label: _('Tout marquer comme lu'), style_class: 'button', can_focus: true, reactive: unread > 0 });
+      readAll.connect('clicked', () => {
+        this._data.onReadAll?.();
+        this._showTab('journal');
+      });
+      bar.add_child(readAll);
+      this._list.add_child(bar);
+
+      const entries = [...journal].reverse().filter((e) => !this._unreadOnly || e.unread);
+      if (entries.length === 0) this._row(this._unreadOnly ? _('Rien de non lu.') : _('Rien pour le moment.'));
+      for (const entry of entries) this._journalRow(entry);
+    }
+
+    /** Une entrée : non lue en gras avec un point, texte complet dessous ; un clic la marque lue. */
+    _journalRow(entry) {
+      const box = new St.BoxLayout({ vertical: true, style: 'padding-bottom: 4px;' });
+      const head = `${formatJournalDate(entry.t)}   ${entry.text}`;
+      this._line(box, entry.unread ? `● ${head}` : head, entry.unread ? 'font-weight: bold;' : '');
+      if (entry.body) this._line(box, entry.body, 'opacity: 190;');
+      if (!entry.unread) {
+        this._list.add_child(box);
+        return;
+      }
+      const button = new St.Button({ child: box, can_focus: true, x_expand: true, x_align: Clutter.ActorAlign.START });
+      button.connect('clicked', () => {
+        this._data.onRead?.(entry.id);
+        this._showTab('journal');
+      });
+      this._list.add_child(button);
     }
   },
 );

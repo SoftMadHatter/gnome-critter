@@ -20,19 +20,32 @@ export const COIN_REWARDS = Object.freeze({
 export const COOLDOWN_EVENTS = Object.freeze(new Set(['ate', 'played', 'brushed', 'purring']));
 
 const COOLDOWN_SECONDS = 30;
-const JOURNAL_LIMIT = 50;
+const JOURNAL_LIMIT = 100;
 
 export class Player {
   /**
-   * @param {{coins?: number, owned?: string[], journal?: {t:number, text:string}[], stats?: object,
+   * @param {{coins?: number, owned?: string[], journal?: {id?:number, t:number, text:string, body?:string, unread?:boolean}[], stats?: object,
    *   unlocked?: string[], achievementCount?: number}} [state]
    */
   constructor({ coins = 0, owned = [], journal = [], stats = null, unlocked = [], achievementCount = 0 } = {}) {
     this.coins = Number.isFinite(coins) && coins >= 0 ? Math.floor(coins) : 0;
     this.owned = Array.isArray(owned) ? owned.filter((id) => typeof id === 'string') : [];
-    this.journal = Array.isArray(journal)
-      ? journal.filter((e) => e && Number.isFinite(e.t) && typeof e.text === 'string').slice(-JOURNAL_LIMIT)
-      : [];
+    /** Entrées `{id, t, text, body?, unread?}` ; `body` = texte complet d'une annonce, `unread` = pas encore vue. */
+    this.journal = [];
+    if (Array.isArray(journal)) {
+      const valid = journal.filter((e) => e && Number.isFinite(e.t) && typeof e.text === 'string').slice(-JOURNAL_LIMIT);
+      let nextId = Math.max(0, ...valid.map((e) => (Number.isInteger(e.id) ? e.id : 0))) + 1;
+      const seen = new Set();
+      for (const e of valid) {
+        // Anciennes sauvegardes : pas d'id (attribué ici), entrées lues.
+        const id = Number.isInteger(e.id) && e.id > 0 && !seen.has(e.id) ? e.id : nextId++;
+        seen.add(id);
+        const entry = { id, t: e.t, text: e.text };
+        if (typeof e.body === 'string' && e.body) entry.body = e.body;
+        if (e.unread === true) entry.unread = true;
+        this.journal.push(entry);
+      }
+    }
     /** Gestes du joueur (menus, bureau...) et marques, base des succès du joueur. */
     this.stats = new Stats(PLAYER_STAT_KEYS);
     this.stats.restore(stats);
@@ -90,9 +103,34 @@ export class Player {
     if (!this.owns(id)) this.owned.push(id);
   }
 
-  log(text, nowMs) {
-    this.journal.push({ t: nowMs, text });
+  /**
+   * Ajoute une entrée au journal et la renvoie. Avec `body` (texte complet d'une annonce), elle est
+   * non lue tant qu'on ne l'a pas marquée lue ; sans, c'est un simple événement, déjà lu.
+   */
+  log(text, nowMs, { body = null, unread = false } = {}) {
+    const id = this.journal.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+    const entry = { id, t: nowMs, text };
+    if (body) entry.body = body;
+    if (unread) entry.unread = true;
+    this.journal.push(entry);
     if (this.journal.length > JOURNAL_LIMIT) this.journal.splice(0, this.journal.length - JOURNAL_LIMIT);
+    return entry;
+  }
+
+  unreadCount() {
+    return this.journal.filter((e) => e.unread).length;
+  }
+
+  /** Marque une entrée lue ; renvoie vrai si elle était non lue. */
+  markRead(id) {
+    const entry = this.journal.find((e) => e.id === id);
+    if (!entry?.unread) return false;
+    delete entry.unread;
+    return true;
+  }
+
+  markAllRead() {
+    for (const entry of this.journal) delete entry.unread;
   }
 
   serialize() {

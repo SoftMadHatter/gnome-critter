@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: scamper\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 07:40+0200\n"
+"POT-Creation-Date: 2026-09-25 21:29+0200\n"
 "PO-Revision-Date: 2026-09-25 07:40+0200\n"
 "Last-Translator: Scamper\n"
 "Language-Team: none\n"
@@ -383,7 +383,7 @@ msgstr "States"
 msgid "Bureau"
 msgstr "Desktop"
 
-#: core/labels.js:100 extension/lib/panelIndicator.js:129
+#: core/labels.js:100 extension/lib/panelIndicator.js:135
 msgid "Boutique"
 msgstr "Shop"
 
@@ -415,7 +415,7 @@ msgstr "Seasons"
 msgid "Bêtises"
 msgstr "Mischief"
 
-#: core/labels.js:112 extension/lib/manager.js:419
+#: core/labels.js:112 extension/lib/manager.js:434
 msgid "Toi"
 msgstr "You"
 
@@ -739,7 +739,7 @@ msgstr "The System can't believe it."
 msgid "Personne ne te jugera. Sauf le Système."
 msgstr "Nobody will judge you. Except the System."
 
-#: core/narrator.js:38 core/narrator.js:112 extension/lib/progressDialog.js:124
+#: core/narrator.js:38 core/narrator.js:112 extension/lib/progressDialog.js:126
 msgid "« {name} »"
 msgstr "“{name}”"
 
@@ -793,7 +793,7 @@ msgstr "Reward: {reward}."
 msgid "la gloire"
 msgstr "glory"
 
-#: core/narrator.js:101 extension/lib/progressDialog.js:125
+#: core/narrator.js:101 extension/lib/progressDialog.js:127
 msgid "Récompense : {reward}"
 msgstr "Reward: {reward}"
 
@@ -879,7 +879,7 @@ msgstr "Feed"
 msgid "Remplir la gamelle"
 msgstr "Fill the bowl"
 
-#: extension/lib/critterActions.js:51 extension/lib/panelIndicator.js:153
+#: extension/lib/critterActions.js:51 extension/lib/panelIndicator.js:159
 msgid "Poser une gamelle"
 msgstr "Place a bowl"
 
@@ -899,15 +899,15 @@ msgstr "Tricks"
 msgid "Réveiller"
 msgstr "Wake up"
 
-#: extension/lib/critterActions.js:60 extension/lib/panelIndicator.js:156
+#: extension/lib/critterActions.js:60 extension/lib/panelIndicator.js:162
 msgid "Poser un lit"
 msgstr "Place a bed"
 
-#: extension/lib/critterActions.js:62 extension/lib/panelIndicator.js:118
+#: extension/lib/critterActions.js:62 extension/lib/panelIndicator.js:124
 msgid "Brosser"
 msgstr "Brush"
 
-#: extension/lib/critterActions.js:66 extension/lib/panelIndicator.js:117
+#: extension/lib/critterActions.js:66 extension/lib/panelIndicator.js:123
 msgid "Jouer"
 msgstr "Play"
 
@@ -923,242 +923,265 @@ msgstr "Perform: {trick}"
 msgid "Entraîner : {trick} ({skill} %)"
 msgstr "Train: {trick} ({skill}%)"
 
-#: extension/lib/critterMenu.js:38 extension/lib/panelIndicator.js:140
+#: extension/lib/critterMenu.js:38 extension/lib/panelIndicator.js:146
 msgid "Pointeur laser"
 msgstr "Laser pointer"
 
-#: extension/lib/critterMenu.js:41 extension/lib/panelIndicator.js:164
+#: extension/lib/critterMenu.js:41 extension/lib/panelIndicator.js:170
 msgid "Ranger les jouets"
 msgstr "Tidy up toys"
 
-#: extension/lib/critterMenu.js:47 extension/lib/manager.js:371
-#: extension/lib/panelIndicator.js:229
+#: extension/lib/critterMenu.js:47 extension/lib/manager.js:384
+#: extension/lib/panelIndicator.js:247
 msgid "Sans nom"
 msgstr "Unnamed"
 
-#: extension/lib/manager.js:210
+#: extension/lib/manager.js:223
 msgid "Un œuf est déposé : {name}."
 msgstr "An egg has been laid: {name}."
 
-#: extension/lib/manager.js:326
+#: extension/lib/manager.js:339
 msgid "Pièces insuffisantes ({price} nécessaires, {coins} en poche)."
 msgstr "Not enough coins ({price} needed, {coins} in your pocket)."
 
-#: extension/lib/manager.js:337
+#: extension/lib/manager.js:350
 msgid "Accessoire acheté : {accessory}."
 msgstr "Accessory bought: {accessory}."
 
-#: extension/lib/manager.js:338
+#: extension/lib/manager.js:351
 msgid "{accessory} acheté (-{price} pièces)."
 msgstr "{accessory} bought (-{price} coins)."
 
-#: extension/lib/manager.js:371
+#: extension/lib/manager.js:384
 msgid "{name} — progression"
 msgstr "{name} — progress"
 
-#: extension/lib/manager.js:395
+#: extension/lib/manager.js:410
 msgid "Une créature"
 msgstr "A creature"
 
-#: extension/lib/manager.js:395
+#: extension/lib/manager.js:410
 msgid "{previous} est rebaptisé(e) {name}."
 msgstr "{previous} has been renamed {name}."
 
-#: extension/lib/manager.js:423
+#: extension/lib/manager.js:436
 msgid "{name} : {count} succès d'un coup."
 msgid_plural "{name} : {count} succès d'un coup."
 msgstr[0] "{name}: {count} achievement at once."
 msgstr[1] "{name}: {count} achievements at once."
 
-#: extension/lib/manager.js:428
+#: extension/lib/manager.js:440
 msgid "{name} : bêtise « {achievement} »."
 msgstr "{name}: mischief “{achievement}”."
 
-#: extension/lib/manager.js:428
+#: extension/lib/manager.js:440
 msgid "{name} : succès « {achievement} »."
 msgstr "{name}: achievement “{achievement}”."
 
-#: extension/lib/manager.js:438
+#: extension/lib/manager.js:449
 msgid "Trophée obtenu : {trophy}."
 msgstr "Trophy earned: {trophy}."
 
-#: extension/lib/manager.js:470
+#: extension/lib/manager.js:501
 msgid "{name} a éclos."
 msgstr "{name} has hatched."
 
-#: extension/lib/manager.js:471
+#: extension/lib/manager.js:502
 msgid "{name} fête son anniversaire !"
 msgstr "It's {name}'s birthday!"
 
-#: extension/lib/manager.js:472
+#: extension/lib/manager.js:503
 msgid "{name} devient {stage}."
 msgstr "{name} has reached the {stage} stage."
 
-#: extension/lib/manager.js:474
+#: extension/lib/manager.js:505
 msgid "{name} a appris un tour."
 msgstr "{name} learned a trick."
 
-#: extension/lib/manager.js:709
+#: extension/lib/manager.js:741
 msgid "Cadeau ramassé : +{coins} pièce."
 msgid_plural "Cadeau ramassé : +{coins} pièces."
 msgstr[0] "Gift collected: +{coins} coin."
 msgstr[1] "Gift collected: +{coins} coins."
 
-#: extension/lib/panelIndicator.js:21
+#: extension/lib/panelIndicator.js:22
 msgid "Satiété"
 msgstr "Fullness"
 
-#: extension/lib/panelIndicator.js:22
+#: extension/lib/panelIndicator.js:23
 msgid "Énergie"
 msgstr "Energy"
 
-#: extension/lib/panelIndicator.js:23
+#: extension/lib/panelIndicator.js:24
 msgid "Propreté"
 msgstr "Cleanliness"
 
-#: extension/lib/panelIndicator.js:24
+#: extension/lib/panelIndicator.js:25
 msgid "Stimulation"
 msgstr "Stimulation"
 
-#: extension/lib/panelIndicator.js:25
+#: extension/lib/panelIndicator.js:26
 msgid "Affection"
 msgstr "Affection"
 
-#: extension/lib/panelIndicator.js:26
+#: extension/lib/panelIndicator.js:27
 msgid "Soulagement"
 msgstr "Relief"
 
-#: extension/lib/panelIndicator.js:27
+#: extension/lib/panelIndicator.js:28
 msgid "Santé"
 msgstr "Health"
 
-#: extension/lib/panelIndicator.js:115
+#: extension/lib/panelIndicator.js:121
 msgid "Nourrir"
 msgstr "Feed"
 
-#: extension/lib/panelIndicator.js:119
+#: extension/lib/panelIndicator.js:125
 msgid "Câlin"
 msgstr "Cuddle"
 
-#: extension/lib/panelIndicator.js:124
+#: extension/lib/panelIndicator.js:130
 msgid "Plus…"
 msgstr "More…"
 
-#: extension/lib/panelIndicator.js:125
+#: extension/lib/panelIndicator.js:131
 msgid "Bureau…"
 msgstr "Desktop…"
 
-#: extension/lib/panelIndicator.js:126
+#: extension/lib/panelIndicator.js:132
 msgid "Pièces"
 msgstr "Coins"
 
-#: extension/lib/panelIndicator.js:130 extension/lib/progressDialog.js:21
+#: extension/lib/panelIndicator.js:136 extension/lib/panelIndicator.js:227
+#: extension/lib/progressDialog.js:21
 msgid "Journal"
 msgstr "Journal"
 
-#: extension/lib/panelIndicator.js:132
+#: extension/lib/panelIndicator.js:138
 msgid "Réglages…"
 msgstr "Settings…"
 
-#: extension/lib/panelIndicator.js:137 extension/prefs.js:111
+#: extension/lib/panelIndicator.js:143 extension/prefs.js:111
 msgid "Mode vacances"
 msgstr "Vacation mode"
 
-#: extension/lib/panelIndicator.js:146
+#: extension/lib/panelIndicator.js:152
 msgid "Poser de la nourriture"
 msgstr "Put out food"
 
-#: extension/lib/panelIndicator.js:151
+#: extension/lib/panelIndicator.js:157
 msgid "Remplir une gamelle"
 msgstr "Fill a bowl"
 
-#: extension/lib/panelIndicator.js:158
+#: extension/lib/panelIndicator.js:164
 msgid "Poser une litière"
 msgstr "Place a litter box"
 
-#: extension/lib/panelIndicator.js:159
+#: extension/lib/panelIndicator.js:165
 msgid "Nettoyer les traces"
 msgstr "Clean up messes"
 
-#: extension/lib/panelIndicator.js:160
+#: extension/lib/panelIndicator.js:166
 msgid "Lâcher une proie"
 msgstr "Release prey"
 
-#: extension/lib/panelIndicator.js:161
+#: extension/lib/panelIndicator.js:167
 msgid "Poser une plante"
 msgstr "Place a plant"
 
-#: extension/lib/panelIndicator.js:162
+#: extension/lib/panelIndicator.js:168
 msgid "Poser un jouet"
 msgstr "Place a toy"
 
-#: extension/lib/panelIndicator.js:165
+#: extension/lib/panelIndicator.js:171
 msgid "Retirer les objets"
 msgstr "Remove items"
 
-#: extension/lib/panelIndicator.js:186 extension/lib/progressDialog.js:21
+#: extension/lib/panelIndicator.js:192 extension/lib/progressDialog.js:21
 msgid "Succès"
 msgstr "Achievements"
 
-#: extension/lib/panelIndicator.js:187 extension/lib/progressDialog.js:21
+#: extension/lib/panelIndicator.js:193 extension/lib/progressDialog.js:21
 msgid "Statistiques"
 msgstr "Statistics"
 
-#: extension/lib/panelIndicator.js:193
+#: extension/lib/panelIndicator.js:199
 msgid "Pièces : {coins}"
 msgstr "Coins: {coins}"
 
-#: extension/lib/panelIndicator.js:197
+#: extension/lib/panelIndicator.js:203
 msgid "Succès ({done}/{total})"
 msgstr "Achievements ({done}/{total})"
 
-#: extension/lib/panelIndicator.js:202
+#: extension/lib/panelIndicator.js:209
 msgid "{accessory} (gratuit de saison)"
 msgstr "{accessory} (free this season)"
 
-#: extension/lib/panelIndicator.js:205
+#: extension/lib/panelIndicator.js:212
 msgid "Acheter : {accessory} ({price} pièces)"
 msgstr "Buy: {accessory} ({price} coins)"
 
-#: extension/lib/progressDialog.js:61
+#: extension/lib/panelIndicator.js:226
+msgid "Journal ({count} non lu)"
+msgid_plural "Journal ({count} non lus)"
+msgstr[0] "Journal ({count} unread)"
+msgstr[1] "Journal ({count} unread)"
+
+#: extension/lib/progressDialog.js:63
 msgid "Fermer"
 msgstr "Close"
 
-#: extension/lib/progressDialog.js:84
+#: extension/lib/progressDialog.js:86
 msgid "{done} / {total} débloqués"
 msgstr "{done} / {total} unlocked"
 
-#: extension/lib/progressDialog.js:85
+#: extension/lib/progressDialog.js:87
 msgid "Aucun succès pour cet animal."
 msgstr "No achievements for this pet."
 
-#: extension/lib/progressDialog.js:93
+#: extension/lib/progressDialog.js:95
 msgid "{done} découverte sur {total}"
 msgid_plural "{done} découvertes sur {total}"
 msgstr[0] "{done} of {total} discovered"
 msgstr[1] "{done} of {total} discovered"
 
-#: extension/lib/progressDialog.js:109
+#: extension/lib/progressDialog.js:111
 msgid "Tes succès à toi, partagés entre tous tes animaux."
 msgstr "Your very own achievements, shared across all your pets."
 
-#: extension/lib/progressDialog.js:110
+#: extension/lib/progressDialog.js:112
 msgid "Rien de découvert pour l'instant. Le Système attend."
 msgstr "Nothing discovered yet. The System is waiting."
 
-#: extension/lib/progressDialog.js:120
+#: extension/lib/progressDialog.js:122
 msgid "Palier obtenu : {name} ({tier}/{tiers})"
 msgstr "Tier reached: {name} ({tier}/{tiers})"
 
-#: extension/lib/progressDialog.js:122
+#: extension/lib/progressDialog.js:124
 msgid "Titre gagné : {title}"
 msgstr "Title earned: {title}"
 
-#: extension/lib/progressDialog.js:138
+#: extension/lib/progressDialog.js:140
 msgid "{label} : {value}"
 msgstr "{label}: {value}"
 
-#: extension/lib/progressDialog.js:144
+#: extension/lib/progressDialog.js:150
+msgid "Non lus seulement"
+msgstr "Unread only"
+
+#: extension/lib/progressDialog.js:150
+msgid "Tout afficher"
+msgstr "Show all"
+
+#: extension/lib/progressDialog.js:159
+msgid "Tout marquer comme lu"
+msgstr "Mark all as read"
+
+#: extension/lib/progressDialog.js:168
+msgid "Rien de non lu."
+msgstr "Nothing unread."
+
+#: extension/lib/progressDialog.js:168
 msgid "Rien pour le moment."
 msgstr "Nothing yet."
 

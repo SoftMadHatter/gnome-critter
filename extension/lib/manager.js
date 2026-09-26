@@ -44,6 +44,7 @@ import { ItemActor, LaserDot, loadItemImages } from './itemActor.js';
 import { loadAccessoryImages } from './accessoryActor.js';
 import { RenameDialog } from './renameDialog.js';
 import { ProgressDialog } from './progressDialog.js';
+import { Notifier } from './notifier.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
@@ -64,6 +65,14 @@ export class Manager {
     this._uuid = uuid;
     this._openSettings = openSettings;
     this._indicator = null;
+    this._notifier = new Notifier({
+      onActivated: (id) => {
+        this._player.markRead(id);
+        const critter = this._critters[0]?.critter;
+        if (critter) this.openProgress(critter, 'journal');
+      },
+      onDismissed: (id) => this._player.markRead(id),
+    });
     this._settingsIds = [];
     /** @type {{item: object, actor: ItemActor}[]} */
     this._items = [];
@@ -381,6 +390,8 @@ export class Manager {
       },
       stats: Object.entries(values),
       journal: this._player.journal,
+      onRead: (id) => this.readJournalEntry(id),
+      onReadAll: () => this.readAllJournal(),
     }).open();
   }
 
@@ -422,25 +433,41 @@ export class Manager {
     });
     const subject = who ?? _('Toi');
     if (defs.length > BURST_SIZE) {
-      const { title, body } = announceBurst({ who, defs, coins });
-      Main.notify(title, body);
-      this._player.log(fmt(ngettext("{name} : {count} succès d'un coup.", "{name} : {count} succès d'un coup.", defs.length), { name: subject, count: defs.length }), Date.now());
+      const line = fmt(ngettext("{name} : {count} succès d'un coup.", "{name} : {count} succès d'un coup.", defs.length), { name: subject, count: defs.length });
+      this._announceEntry(line, announceBurst({ who, defs, coins }));
     } else {
       defs.forEach((def, i) => {
-        const { title, body } = announceUnlock({ def, who, outcome: outcomes[i] });
-        Main.notify(title, body);
         const line = def.troll ? _('{name} : bêtise « {achievement} ».') : _('{name} : succès « {achievement} ».');
-        this._player.log(fmt(line, { name: subject, achievement: def.name }), Date.now());
+        this._announceEntry(fmt(line, { name: subject, achievement: def.name }), announceUnlock({ def, who, outcome: outcomes[i] }));
       });
     }
     this._player.achievementCount += defs.length;
     for (const trophy of trophiesFor(this._player.achievementCount)) {
       if (this._player.owns(trophy.id)) continue;
       this._player.own(trophy.id);
-      const { title, body } = announceTrophy({ label: trophy.label, count: ACCESSORIES[trophy.id].trophy });
-      Main.notify(title, body);
-      this._player.log(fmt(_('Trophée obtenu : {trophy}.'), { trophy: trophy.label }), Date.now());
+      this._announceEntry(
+        fmt(_('Trophée obtenu : {trophy}.'), { trophy: trophy.label }),
+        announceTrophy({ label: trophy.label, count: ACCESSORIES[trophy.id].trophy }),
+      );
     }
+  }
+
+  /** Inscrit une annonce au journal (non lue, texte complet) et la notifie dans la liste de GNOME. */
+  _announceEntry(line, { title, body }) {
+    const entry = this._player.log(line, Date.now(), { body, unread: true });
+    this._notifier?.notify(entry.id, title, body);
+  }
+
+  unreadCount() {
+    return this._player.unreadCount();
+  }
+
+  readJournalEntry(id) {
+    this._player.markRead(id);
+  }
+
+  readAllJournal() {
+    this._player.markAllRead();
   }
 
   /** Applique la récompense d'un succès et décrit ce qui s'est passé (pour l'annonce). */
@@ -593,6 +620,7 @@ export class Manager {
         this._player.stats.add('settingsOpens');
         this._openSettings();
       },
+      unreadCount: () => this.unreadCount(),
       noteMenuOpen: () => this._noteMenuOpen('menuOpens'),
       noteContextMenuOpen: () => this._noteMenuOpen('contextMenuOpens'),
       titles: (critter) => titlesFor(this._achievements, critter.unlocked),
@@ -780,6 +808,8 @@ export class Manager {
     this._settingsIds = [];
     this._indicator?.destroy();
     this._indicator = null;
+    this._notifier?.destroy();
+    this._notifier = null;
     this._sensors?.destroy();
     this._sensors = null;
     for (const { actor } of this._critters) {
