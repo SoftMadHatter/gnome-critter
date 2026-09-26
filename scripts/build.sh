@@ -36,6 +36,7 @@ cp -r "$EXT_SRC"/. "$BUILD_DIR"/
 mkdir -p "$BUILD_DIR/core" "$BUILD_DIR/packs"
 cp -r "$CORE_SRC"/. "$BUILD_DIR/core"/
 cp -r "$PACKS_SRC"/. "$BUILD_DIR/packs"/
+cp "$ROOT_DIR/LICENSE" "$BUILD_DIR"/ # le texte de la licence accompagne l'archive distribuée
 
 if command -v glib-compile-schemas >/dev/null 2>&1; then
   glib-compile-schemas "$BUILD_DIR/schemas"
