@@ -20,6 +20,7 @@ packs/       données d'une espèce (voir docs/pack-format.md) : sprites +
              JSON, sans code.
 scripts/     génération des sprites placeholder, build/packaging.
 tests/       tests du cœur (node --test).
+LICENSE      GNU GPL version 3 (voir « Licence » plus bas).
 ```
 
 ## Statut
@@ -95,6 +96,24 @@ npm test
 ```bash
 python3 scripts/gen_placeholder_sprites.py
 ```
+
+## Licence
+
+Copyright © 2026 mad
+
+Ce programme est un logiciel libre : vous pouvez le redistribuer et/ou le
+modifier selon les termes de la licence publique générale GNU, telle que
+publiée par la Free Software Foundation, soit la version 3 de la licence, soit
+(à votre choix) toute version ultérieure (`GPL-3.0-or-later`). Le texte complet
+est dans le fichier [`LICENSE`](LICENSE).
+
+Ce programme est distribué dans l'espoir qu'il sera utile, mais **sans aucune
+garantie**, sans même la garantie implicite de commercialisation ou
+d'adéquation à un usage particulier.
+
+Les sprites et les sons des packs, des objets, des accessoires et des bulles
+sont générés par les scripts de ce dépôt (`scripts/gen_*.py`) : ils sont
+distribués sous la même licence.
 
 ## Étapes suivantes suggérées
 
