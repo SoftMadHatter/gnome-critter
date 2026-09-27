@@ -30,7 +30,7 @@ export function loadItemImages(dir) {
         try {
           image = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
         } catch (e) {
-          console.warn(`Scamper : sprite d'objet « ${name} » indisponible (${e.message})`);
+          console.warn(`Critter : sprite d'objet « ${name} » indisponible (${e.message})`);
         }
         cache.set(name, image);
       }

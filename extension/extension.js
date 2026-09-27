@@ -9,9 +9,9 @@ const DEFAULT_PACK_ID = 'critter-demo';
 const DEFAULT_COUNT = 1;
 const RELOAD_DELAY_MS = 400; // regroupe les changements successifs (champ numérique, liste)
 
-export default class ScamperExtension extends Extension {
+export default class CritterExtension extends Extension {
   enable() {
-    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/scamper.mo,
+    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/gnome-critter.mo,
     // domaine « gettext-domain » de metadata.json) ; sans catalogue : le français d'origine.
     this.initTranslations?.();
     setTranslator({
@@ -38,7 +38,7 @@ export default class ScamperExtension extends Extension {
     try {
       pack = loadPack(packPath);
     } catch (e) {
-      logError(e, `Scamper: échec du chargement du pack "${packId}" (${packPath})`);
+      logError(e, `Critter: échec du chargement du pack "${packId}" (${packPath})`);
       return;
     }
 

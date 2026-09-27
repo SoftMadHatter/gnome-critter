@@ -44,7 +44,7 @@ export const CritterIndicator = GObject.registerClass(
      * @param {Gio.Settings} settings
      */
     _init(owner, settings) {
-      super._init(0.5, 'Scamper');
+      super._init(0.5, 'Critter');
       this._owner = owner;
       this._settings = settings;
       this._selected = 0;

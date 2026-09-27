@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Traductions (gettext, domaine « scamper », textes source en français) :
-# extraction des textes vers po/scamper.pot et mise à jour des catalogues
+# Traductions (gettext, domaine « gnome-critter », textes source en français) :
+# extraction des textes vers po/gnome-critter.pot et mise à jour des catalogues
 # po/<langue>.po listés dans po/LINGUAS. Les textes des packs ne passent pas
 # par ici : ils sont traduits dans la section `translations` de chaque
 # pack.json. Voir docs/i18n.md.
@@ -13,7 +13,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PO_DIR="$ROOT_DIR/po"
-DOMAIN=scamper
+DOMAIN=gnome-critter
 
 for tool in xgettext msgcat msgmerge msginit msgfilter msgfmt; do
   command -v "$tool" >/dev/null 2>&1 || { echo "$tool introuvable (paquet 'gettext')." >&2; exit 1; }

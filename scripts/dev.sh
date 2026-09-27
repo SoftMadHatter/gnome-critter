@@ -31,7 +31,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-UUID="desktop-critter@beedi.xyz"
+UUID="gnome-critter@beedi.xyz"
 
 # Couleurs/icônes : désactivées si la sortie n'est pas un terminal (log,
 # pipe...). Exportées (variables + fonctions) pour rester utilisables dans
