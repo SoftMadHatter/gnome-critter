@@ -39,9 +39,9 @@ function listPacks(extensionPath) {
   return packs.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export default class ScamperPreferences extends ExtensionPreferences {
+export default class CritterPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
-    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/scamper.mo).
+    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/gnome-critter.mo).
     this.initTranslations?.();
     setTranslator({
       gettext: (text) => this.gettext(text),

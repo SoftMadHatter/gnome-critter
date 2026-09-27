@@ -36,7 +36,7 @@ export class ActivitySensor {
       this._connect(tray, 'source-added', (_tray, source) => this._hookSource(source));
       for (const source of tray.getSources?.() ?? []) this._hookSource(source);
     } catch (e) {
-      console.warn(`Scamper : réaction aux notifications indisponible (${e.message})`);
+      console.warn(`Critter : réaction aux notifications indisponible (${e.message})`);
       this._unhookNotifications();
     }
   }

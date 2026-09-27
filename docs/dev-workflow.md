@@ -73,8 +73,8 @@ Ce script :
 Pour itérer :
 
 - modif de `packs/`, `schemas/`, ou tout ce qui ne touche pas à un fichier
-  `.js` → `gnome-extensions disable desktop-critter@beedi.xyz && gnome-extensions
-  enable desktop-critter@beedi.xyz` **dans le terminal de la session
+  `.js` → `gnome-extensions disable gnome-critter@beedi.xyz && gnome-extensions
+  enable gnome-critter@beedi.xyz` **dans le terminal de la session
   imbriquée** (ou sur le bureau réel si tu testes là) suffit, pas besoin de
   relancer `dev.sh` ;
 - modif de `extension.js` / `lib/*.js` / `prefs.js` → ferme la fenêtre
@@ -121,16 +121,16 @@ Les positions des critters sont sauvegardées dans la clé GSettings cachée
 repartir de zéro :
 
 ```bash
-SCHEMAS=dist/desktop-critter@beedi.xyz/schemas
-gsettings --schemadir "$SCHEMAS" get org.gnome.shell.extensions.scamper saved-state
-gsettings --schemadir "$SCHEMAS" reset org.gnome.shell.extensions.scamper saved-state
+SCHEMAS=dist/gnome-critter@beedi.xyz/schemas
+gsettings --schemadir "$SCHEMAS" get org.gnome.shell.extensions.gnome-critter saved-state
+gsettings --schemadir "$SCHEMAS" reset org.gnome.shell.extensions.gnome-critter saved-state
 ```
 
 ## Réglages à chaud
 
 Tous les réglages de la fenêtre « Réglages… » (menu de l'icône) s'appliquent sans
 recharger l'extension. Pour les tester : `gsettings --schemadir
-dist/desktop-critter@beedi.xyz/schemas set org.gnome.shell.extensions.scamper
+dist/gnome-critter@beedi.xyz/schemas set org.gnome.shell.extensions.gnome-critter
 critter-count 3` fait apparaître deux animaux de plus tout de suite.
 
 ## Outil de revue (succès, titres, récompenses, créatures, objets)

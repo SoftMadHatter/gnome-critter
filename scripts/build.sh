@@ -46,13 +46,13 @@ else
   echo "   le schéma n'est pas compilé (paquet 'libglib2.0-bin' / 'glib2-devel')." >&2
 fi
 
-# Traductions : chaque po/<langue>.po devient locale/<langue>/LC_MESSAGES/scamper.mo.
+# Traductions : chaque po/<langue>.po devient locale/<langue>/LC_MESSAGES/gnome-critter.mo.
 if command -v msgfmt >/dev/null 2>&1; then
   for po in "$ROOT_DIR"/po/*.po; do
     [ -e "$po" ] || continue
     lang="$(basename "$po" .po)"
     mkdir -p "$BUILD_DIR/locale/$lang/LC_MESSAGES"
-    msgfmt -o "$BUILD_DIR/locale/$lang/LC_MESSAGES/scamper.mo" "$po"
+    msgfmt -o "$BUILD_DIR/locale/$lang/LC_MESSAGES/gnome-critter.mo" "$po"
   done
   echo "==> Traductions compilées."
 else

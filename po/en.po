@@ -1,13 +1,13 @@
-# English translation of Scamper.
-# This file is distributed under the same license as the Scamper package.
+# English translation of GNOME Critter.
+# This file is distributed under the same license as the GNOME Critter package (GPL-3.0-or-later).
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: scamper\n"
+"Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 07:40+0200\n"
+"POT-Creation-Date: 2026-09-27 09:53+0200\n"
 "PO-Revision-Date: 2026-09-25 07:40+0200\n"
-"Last-Translator: Scamper\n"
+"Last-Translator: Critter\n"
 "Language-Team: none\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -415,7 +415,7 @@ msgstr "Seasons"
 msgid "Bêtises"
 msgstr "Mischief"
 
-#: core/labels.js:112 extension/lib/manager.js:419
+#: core/labels.js:112 extension/lib/manager.js:423
 msgid "Toi"
 msgstr "You"
 
@@ -931,74 +931,74 @@ msgstr "Laser pointer"
 msgid "Ranger les jouets"
 msgstr "Tidy up toys"
 
-#: extension/lib/critterMenu.js:47 extension/lib/manager.js:371
+#: extension/lib/critterMenu.js:47 extension/lib/manager.js:375
 #: extension/lib/panelIndicator.js:229
 msgid "Sans nom"
 msgstr "Unnamed"
 
-#: extension/lib/manager.js:210
+#: extension/lib/manager.js:214
 msgid "Un œuf est déposé : {name}."
 msgstr "An egg has been laid: {name}."
 
-#: extension/lib/manager.js:326
+#: extension/lib/manager.js:330
 msgid "Pièces insuffisantes ({price} nécessaires, {coins} en poche)."
 msgstr "Not enough coins ({price} needed, {coins} in your pocket)."
 
-#: extension/lib/manager.js:337
+#: extension/lib/manager.js:341
 msgid "Accessoire acheté : {accessory}."
 msgstr "Accessory bought: {accessory}."
 
-#: extension/lib/manager.js:338
+#: extension/lib/manager.js:342
 msgid "{accessory} acheté (-{price} pièces)."
 msgstr "{accessory} bought (-{price} coins)."
 
-#: extension/lib/manager.js:371
+#: extension/lib/manager.js:375
 msgid "{name} — progression"
 msgstr "{name} — progress"
 
-#: extension/lib/manager.js:395
+#: extension/lib/manager.js:399
 msgid "Une créature"
 msgstr "A creature"
 
-#: extension/lib/manager.js:395
+#: extension/lib/manager.js:399
 msgid "{previous} est rebaptisé(e) {name}."
 msgstr "{previous} has been renamed {name}."
 
-#: extension/lib/manager.js:423
+#: extension/lib/manager.js:427
 msgid "{name} : {count} succès d'un coup."
 msgid_plural "{name} : {count} succès d'un coup."
 msgstr[0] "{name}: {count} achievement at once."
 msgstr[1] "{name}: {count} achievements at once."
 
-#: extension/lib/manager.js:428
+#: extension/lib/manager.js:432
 msgid "{name} : bêtise « {achievement} »."
 msgstr "{name}: mischief “{achievement}”."
 
-#: extension/lib/manager.js:428
+#: extension/lib/manager.js:432
 msgid "{name} : succès « {achievement} »."
 msgstr "{name}: achievement “{achievement}”."
 
-#: extension/lib/manager.js:438
+#: extension/lib/manager.js:442
 msgid "Trophée obtenu : {trophy}."
 msgstr "Trophy earned: {trophy}."
 
-#: extension/lib/manager.js:470
+#: extension/lib/manager.js:474
 msgid "{name} a éclos."
 msgstr "{name} has hatched."
 
-#: extension/lib/manager.js:471
+#: extension/lib/manager.js:475
 msgid "{name} fête son anniversaire !"
 msgstr "It's {name}'s birthday!"
 
-#: extension/lib/manager.js:472
+#: extension/lib/manager.js:476
 msgid "{name} devient {stage}."
 msgstr "{name} has reached the {stage} stage."
 
-#: extension/lib/manager.js:474
+#: extension/lib/manager.js:478
 msgid "{name} a appris un tour."
 msgstr "{name} learned a trick."
 
-#: extension/lib/manager.js:709
+#: extension/lib/manager.js:713
 msgid "Cadeau ramassé : +{coins} pièce."
 msgid_plural "Cadeau ramassé : +{coins} pièces."
 msgstr[0] "Gift collected: +{coins} coin."
@@ -1360,30 +1360,30 @@ msgstr "React to typing"
 msgid "Compte seulement qu'une touche est pressée, jamais laquelle."
 msgstr "Only counts that a key is pressed, never which one."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:6
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:6
 msgid "Identifiant du pack d'animal actif"
 msgstr "ID of the active pet pack"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:7
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:7
 msgid "Nom du dossier sous packs/ à charger (ex: \"critter-demo\")."
 msgstr "Name of the folder under packs/ to load (e.g. \"critter-demo\")."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:12
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:12
 msgid "Nombre d'animaux affichés"
 msgstr "Number of pets shown"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:16
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:16
 msgid "Active les effets sonores des réactions"
 msgstr "Enables reaction sound effects"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:26
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:26
 msgid ""
 "Vitesse à laquelle les besoins de l'animal baissent : détendu (x0,4), normal "
 "(x1) ou strict (x2)."
 msgstr ""
 "How fast the pet's needs go down: relaxed (x0.4), normal (x1) or strict (x2)."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:40
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:40
 msgid ""
 "Un animal neuf naît d'un œuf et grandit par stades. Désactivée, il naît "
 "adulte."
@@ -1391,7 +1391,7 @@ msgstr ""
 "A new pet hatches from an egg and grows up in stages. When off, it is born "
 "an adult."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:46
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:46
 msgid ""
 "Multiplicateur de la vitesse de vieillissement (utile pour essayer les "
 "stades sans attendre des jours)."
@@ -1399,7 +1399,7 @@ msgstr ""
 "Aging speed multiplier (handy for trying out the stages without waiting for "
 "days)."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:51
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:51
 msgid ""
 "La nuit (23 h à 7 h, heure locale), les animaux dorment davantage et sont "
 "légèrement assombris."
@@ -1407,40 +1407,40 @@ msgstr ""
 "At night (11 p.m. to 7 a.m., local time), pets sleep more and are slightly "
 "dimmed."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:69
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:69
 msgid "Minutes d'activité avant le rappel de pause"
 msgstr "Active minutes before the break reminder"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:89
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:89
 msgid "Autonomie des animaux"
 msgstr "Pet autonomy"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:90
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:90
 msgid ""
 "Auto : suit la croissance et les tours appris. Sinon désactivée, partielle "
 "ou totale."
 msgstr ""
 "Auto: follows growth and learned tricks. Otherwise off, partial or full."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:100
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:100
 msgid ""
 "Des plantes à grignoter sont maintenues sur le bureau pour les animaux "
 "autonomes."
 msgstr "Plants to nibble on are kept on the desktop for autonomous pets."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:104
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:104
 msgid "Pièces, achats et journal (interne)"
 msgstr "Coins, purchases and journal (internal)"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:105
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:105
 msgid "JSON écrit par l'extension. Ne pas modifier à la main."
 msgstr "JSON written by the extension. Do not edit by hand."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:109
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:109
 msgid "Objets du bureau sauvegardés (interne)"
 msgstr "Saved desktop items (internal)"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:110
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:110
 msgid ""
 "JSON écrit par l'extension : gamelles, lits et nourriture à restaurer. Ne "
 "pas modifier à la main."
@@ -1448,11 +1448,11 @@ msgstr ""
 "JSON written by the extension: bowls, beds and food to restore. Do not edit "
 "by hand."
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:114
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:114
 msgid "État sauvegardé des animaux (interne)"
 msgstr "Saved pet state (internal)"
 
-#: extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml:115
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:115
 msgid ""
 "JSON écrit par l'extension : positions à restaurer au prochain démarrage. Ne "
 "pas modifier à la main."

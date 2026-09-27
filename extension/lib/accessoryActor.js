@@ -19,7 +19,7 @@ export function loadAccessoryImages(dir) {
   try {
     for (const id of Object.keys(ACCESSORIES)) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
   } catch (e) {
-    console.warn(`Scamper : accessoires indisponibles (${e.message})`);
+    console.warn(`Critter : accessoires indisponibles (${e.message})`);
     return {};
   }
   return images;

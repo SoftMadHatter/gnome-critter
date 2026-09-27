@@ -1,7 +1,7 @@
-# Critter — animal de bureau pour GNOME
+# GNOME Critter
 
-Nom d'affichage : **Critter** · UUID : `desktop-critter@beedi.xyz` (déjà choisi
-et renseigné dans `extension/metadata.json`, pas besoin d'y retoucher).
+Nom d'affichage : **Critter** · nom long : **GNOME Critter** · UUID :
+`gnome-critter@beedi.xyz` · dépôt : <https://github.com/SoftMadHatter/gnome-critter>.
 
 Squelette de départ pour une extension GNOME Shell (option A retenue : tout
 en GJS/JavaScript, pas de démon séparé) faisant marcher un petit animal
@@ -62,7 +62,7 @@ Traductions : `docs/i18n.md`.
 #      docs/dev-workflow.md)
 
 # 3. Active l'extension
-gnome-extensions enable desktop-critter@beedi.xyz
+gnome-extensions enable gnome-critter@beedi.xyz
 
 # 4. Logs en cas de souci
 journalctl -f -o cat /usr/bin/gnome-shell
@@ -95,6 +95,18 @@ npm test
 
 ```bash
 python3 scripts/gen_placeholder_sprites.py
+```
+
+## Contribuer
+
+Tickets et pull requests sur <https://github.com/SoftMadHatter/gnome-critter>.
+
+Les identifiants internes (schéma GSettings, domaine gettext, préfixe des
+journaux) gardent le nom court `gnome-critter`/`Critter` du dépôt actuel ;
+les journaux de l'extension se filtrent avec :
+
+```bash
+journalctl -f -o cat /usr/bin/gnome-shell | grep Critter
 ```
 
 ## Licence
