@@ -238,7 +238,7 @@ test('localizePack : repli champ par champ sur le français, sections invalides 
   ]);
 });
 
-test('rendu anglais : succès développés et annonces du Système sans français', () => {
+test('rendu anglais : succès développés et annonces du Comité sans français', () => {
   const check = (text, where) => assert.ok(!looksFrench(text), `${where} : ${text}`);
   inEnglish(() => {
     for (const [id, meta] of PACKS) {
@@ -250,7 +250,7 @@ test('rendu anglais : succès développés et annonces du Système sans françai
           const who = def.scope === 'player' ? null : pack.names[0];
           const outcome = { paid: r > 0.5, box: { text: 'a rusty coin' } };
           const { title, body } = announceUnlock({ def, who, outcome, random: () => r });
-          assert.equal(title, 'The System');
+          assert.equal(title, 'The Committee');
           check(body, `${id}/${def.id}`);
         }
       }
@@ -258,6 +258,6 @@ test('rendu anglais : succès développés et annonces du Système sans françai
       check(announceBurst({ who: null, defs: player.slice(0, 2) }).body, `${id} : rafale du joueur`);
     }
     const trophy = announceTrophy({ label: accessoryLabel('medal'), count: 25 }).body;
-    assert.equal(trophy, '25 achievements. You get: medal. The System is almost impressed.');
+    assert.equal(trophy, '25 achievements. You get: medal. The Committee is almost impressed.');
   });
 });

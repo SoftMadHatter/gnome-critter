@@ -72,7 +72,7 @@ export function render(root, { pack, state, setState }) {
           ['Récompense', (def) => rewardLabel(def.reward)],
           ['Titre', (def) => def.title ?? ''],
           ['Exigences', (def) => requiresText(def)],
-          ['Commentaire du Système', (def) => (def.quip ? h('span', { class: 'quip' }, def.quip) : '')],
+          ['Commentaire du Comité', (def) => (def.quip ? h('span', { class: 'quip' }, def.quip) : '')],
           ['', (def) => h('button', { title: 'Copier le gabarit source (JSON)', onclick: () => copyText(JSON.stringify(pack.source(def), null, 2)) }, 'Copier')],
         ],
         rows,

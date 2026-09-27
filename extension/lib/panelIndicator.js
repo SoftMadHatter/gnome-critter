@@ -68,7 +68,7 @@ export const CritterIndicator = GObject.registerClass(
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
         if (!open) return;
-        this._owner.noteMenuOpen(); // le Système compte (voir les bêtises du joueur)
+        this._owner.noteMenuOpen(); // le Comité compte (voir les bêtises du joueur)
         this._laser.setToggleState(this._owner.isLaser());
         this._tidy.setSensitive(this._owner.hasToys());
         this._actions.refresh();

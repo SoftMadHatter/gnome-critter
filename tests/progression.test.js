@@ -120,11 +120,11 @@ test('Player : journal borné, sérialisation et lecture tolérante', () => {
 test('Player : journal, annonces non lues et marquage lu', () => {
   const p = new Player();
   const plain = p.log('Un œuf est déposé.', 1);
-  const announced = p.log('Toi : succès « A ».', 2, { body: 'Le Système : bravo.', unread: true });
-  const other = p.log('Trophée obtenu.', 3, { body: 'Le Système : trophée.', unread: true });
+  const announced = p.log('Toi : succès « A ».', 2, { body: 'Le Comité : bravo.', unread: true });
+  const other = p.log('Trophée obtenu.', 3, { body: 'Le Comité : trophée.', unread: true });
   assert.deepEqual([plain.id, announced.id, other.id], [1, 2, 3]);
   assert.equal(plain.unread, undefined);
-  assert.equal(announced.body, 'Le Système : bravo.');
+  assert.equal(announced.body, 'Le Comité : bravo.');
   assert.equal(p.unreadCount(), 2);
 
   assert.equal(p.markRead(2), true);
@@ -134,7 +134,7 @@ test('Player : journal, annonces non lues et marquage lu', () => {
 
   const back = Player.parse(p.serialize());
   assert.equal(back.unreadCount(), 1);
-  assert.equal(back.journal[2].body, 'Le Système : trophée.');
+  assert.equal(back.journal[2].body, 'Le Comité : trophée.');
   assert.equal(back.log('suite', 4).id, 4, 'les ids continuent après relecture');
 
   p.markAllRead();

@@ -675,7 +675,7 @@ export class Critter {
   interact(kind) {
     // Dans l'œuf : aucune interaction (ni réaction, ni caresse) ; seul le glisser reste possible.
     if (this.life.stage === 'egg') {
-      if (kind === 'click') this.stats.add('eggPets'); // il ne se passe rien, mais le Système compte
+      if (kind === 'click') this.stats.add('eggPets'); // il ne se passe rien, mais le Comité compte
       return;
     }
     let event = INTERACTION_REACTIONS[kind];

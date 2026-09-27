@@ -428,7 +428,7 @@ export class Manager {
   }
 
   /**
-   * Récompenses, journal et annonces du Système pour des succès tout juste
+   * Récompenses, journal et annonces du Comité pour des succès tout juste
    * obtenus (par un animal, ou par le joueur quand `who` est null).
    */
   _announce(defs, { who, key, nowSeconds }) {

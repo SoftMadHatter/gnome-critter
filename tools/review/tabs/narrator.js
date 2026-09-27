@@ -1,4 +1,4 @@
-// Onglet « Le Système » : annonces d'un succès (plusieurs tirages), phrases
+// Onglet « Le Comité » : annonces d'un succès (plusieurs tirages), phrases
 // d'ouverture et de conclusion, rafale et trophée, commentaires par longueur.
 
 import { h, select, table } from '../dom.js';
@@ -39,7 +39,7 @@ export function render(root, { pack, state, setState }) {
     h(
       'section',
       { class: 'panel' },
-      h('h2', {}, 'Annonces du Système'),
+      h('h2', {}, 'Annonces du Comité'),
       h(
         'div',
         { class: 'controls' },
@@ -68,7 +68,7 @@ export function render(root, { pack, state, setState }) {
     h(
       'section',
       { class: 'panel' },
-      h('h2', {}, 'Phrases du Système'),
+      h('h2', {}, 'Phrases du Comité'),
       h('div', { class: 'columns' },
         h('div', {}, h('h3', {}, 'Ouvertures (vrais succès)'), h('ul', {}, SOBER_OPENERS.map((t) => h('li', {}, _(t))))),
         h('div', {}, h('h3', {}, 'Ouvertures (bêtises)'), h('ul', {}, TROLL_OPENERS.map((t) => h('li', {}, _(t))))),

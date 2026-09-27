@@ -14,7 +14,7 @@ test('un vrai succès : annonce sobre, avec les pièces', () => {
   assert.match(body, /10 pièces/);
 });
 
-test('une bêtise : commentaire du Système et contenu de la boîte', () => {
+test('une bêtise : commentaire du Comité et contenu de la boîte', () => {
   const { body } = announceUnlock({ def: troll, who: 'Minou', outcome: { box: { text: 'une pièce rouillée' } }, random: () => 0 });
   assert.match(body, /Il ne s'est rien passé\./);
   assert.match(body, /une boîte en bronze… qui contient : une pièce rouillée/);

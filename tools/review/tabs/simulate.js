@@ -1,7 +1,7 @@
 // Onglet « Vue en jeu » : on règle les compteurs et marques d'un animal (et
 // du joueur), les succès se débloquent comme en jeu, et la fenêtre de
 // progression s'affiche telle que le joueur la voit, avec les annonces du
-// Système. Le scénario est gardé dans le navigateur (par pack) : il survit
+// Comité. Le scénario est gardé dans le navigateur (par pack) : il survit
 // au rechargement automatique après une correction.
 
 import { h, select, field, debounce, fill } from '../dom.js';
@@ -105,7 +105,7 @@ function progressWindow(view, open) {
         { open },
         h('summary', {}, `${categoryLabel(category.id)} (${count})`),
         category.id === 'player' ? h('p', { class: 'muted' }, _('Tes succès à toi, partagés entre tous tes animaux.')) : null,
-        category.entries.length === 0 ? h('p', { class: 'muted' }, _("Rien de découvert pour l'instant. Le Système attend.")) : null,
+        category.entries.length === 0 ? h('p', { class: 'muted' }, _("Rien de découvert pour l'instant. Le Comité attend.")) : null,
         category.entries.map((entry) =>
           h(
             'div',
@@ -221,7 +221,7 @@ export function render(root, { pack, state, setState }) {
     const coins = got.reduce((sum, def) => sum + Math.max(0, def.reward.coins ?? 0), 0);
     fill(
       notices,
-      h('h3', {}, `Annonces du Système (${got.length} succès)`),
+      h('h3', {}, `Annonces du Comité (${got.length} succès)`),
       got.length > 3
         ? [notice(announceBurst({ who: sample, defs: got, coins })),
           h('p', { class: 'muted' }, 'Plus de 3 succès d’un coup : en jeu, une seule notification (ci-dessus). Annonces individuelles :')]

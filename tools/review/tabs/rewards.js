@@ -1,4 +1,4 @@
-// Onglet « Récompenses » : boîtes du Système (lots, probabilités, simulation),
+// Onglet « Récompenses » : boîtes du Comité (lots, probabilités, simulation),
 // budget de pièces de l'espèce, trophées et accessoires ridicules.
 
 import { h, table, badge, percent } from '../dom.js';
@@ -104,7 +104,7 @@ export function render(root, { pack, data }) {
   const jokes = Object.entries(ACCESSORIES).filter(([, def]) => def.joke);
   const givers = (id) => pack.all.filter((def) => def.reward.accessory === id);
   root.append(
-    h('section', { class: 'panel' }, h('h2', {}, 'Boîtes du Système'), h('div', { class: 'columns' }, BOX_TIERS.map(boxPanel))),
+    h('section', { class: 'panel' }, h('h2', {}, 'Boîtes du Comité'), h('div', { class: 'columns' }, BOX_TIERS.map(boxPanel))),
     h('section', { class: 'panel' }, h('h2', {}, `Budget — ${pack.meta.displayName ?? pack.id}`), budget(pack)),
     h(
       'section',
