@@ -285,15 +285,8 @@ export function isInsideAnyMonitor(monitors, x, y) {
   return monitors.some((m) => x >= m.x && x <= m.x + m.width && y >= m.y && y <= m.y + m.height);
 }
 
-/**
- * Point de réapparition pour quelqu'un qui n'est plus dans aucun moniteur
- * (changement de résolution, écran débranché ou basculé) : en haut du
- * moniteur le plus proche, à l'abscisse ramenée dans ses bornes.
- * @param {{x:number,y:number,width:number,height:number}[]} monitors
- * @param {number} topOffset décalage sous le bord haut (hauteur du sprite : y désigne les pieds)
- * @returns {{x:number, y:number}|null} null si aucun moniteur n'est connu
- */
-export function respawnPoint(monitors, x, y, topOffset = 0, margin = 16) {
+/** Moniteur le plus proche du point (celui qui le contient, le cas échéant), ou null. */
+function nearestMonitor(monitors, x, y) {
   let best = null;
   let bestDistance = Infinity;
   for (const m of monitors) {
@@ -305,10 +298,39 @@ export function respawnPoint(monitors, x, y, topOffset = 0, margin = 16) {
       best = m;
     }
   }
+  return best;
+}
+
+/**
+ * Point de réapparition pour quelqu'un qui n'est plus dans aucun moniteur
+ * (changement de résolution, écran débranché ou basculé) : en haut du
+ * moniteur le plus proche, à l'abscisse ramenée dans ses bornes.
+ * @param {{x:number,y:number,width:number,height:number}[]} monitors
+ * @param {number} topOffset décalage sous le bord haut (hauteur du sprite : y désigne les pieds)
+ * @returns {{x:number, y:number}|null} null si aucun moniteur n'est connu
+ */
+export function respawnPoint(monitors, x, y, topOffset = 0, margin = 16) {
+  const best = nearestMonitor(monitors, x, y);
   if (!best) return null;
   const safe = Math.min(margin, best.width / 2);
   return {
     x: Math.min(Math.max(x, best.x + safe), best.x + best.width - safe),
     y: best.y + topOffset,
+  };
+}
+
+/**
+ * Point au sol (bas du moniteur le plus proche), à l'abscisse ramenée dans ses
+ * bornes : où tout doit revenir après une veille, quand la géométrie du bureau
+ * est de nouveau stable.
+ * @returns {{x:number, y:number}|null} null si aucun moniteur n'est connu
+ */
+export function groundPoint(monitors, x, y, margin = 16) {
+  const best = nearestMonitor(monitors, x, y);
+  if (!best) return null;
+  const safe = Math.min(margin, best.width / 2);
+  return {
+    x: Math.min(Math.max(x, best.x + safe), best.x + best.width - safe),
+    y: best.y + best.height,
   };
 }
