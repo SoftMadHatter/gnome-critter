@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-27 20:28+0200\n"
+"POT-Creation-Date: 2026-09-27 20:47+0200\n"
 "PO-Revision-Date: 2026-09-25 07:40+0200\n"
 "Last-Translator: Critter\n"
 "Language-Team: none\n"
@@ -2251,6 +2251,33 @@ msgstr "Potty diploma"
 msgid "Se soulager proprement {n} fois"
 msgstr "Relieve itself properly {n} time{s}"
 
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid ""
+"Dix fois aux toilettes. Comme prévu. Le Comité salue cet exploit du "
+"quotidien."
+msgstr ""
+"Ten trips to the litter box. As expected. The Committee salutes this "
+"everyday achievement."
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante fois, toujours au bon endroit. Le Comité se demande si c'est "
+"vraiment un succès."
+msgstr ""
+"Fifty times, always in the right place. The Committee wonders if this really "
+"counts as an achievement."
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid ""
+"Deux cents fois. Un diplôme de propreté, décerné pour avoir fait ce qu'on "
+"attendait de lui depuis le début."
+msgstr ""
+"Two hundred times. A certificate of cleanliness, awarded for doing what was "
+"expected of it all along."
+
 #. succès : trait-playful
 #: core/achievementLibrary.js
 msgid "Boule d'énergie"
@@ -2841,6 +2868,11 @@ msgstr "Repeat offender"
 
 #. succès : accidents
 #: core/achievementLibrary.js
+msgid "Dossier ouvert"
+msgstr "Case Opened"
+
+#. succès : accidents
+#: core/achievementLibrary.js
 msgid "Avoir {n} accident{s}"
 msgstr "Have {n} accident{s}"
 
@@ -2857,6 +2889,14 @@ msgid ""
 msgstr ""
 "Ten accidents. Here's the cone of shame. We're still working out who should "
 "wear it."
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid ""
+"Vingt-cinq accidents. Le Comité ouvre un dossier à son nom. Frais de dossier."
+msgstr ""
+"Twenty-five accidents. The Committee opens a file under its name. Processing "
+"fees."
 
 #. succès : awakenings
 #: core/achievementLibrary.js

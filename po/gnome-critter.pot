@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-27 20:28+0200\n"
+"POT-Creation-Date: 2026-09-27 20:47+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2231,6 +2231,27 @@ msgstr ""
 msgid "Se soulager proprement {n} fois"
 msgstr ""
 
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid ""
+"Dix fois aux toilettes. Comme prévu. Le Comité salue cet exploit du "
+"quotidien."
+msgstr ""
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid ""
+"Cinquante fois, toujours au bon endroit. Le Comité se demande si c'est "
+"vraiment un succès."
+msgstr ""
+
+#. succès : reliefs
+#: core/achievementLibrary.js
+msgid ""
+"Deux cents fois. Un diplôme de propreté, décerné pour avoir fait ce qu'on "
+"attendait de lui depuis le début."
+msgstr ""
+
 #. succès : trait-playful
 #: core/achievementLibrary.js
 msgid "Boule d'énergie"
@@ -2812,6 +2833,11 @@ msgstr ""
 
 #. succès : accidents
 #: core/achievementLibrary.js
+msgid "Dossier ouvert"
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
 msgid "Avoir {n} accident{s}"
 msgstr ""
 
@@ -2825,6 +2851,12 @@ msgstr ""
 msgid ""
 "Dix accidents. Voici le cône de la honte. On ne sait pas encore qui doit le "
 "porter."
+msgstr ""
+
+#. succès : accidents
+#: core/achievementLibrary.js
+msgid ""
+"Vingt-cinq accidents. Le Comité ouvre un dossier à son nom. Frais de dossier."
 msgstr ""
 
 #. succès : awakenings

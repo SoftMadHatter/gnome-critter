@@ -146,9 +146,15 @@ export const LIBRARY = Object.freeze([
     description: 'Fêter {n} anniversaire{s}', title: 'gâteau sur pattes',
   },
   {
-    series: 'reliefs', category: 'life', stat: 'reliefs', tiers: [10, 50, 200], requires: { can: 'relieve' },
+    series: 'reliefs', troll: true, stat: 'reliefs', tiers: [10, 50, 200], requires: { can: 'relieve' },
     names: ['Propre', 'Bonnes manières', 'Diplôme de propreté'],
     description: 'Se soulager proprement {n} fois',
+    quips: [
+      'Dix fois aux toilettes. Comme prévu. Le Comité salue cet exploit du quotidien.',
+      'Cinquante fois, toujours au bon endroit. Le Comité se demande si c\'est vraiment un succès.',
+      "Deux cents fois. Un diplôme de propreté, décerné pour avoir fait ce qu'on attendait de lui depuis le début.",
+    ],
+    reward: [{ coins: 1 }, { coins: 1 }, { box: 'bronze' }],
   },
 
   // --- Caractère (une série par caractère) -----------------------------------------
@@ -288,14 +294,15 @@ export const LIBRARY = Object.freeze([
     reward: [{ text: 'une ordonnance illisible' }, { coins: -1, text: 'frais de consultation' }],
   },
   {
-    series: 'accidents', troll: true, stat: 'accidents', tiers: [1, 10], requires: { can: 'relieve' },
-    names: ['Oups', 'Récidive'],
+    series: 'accidents', troll: true, stat: 'accidents', tiers: [1, 10, 25], requires: { can: 'relieve' },
+    names: ['Oups', 'Récidive', 'Dossier ouvert'],
     description: 'Avoir {n} accident{s}',
     quips: [
       'Un petit accident. Le Comité a tout vu. Les spectateurs aussi.',
       "Dix accidents. Voici le cône de la honte. On ne sait pas encore qui doit le porter.",
+      "Vingt-cinq accidents. Le Comité ouvre un dossier à son nom. Frais de dossier.",
     ],
-    reward: [{ coins: 0 }, { accessory: 'cone' }],
+    reward: [{ coins: 0 }, { accessory: 'cone' }, { coins: -1, text: 'frais de dossier' }],
   },
   {
     series: 'awakenings', troll: true, stat: 'awakenings', tiers: [10, 50],
