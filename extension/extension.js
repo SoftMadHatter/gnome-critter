@@ -5,7 +5,7 @@ import { loadPack, resolvePackPath } from './lib/packLoader.js';
 import { Manager } from './lib/manager.js';
 import { setTranslator, sessionLanguage } from './core/i18n.js';
 
-const DEFAULT_PACK_ID = 'critter-demo';
+const DEFAULT_PACK_ID = 'cat';
 const DEFAULT_COUNT = 1;
 const RELOAD_DELAY_MS = 400; // regroupe les changements successifs (champ numérique, liste)
 

@@ -2,9 +2,9 @@
 <schemalist gettext-domain="gnome-critter">
   <schema id="org.gnome.shell.extensions.gnome-critter" path="/org/gnome/shell/extensions/gnome-critter/">
     <key name="pack-id" type="s">
-      <default>'critter-demo'</default>
+      <default>'cat'</default>
       <summary>Identifiant du pack d'animal actif</summary>
-      <description>Nom du dossier sous packs/ à charger (ex: "critter-demo").</description>
+      <description>Nom du dossier sous packs/ à charger (ex: "cat").</description>
     </key>
     <key name="critter-count" type="i">
       <range min="1" max="10"/>
