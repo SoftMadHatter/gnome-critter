@@ -1,9 +1,10 @@
 {
-  "name": "desktop-critter",
+  "name": "gnome-critter",
   "version": "0.1.0",
   "description": "Animal de bureau pixel-art pour GNOME Shell (extension) - squelette de départ",
   "type": "module",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node --test \"tests/**/*.test.js\""
   },

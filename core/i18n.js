@@ -1,5 +1,5 @@
 // Traduction. Les textes source sont en français (ce sont les msgid de
-// gettext, domaine « scamper ») ; le traducteur actif est branché par
+// gettext, domaine « gnome-critter ») ; le traducteur actif est branché par
 // l'extension (gettext de GNOME), par les préférences, ou par les tests et
 // l'outil de revue (catalogue .po lu en JavaScript). Sans traducteur : le
 // français, avec sa règle de pluriel. Module pur. Voir docs/i18n.md.

@@ -17,7 +17,7 @@ import { statLabel, playerStatLabel, markFamilyLabel, traitLabel, stageLabel } f
 import { _, ngettext, fmt } from '../../../core/i18n.js';
 import { categoryLabel } from '../format.js';
 
-const STORE = 'scamper-review-simulation';
+const STORE = 'gnome-critter-review-simulation';
 /** Faits d'animal saisis à la main ; `achievementsUnlocked` est calculé. */
 const CRITTER_KEYS = ['daysAlive', 'stageReached', 'tricksLearned', ...STAT_KEYS];
 const PLAYER_KEYS = [...PLAYER_STAT_KEYS, 'coins', 'accessoriesOwned'];

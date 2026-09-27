@@ -59,7 +59,7 @@ function renderHeader() {
     return name ? `${name} (${id})` : id;
   };
   document.getElementById('top').replaceChildren(
-    h('h1', {}, 'Revue Scamper'),
+    h('h1', {}, 'Revue Critter'),
     select(data.ids.map((id) => [id, packLabel(id)]), state.pack, (pack) => setState({ pack }), { title: 'Espèce' }),
     select(LANGUAGE_CHOICES, data.lang, (lang) => {
       // Le traducteur est global et les succès sont développés au chargement : on recharge.

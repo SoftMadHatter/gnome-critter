@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="scamper">
-  <schema id="org.gnome.shell.extensions.scamper" path="/org/gnome/shell/extensions/scamper/">
+<schemalist gettext-domain="gnome-critter">
+  <schema id="org.gnome.shell.extensions.gnome-critter" path="/org/gnome/shell/extensions/gnome-critter/">
     <key name="pack-id" type="s">
       <default>'critter-demo'</default>
       <summary>Identifiant du pack d'animal actif</summary>

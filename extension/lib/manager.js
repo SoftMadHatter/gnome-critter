@@ -124,18 +124,18 @@ export class Manager {
     const behavior = behaviorOverrides(this.pack.behavior);
     if (behavior.ignored.length > 0) {
       console.warn(
-        `Scamper: pack "${this.pack.meta.id}", clés "behavior" ignorées : ${behavior.ignored.join(', ')}`,
+        `Critter: pack "${this.pack.meta.id}", clés "behavior" ignorées : ${behavior.ignored.join(', ')}`,
       );
     }
 
     const needs = needsOverrides(this.pack.needs);
     if (needs.ignored.length > 0) {
-      console.warn(`Scamper: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
     }
     this._accessoryImages = loadAccessoryImages(GLib.build_filenamev([this._extensionPath, 'assets', 'accessories']));
     const anchors = anchorsOverrides(this.pack.meta.anchors);
     if (anchors.ignored.length > 0) {
-      console.warn(`Scamper: pack "${this.pack.meta.id}", clés "anchors" ignorées : ${anchors.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", clés "anchors" ignorées : ${anchors.ignored.join(', ')}`);
     }
     this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
     const laser = this._itemImages.get('laser');
@@ -143,26 +143,26 @@ export class Manager {
     try {
       this._eggSheet = loadVariantSheet(GLib.build_filenamev([this._extensionPath, 'assets', 'life', 'egg.png']));
     } catch (e) {
-      console.warn(`Scamper : sprite d'œuf indisponible (${e.message})`);
+      console.warn(`Critter : sprite d'œuf indisponible (${e.message})`);
     }
     const stages = stagesOverrides(this.pack.meta.stages);
     if (stages.ignored.length > 0) {
-      console.warn(`Scamper: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
     }
     const translations = translationsOverrides(this.pack.meta.translations);
     if (translations.ignored.length > 0) {
-      console.warn(`Scamper: pack "${this.pack.meta.id}", traductions ignorées : ${translations.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", traductions ignorées : ${translations.ignored.join(', ')}`);
     }
     const namesList = namesOverrides(this.pack.meta.names).list;
     const achievements = buildAchievements(this.pack.meta.achievements, speciesProfile(this.pack.meta));
     if (achievements.ignored.length > 0) {
-      console.warn(`Scamper: pack "${this.pack.meta.id}", succès ignorés : ${achievements.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", succès ignorés : ${achievements.ignored.join(', ')}`);
     }
     this._achievements = achievements.critter;
     this._playerAchievements = achievements.player;
     const tricks = tricksOverrides(this.pack.meta.tricks);
     if (tricks.ignored.length > 0) {
-      console.warn(`Scamper: pack "${this.pack.meta.id}", tours ignorés : ${tricks.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", tours ignorés : ${tricks.ignored.join(', ')}`);
     }
     this._player = Player.parse(this.settings.get_string('saved-player'));
     const growthEnabled = this.settings.get_boolean('growth-enabled');

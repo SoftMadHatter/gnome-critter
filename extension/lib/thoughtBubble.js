@@ -37,7 +37,7 @@ export function loadBubbleIcons(dir) {
       icons[name] = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
     }
   } catch (e) {
-    console.warn(`Scamper : icônes de bulles indisponibles (${e.message})`);
+    console.warn(`Critter : icônes de bulles indisponibles (${e.message})`);
     return {};
   }
   return icons;

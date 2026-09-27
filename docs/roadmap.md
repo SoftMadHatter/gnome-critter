@@ -298,7 +298,7 @@ traduction.
 
 Livré :
 
-- **Mécanisme** : gettext, domaine `scamper`. Le français est la langue
+- **Mécanisme** : gettext, domaine `gnome-critter`. Le français est la langue
   source : les textes du code sont les msgid. Le catalogue `po/en.po` traduit
   en anglais environ 900 textes :
   - menus, fenêtres, préférences, schéma, journal, notifications ;

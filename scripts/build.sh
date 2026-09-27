@@ -36,6 +36,7 @@ cp -r "$EXT_SRC"/. "$BUILD_DIR"/
 mkdir -p "$BUILD_DIR/core" "$BUILD_DIR/packs"
 cp -r "$CORE_SRC"/. "$BUILD_DIR/core"/
 cp -r "$PACKS_SRC"/. "$BUILD_DIR/packs"/
+cp "$ROOT_DIR/LICENSE" "$BUILD_DIR"/ # le texte de la licence accompagne l'archive distribuée
 
 if command -v glib-compile-schemas >/dev/null 2>&1; then
   glib-compile-schemas "$BUILD_DIR/schemas"
@@ -45,13 +46,13 @@ else
   echo "   le schéma n'est pas compilé (paquet 'libglib2.0-bin' / 'glib2-devel')." >&2
 fi
 
-# Traductions : chaque po/<langue>.po devient locale/<langue>/LC_MESSAGES/scamper.mo.
+# Traductions : chaque po/<langue>.po devient locale/<langue>/LC_MESSAGES/gnome-critter.mo.
 if command -v msgfmt >/dev/null 2>&1; then
   for po in "$ROOT_DIR"/po/*.po; do
     [ -e "$po" ] || continue
     lang="$(basename "$po" .po)"
     mkdir -p "$BUILD_DIR/locale/$lang/LC_MESSAGES"
-    msgfmt -o "$BUILD_DIR/locale/$lang/LC_MESSAGES/scamper.mo" "$po"
+    msgfmt -o "$BUILD_DIR/locale/$lang/LC_MESSAGES/gnome-critter.mo" "$po"
   done
   echo "==> Traductions compilées."
 else

@@ -43,7 +43,7 @@ export class Notifier {
       });
       source.addNotification(notification);
     } catch (e) {
-      console.warn(`Scamper: notification GNOME indisponible (${e.message}), repli sur Main.notify`);
+      console.warn(`Critter: notification GNOME indisponible (${e.message}), repli sur Main.notify`);
       Main.notify(title, body);
     }
   }

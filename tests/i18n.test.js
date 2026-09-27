@@ -18,7 +18,7 @@ import { stringLiterals } from './helpers/jsStrings.js';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 const EN = parsePo(read('po/en.po'));
-const POT = parsePo(read('po/scamper.pot'));
+const POT = parsePo(read('po/gnome-critter.pot'));
 const PACKS = readdirSync(join(ROOT, 'packs')).map((id) => [id, JSON.parse(read(`packs/${id}/pack.json`))]);
 
 /** Sources passés à xgettext par scripts/i18n.sh (chemins relatifs au dépôt). */
@@ -114,12 +114,12 @@ test('lecteur .po : en-têtes, pluriels, échappements, lignes multiples, entré
 });
 
 test('extension : domaine gettext déclaré, une langue par catalogue', () => {
-  assert.equal(JSON.parse(read('extension/metadata.json'))['gettext-domain'], 'scamper');
-  assert.match(read('extension/schemas/org.gnome.shell.extensions.scamper.gschema.xml'), /gettext-domain="scamper"/);
+  assert.equal(JSON.parse(read('extension/metadata.json'))['gettext-domain'], 'gnome-critter');
+  assert.match(read('extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml'), /gettext-domain="gnome-critter"/);
   assert.deepEqual(read('po/LINGUAS').split(/\s+/).filter(Boolean), LANGUAGES.filter((lang) => lang !== 'fr'));
 });
 
-test('en.po : à jour avec scamper.pot, tout traduit, mêmes espaces réservés, typographie anglaise', () => {
+test('en.po : à jour avec gnome-critter.pot, tout traduit, mêmes espaces réservés, typographie anglaise', () => {
   const ids = (po) => po.entries.map((entry) => entry.msgid).sort();
   assert.deepEqual(ids(EN), ids(POT), 'lancer scripts/i18n.sh update');
   assert.equal(EN.headers.Language, 'en');
@@ -152,9 +152,9 @@ test('rien n’échappe à la traduction : aucun texte d’interface hors de _()
   // Textes de données traduits autrement : la bibliothèque (extraite par scripts/i18n-data.mjs,
   // vérifiée ci-dessus) et les prénoms génériques (une liste par langue).
   const exempt = new Set(['core/achievementLibrary.js', 'core/names.js']);
-  // Journaux et erreurs de développement ; noms propres (source des notifications, bouton de la barre).
+  // Journaux et erreurs de développement ; nom propre (source des notifications, bouton de la barre).
   const allowedCalls = new Set(['log', 'logError', 'console.log', 'console.warn', 'console.error', 'console.debug', 'Error', 'TypeError']);
-  const allowedTexts = new Set(['Critter', 'Scamper']);
+  const allowedTexts = new Set(['Critter']);
   // Allure de texte : une lettre accentuée, deux mots, ou un mot seul à majuscule (« Journal »).
   const looksLikeText = (text) =>
     /[À-ÖØ-öø-ÿŒœ]/.test(text) || /\p{L}{2,}[ '’]+\p{L}{2,}/u.test(text) || /^[A-ZÀ-Ý][a-zà-ÿœ]+[.…!?]?$/.test(text);
