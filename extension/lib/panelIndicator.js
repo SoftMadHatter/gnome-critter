@@ -4,6 +4,7 @@
 //   quatre boutons d'action rapide, puis des rangées repliables (Plus…,
 //   Bureau…, Pièces) et « Réglages… ».
 
+import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
@@ -12,7 +13,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { isBowlFood } from '../core/items.js';
-import { _, N_, fmt } from '../core/i18n.js';
+import { _, N_, ngettext, fmt } from '../core/i18n.js';
 import { foodLabel, toyLabel, bedLabel, bowlLabel, lifeSummary, BED_LABELS, BOWL_LABELS } from '../core/labels.js';
 import { buildCritterActions } from './critterActions.js';
 import { buttonRow, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
@@ -52,7 +53,12 @@ export const CritterIndicator = GObject.registerClass(
       this._sections = [];
 
       this._icon = new St.Icon({ icon_name: 'face-smile-symbolic', style_class: 'system-status-icon' });
-      this.add_child(this._icon);
+      // Pastille du nombre d'annonces non lues du journal (cachée à 0).
+      this._badge = new St.Label({ text: '', y_align: Clutter.ActorAlign.CENTER, style: 'font-weight: bold; font-size: 0.85em; padding-left: 2px;', visible: false });
+      const box = new St.BoxLayout();
+      box.add_child(this._icon);
+      box.add_child(this._badge);
+      this.add_child(box);
 
       this._buildMenu();
       this._rebuildCritterSection();
@@ -195,6 +201,7 @@ export const CritterIndicator = GObject.registerClass(
       const critter = this._critter();
       const { done, total } = this._owner.achievementSummary(critter);
       this._achievements.label.text = fmt(_('Succès ({done}/{total})'), { done, total });
+      this._updateUnread();
 
       this._shop.section.removeAll();
       for (const { id, label, price, owned, free } of this._owner.shopList()) {
@@ -210,7 +217,18 @@ export const CritterIndicator = GObject.registerClass(
       }
     }
 
+    /** Pastille du panneau et ligne « Journal » : nombre d'annonces non lues. */
+    _updateUnread() {
+      const unread = this._owner.unreadCount();
+      this._badge.text = String(unread);
+      this._badge.visible = unread > 0;
+      this._journal.label.text = unread > 0
+        ? fmt(ngettext('Journal ({count} non lu)', 'Journal ({count} non lus)', unread), { count: unread })
+        : _('Journal');
+    }
+
     refresh() {
+      this._updateUnread();
       const critters = this._critters();
       if (critters.length > 0) {
         const moodSum = critters.reduce((sum, c) => sum + c.needs.mood, 0);

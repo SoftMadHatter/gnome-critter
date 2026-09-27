@@ -100,21 +100,54 @@ test('Player : gains avec délai anti-abus, dépenses, achats', () => {
 
 test('Player : journal borné, sérialisation et lecture tolérante', () => {
   const p = new Player({ coins: 12.7 });
-  for (let i = 0; i < 70; i++) p.log(`entrée ${i}`, i);
-  assert.equal(p.journal.length, 50);
-  assert.equal(p.journal[0].text, 'entrée 20');
+  for (let i = 0; i < 130; i++) p.log(`entrée ${i}`, i);
+  assert.equal(p.journal.length, 100);
+  assert.equal(p.journal[0].text, 'entrée 30');
   p.own('crown');
 
   const back = Player.parse(p.serialize());
   assert.equal(back.coins, 12);
   assert.deepEqual(back.owned, ['crown']);
-  assert.equal(back.journal.length, 50);
+  assert.equal(back.journal.length, 100);
 
   for (const bad of ['', '{nope', 'null', '{"version":9}']) assert.equal(Player.parse(bad).coins, 0);
   const messy = new Player({ coins: -5, owned: [1, 'ok'], journal: [null, { t: 1, text: 'a' }, { t: 'x', text: 'b' }] });
   assert.equal(messy.coins, 0);
   assert.deepEqual(messy.owned, ['ok']);
   assert.equal(messy.journal.length, 1);
+});
+
+test('Player : journal, annonces non lues et marquage lu', () => {
+  const p = new Player();
+  const plain = p.log('Un œuf est déposé.', 1);
+  const announced = p.log('Toi : succès « A ».', 2, { body: 'Le Système : bravo.', unread: true });
+  const other = p.log('Trophée obtenu.', 3, { body: 'Le Système : trophée.', unread: true });
+  assert.deepEqual([plain.id, announced.id, other.id], [1, 2, 3]);
+  assert.equal(plain.unread, undefined);
+  assert.equal(announced.body, 'Le Système : bravo.');
+  assert.equal(p.unreadCount(), 2);
+
+  assert.equal(p.markRead(2), true);
+  assert.equal(p.markRead(2), false, 'déjà lue');
+  assert.equal(p.markRead(99), false, 'inconnue');
+  assert.equal(p.unreadCount(), 1);
+
+  const back = Player.parse(p.serialize());
+  assert.equal(back.unreadCount(), 1);
+  assert.equal(back.journal[2].body, 'Le Système : trophée.');
+  assert.equal(back.log('suite', 4).id, 4, 'les ids continuent après relecture');
+
+  p.markAllRead();
+  assert.equal(p.unreadCount(), 0);
+});
+
+test('Player : ancien journal (sans id ni non-lu) relu comme lu, ids uniques', () => {
+  const p = new Player({ journal: [{ t: 1, text: 'a' }, { t: 2, text: 'b' }, { id: 1, t: 3, text: 'c', unread: 'oui' }, { id: 1, t: 4, text: 'd', body: 5 }] });
+  const ids = p.journal.map((e) => e.id);
+  assert.equal(new Set(ids).size, 4);
+  assert.ok(ids.every((id) => Number.isInteger(id) && id > 0));
+  assert.equal(p.unreadCount(), 0);
+  assert.ok(p.journal.every((e) => e.body === undefined));
 });
 
 test('Player : gestes, marques, succès du joueur et total sauvegardés, anciennes sauvegardes relues', () => {

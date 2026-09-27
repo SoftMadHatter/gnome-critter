@@ -109,8 +109,21 @@ part (`saved-player`).
 
 ## Journal
 
-Les 50 derniers événements (éclosion, nouveau stade, succès...), les 10
-dernières lignes dans le menu de l'icône (« Journal »).
+Les 100 derniers événements (éclosion, nouveau stade, succès...), dans l'onglet
+« Journal » de la fenêtre de progression.
+
+Les annonces du Système (succès, bêtises, rafales, trophées) sont **notifiées**
+et gardées en entier : le journal en conserve le texte complet, en gras avec un
+point tant qu'elles ne sont pas lues. Le nombre de non lues s'affiche en
+pastille à côté de l'icône du panneau et dans la ligne « Journal » du menu. Un
+clic sur une entrée la marque lue ; « Tout marquer comme lu » vide le compteur
+et « Non lus seulement » filtre la liste. Les autres événements sont des
+entrées simples, déjà lues.
+
+Les annonces passent aussi par une source de notifications GNOME « Critter »
+(`extension/lib/notifier.js`) : elles restent dans la liste jusqu'à leur
+fermeture. Fermer une notification la marque lue ; cliquer dessus ouvre le
+journal. Si l'API du shell échoue, repli sur `Main.notify` (éphémère).
 
 ## Boutique et accessoires
 
