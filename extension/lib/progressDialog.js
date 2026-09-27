@@ -109,7 +109,7 @@ export const ProgressDialog = GObject.registerClass(
       this._list.add_child(header);
       this._list.add_child(box);
       if (category.id === 'player') this._line(box, _('Tes succès à toi, partagés entre tous tes animaux.'), 'opacity: 170;');
-      if (category.entries.length === 0) this._line(box, _("Rien de découvert pour l'instant. Le Système attend."), 'opacity: 170;');
+      if (category.entries.length === 0) this._line(box, _("Rien de découvert pour l'instant. Le Comité attend."), 'opacity: 170;');
       for (const entry of category.entries) this._entry(box, entry);
     }
 

@@ -62,10 +62,10 @@ Communs aux deux :
 - Un pack remplace une entrée de la bibliothèque en reprenant son `series`
   (ou son `id`), ou la retire avec `{ "series": "...", "disabled": true }`.
 
-### Bêtises (succès « troll ») et le Système
+### Bêtises (succès « troll ») et le Comité
 
 `"troll": true` : le succès est **caché** jusqu'à sa découverte (la rubrique
-n'en donne que le nombre), et porte un `quip`, le commentaire du Système. Sa
+n'en donne que le nombre), et porte un `quip`, le commentaire du Comité. Sa
 `reward` est farfelue : `{ "coins": 0 }` (rien), une somme absurde
 (`{ "coins": 3, "text": "3,14 pièces, arrondies à 3" }`), des frais de dossier
 (`{ "coins": -1 }`, jamais sous zéro), une **boîte** (`{ "box": "bronze" }`,
@@ -75,7 +75,7 @@ vide ou presque, parfois un vrai lot), un accessoire ridicule
 Exemples : caresser un œuf 10 fois, 500 chutes, ouvrir le menu 10 000 fois,
 remplir une gamelle déjà pleine, être éveillé à 3 h du matin.
 
-**Le Système** (`core/narrator.js`) annonce tous les succès, en tutoyant le
+**Le Comité** (`core/narrator.js`) annonce tous les succès, en tutoyant le
 joueur : sobre pour un vrai succès, sarcastique pour une bêtise (spectateurs et
 sponsors imaginaires ; il se moque du joueur, jamais de l'animal). Plus de trois
 succès d'un coup (un animal ancien qui rattrape son retard) donnent une seule
@@ -112,7 +112,7 @@ part (`saved-player`).
 Les 100 derniers événements (éclosion, nouveau stade, succès...), dans l'onglet
 « Journal » de la fenêtre de progression.
 
-Les annonces du Système (succès, bêtises, rafales, trophées) sont **notifiées**
+Les annonces du Comité (succès, bêtises, rafales, trophées) sont **notifiées**
 et gardées en entier : le journal en conserve le texte complet, en gras avec un
 point tant qu'elles ne sont pas lues. Le nombre de non lues s'affiche en
 pastille à côté de l'icône du panneau et dans la ligne « Journal » du menu. Un

@@ -6,7 +6,7 @@ import { _, N_ } from './i18n.js';
 /**
  * `months` : mois (1-12) pendant lesquels l'accessoire est gratuit et disponible ; sans `months`, achat à `price`.
  * `trophy` : jamais en boutique, offert quand le joueur atteint ce nombre de succès.
- * `joke` : jamais en boutique, récompense farfelue de certains succès (et des boîtes du Système).
+ * `joke` : jamais en boutique, récompense farfelue de certains succès (et des boîtes du Comité).
  */
 export const ACCESSORIES = Object.freeze({
   partyhat: { label: N_('Chapeau de fête'), price: 20 },

@@ -146,7 +146,7 @@ Le mini serveur (`tools/review/server.mjs`, Node, sans dépendance) n'écoute qu
 sur 127.0.0.1, ne répond qu'aux lectures (GET) et ne sert que `core/`,
 `packs/`, `po/`, `extension/lib/`, `extension/assets/` et `tools/review/`. La page
 charge directement les modules du cœur (`buildAchievements`,
-`achievementView`, le Système, les boîtes, `shiftPixels`...) : ce qu'elle
+`achievementView`, le Comité, les boîtes, `shiftPixels`...) : ce qu'elle
 affiche est exactement ce que calcule le jeu. Quand un fichier change, elle se
 recharge seule en gardant l'onglet et les filtres (dans l'adresse) : on
 corrige dans l'éditeur, on vérifie dans la page. `tools/` n'est pas copié par
@@ -161,16 +161,16 @@ Onglets :
 
 - **Succès** : tous les succès d'une espèce, filtrés par caractère, rubrique,
   type (vrais, bêtises, joueur) ou texte ; condition, récompense, titre,
-  exigences, commentaire du Système, origine (bibliothèque, pack, remplacé par
+  exigences, commentaire du Comité, origine (bibliothèque, pack, remplacé par
   le pack). « Copier » copie le gabarit source en JSON pour en ajouter un.
 - **Vue en jeu** : on règle compteurs et marques (préréglages : animal neuf,
   un mois de vie, tout débloqué ; aussi dans l'adresse avec `&preset=all`) ;
   la fenêtre de progression s'affiche telle que le joueur la voit, avec les
-  annonces du Système. Le scénario est gardé par pack dans le navigateur.
+  annonces du Comité. Le scénario est gardé par pack dans le navigateur.
 - **Titres** : chaque titre, le succès qui le donne, sa condition, les alertes.
 - **Récompenses** : lots et probabilités des boîtes, simulation de 1 000
   ouvertures, budget de pièces par rubrique, trophées et farces.
-- **Le Système** : annonces d'un succès (plusieurs tirages), rafales, trophée,
+- **Le Comité** : annonces d'un succès (plusieurs tirages), rafales, trophée,
   phrases d'ouverture et de conclusion, commentaires triés par longueur.
 - **Créatures** : fiche du pack, lecteur d'animation (stade, vitesse, taille,
   lissage, retournement, couleurs, accessoire sur la tête), planche de toutes

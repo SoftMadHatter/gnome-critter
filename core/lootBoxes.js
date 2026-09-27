@@ -1,4 +1,4 @@
-// Boîtes du Système, récompense farfelue de certains succès « troll » :
+// Boîtes du Comité, récompense farfelue de certains succès « troll » :
 // ouvertes d'office, elles contiennent le plus souvent rien (ou presque), et
 // parfois un vrai lot qui grossit avec la boîte. Module pur (hasard injecté).
 
@@ -16,7 +16,7 @@ export const BOX_TABLES = Object.freeze({
   bronze: [
     [50, { text: N_('rien, absolument rien') }],
     [30, { coins: 1, text: N_('une pièce rouillée') }],
-    [15, { text: N_("un mot d'excuse du Système") }],
+    [15, { text: N_("un mot d'excuse du Comité") }],
     [5, { coins: 5, text: N_('cinq pièces presque neuves') }],
   ],
   silver: [
@@ -37,7 +37,7 @@ export const BOX_TABLES = Object.freeze({
     [40, { accessory: 'joke', fallback: { coins: 40, text: N_('quarante pièces') } }],
   ],
   legendary: [
-    [50, { coins: 100, text: N_("cent pièces. Le Système n'en revient pas") }],
+    [50, { coins: 100, text: N_("cent pièces. Le Comité n'en revient pas") }],
     [50, { accessory: 'joke', fallback: { coins: 100, text: N_('cent pièces') } }],
   ],
 });

@@ -45,7 +45,7 @@ export class CritterMenu {
   open(spriteHeight) {
     const title = this._owner.titleOf(this._critter);
     this._header.label.text = `${this._critter.name ?? _('Sans nom')}${title ? `, ${title}` : ''} — ${lifeSummary(this._critter.life)}`;
-    if (!this.menu.isOpen) this._owner.noteContextMenuOpen(); // le Système compte
+    if (!this.menu.isOpen) this._owner.noteContextMenuOpen(); // le Comité compte
     this._actions.refresh();
     this._laser.setToggleState(this._owner.isLaser());
     this._tidy.setSensitive(this._owner.hasToys());

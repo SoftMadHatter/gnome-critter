@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-27 17:11+0200\n"
+"POT-Creation-Date: 2026-09-27 20:28+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -418,7 +418,7 @@ msgstr ""
 msgid "Bêtises"
 msgstr ""
 
-#: core/labels.js:112 extension/lib/manager.js:434
+#: core/labels.js:112 extension/lib/manager.js:441
 msgid "Toi"
 msgstr ""
 
@@ -615,7 +615,7 @@ msgid "une pièce rouillée"
 msgstr ""
 
 #: core/lootBoxes.js:19
-msgid "un mot d'excuse du Système"
+msgid "un mot d'excuse du Comité"
 msgstr ""
 
 #: core/lootBoxes.js:20
@@ -663,7 +663,7 @@ msgid "quarante pièces"
 msgstr ""
 
 #: core/lootBoxes.js:40
-msgid "cent pièces. Le Système n'en revient pas"
+msgid "cent pièces. Le Comité n'en revient pas"
 msgstr ""
 
 #: core/lootBoxes.js:41
@@ -691,11 +691,11 @@ msgid "une boîte légendaire"
 msgstr ""
 
 #: core/narrator.js:13
-msgid "Le Système"
+msgid "Le Comité"
 msgstr ""
 
 #: core/narrator.js:15
-msgid "Le Système prend note."
+msgid "Le Comité prend note."
 msgstr ""
 
 #: core/narrator.js:15 core/narrator.js:17
@@ -715,7 +715,7 @@ msgid "Attention, succès en approche."
 msgstr ""
 
 #: core/narrator.js:20
-msgid "Le Système a tout vu."
+msgid "Le Comité a tout vu."
 msgstr ""
 
 #: core/narrator.js:24
@@ -735,11 +735,11 @@ msgid "Applaudissements enregistrés."
 msgstr ""
 
 #: core/narrator.js:28
-msgid "Le Système n'en revient pas."
+msgid "Le Comité n'en revient pas."
 msgstr ""
 
 #: core/narrator.js:29
-msgid "Personne ne te jugera. Sauf le Système."
+msgid "Personne ne te jugera. Sauf le Comité."
 msgstr ""
 
 #: core/narrator.js:38 core/narrator.js:112 extension/lib/progressDialog.js:126
@@ -806,27 +806,27 @@ msgstr ""
 
 #: core/narrator.js:118
 msgid ""
-"Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont "
+"Le Comité a pris du retard : {name} obtient {count} succès d'un coup, dont "
 "{list}."
 msgid_plural ""
-"Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont "
+"Le Comité a pris du retard : {name} obtient {count} succès d'un coup, dont "
 "{list}."
 msgstr[0] ""
 msgstr[1] ""
 
 #: core/narrator.js:123
 msgid ""
-"Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont "
+"Le Comité a pris du retard : tu obtiens {count} succès d'un coup, dont "
 "{list}."
 msgid_plural ""
-"Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont "
+"Le Comité a pris du retard : tu obtiens {count} succès d'un coup, dont "
 "{list}."
 msgstr[0] ""
 msgstr[1] ""
 
 #: core/narrator.js:130
-msgid "Dont {n} bêtise. Le Système ne dira rien."
-msgid_plural "Dont {n} bêtises. Le Système ne dira rien."
+msgid "Dont {n} bêtise. Le Comité ne dira rien."
+msgid_plural "Dont {n} bêtises. Le Comité ne dira rien."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -836,11 +836,9 @@ msgstr ""
 
 #: core/narrator.js:142
 msgid ""
-"{count} succès. Tu as droit à : {trophy}. Le Système est presque "
-"impressionné."
+"{count} succès. Tu as droit à : {trophy}. Le Comité est presque impressionné."
 msgid_plural ""
-"{count} succès. Tu as droit à : {trophy}. Le Système est presque "
-"impressionné."
+"{count} succès. Tu as droit à : {trophy}. Le Comité est presque impressionné."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -924,74 +922,74 @@ msgstr ""
 msgid "Ranger les jouets"
 msgstr ""
 
-#: extension/lib/critterMenu.js:47 extension/lib/manager.js:384
+#: extension/lib/critterMenu.js:47 extension/lib/manager.js:391
 #: extension/lib/panelIndicator.js:247
 msgid "Sans nom"
 msgstr ""
 
-#: extension/lib/manager.js:223
+#: extension/lib/manager.js:230
 msgid "Un œuf est déposé : {name}."
 msgstr ""
 
-#: extension/lib/manager.js:339
+#: extension/lib/manager.js:346
 msgid "Pièces insuffisantes ({price} nécessaires, {coins} en poche)."
 msgstr ""
 
-#: extension/lib/manager.js:350
+#: extension/lib/manager.js:357
 msgid "Accessoire acheté : {accessory}."
 msgstr ""
 
-#: extension/lib/manager.js:351
+#: extension/lib/manager.js:358
 msgid "{accessory} acheté (-{price} pièces)."
 msgstr ""
 
-#: extension/lib/manager.js:384
+#: extension/lib/manager.js:391
 msgid "{name} — progression"
 msgstr ""
 
-#: extension/lib/manager.js:410
+#: extension/lib/manager.js:417
 msgid "Une créature"
 msgstr ""
 
-#: extension/lib/manager.js:410
+#: extension/lib/manager.js:417
 msgid "{previous} est rebaptisé(e) {name}."
 msgstr ""
 
-#: extension/lib/manager.js:436
+#: extension/lib/manager.js:443
 msgid "{name} : {count} succès d'un coup."
 msgid_plural "{name} : {count} succès d'un coup."
 msgstr[0] ""
 msgstr[1] ""
 
-#: extension/lib/manager.js:440
+#: extension/lib/manager.js:447
 msgid "{name} : bêtise « {achievement} »."
 msgstr ""
 
-#: extension/lib/manager.js:440
+#: extension/lib/manager.js:447
 msgid "{name} : succès « {achievement} »."
 msgstr ""
 
-#: extension/lib/manager.js:449
+#: extension/lib/manager.js:456
 msgid "Trophée obtenu : {trophy}."
 msgstr ""
 
-#: extension/lib/manager.js:501
+#: extension/lib/manager.js:508
 msgid "{name} a éclos."
 msgstr ""
 
-#: extension/lib/manager.js:502
+#: extension/lib/manager.js:509
 msgid "{name} fête son anniversaire !"
 msgstr ""
 
-#: extension/lib/manager.js:503
+#: extension/lib/manager.js:510
 msgid "{name} devient {stage}."
 msgstr ""
 
-#: extension/lib/manager.js:505
+#: extension/lib/manager.js:512
 msgid "{name} a appris un tour."
 msgstr ""
 
-#: extension/lib/manager.js:741
+#: extension/lib/manager.js:748
 msgid "Cadeau ramassé : +{coins} pièce."
 msgid_plural "Cadeau ramassé : +{coins} pièces."
 msgstr[0] ""
@@ -1143,7 +1141,7 @@ msgid "Tes succès à toi, partagés entre tous tes animaux."
 msgstr ""
 
 #: extension/lib/progressDialog.js:112
-msgid "Rien de découvert pour l'instant. Le Système attend."
+msgid "Rien de découvert pour l'instant. Le Comité attend."
 msgstr ""
 
 #: extension/lib/progressDialog.js:122
@@ -2676,7 +2674,7 @@ msgstr ""
 #. succès : tickles
 #: core/achievementLibrary.js
 msgid ""
-"Deux cent cinquante chatouilles. Le Système a prévenu une association. Elle "
+"Deux cent cinquante chatouilles. Le Comité a prévenu une association. Elle "
 "n'a pas rappelé."
 msgstr ""
 
@@ -2819,7 +2817,7 @@ msgstr ""
 
 #. succès : accidents
 #: core/achievementLibrary.js
-msgid "Un petit accident. Le Système a tout vu. Les spectateurs aussi."
+msgid "Un petit accident. Le Comité a tout vu. Les spectateurs aussi."
 msgstr ""
 
 #. succès : accidents
@@ -2904,7 +2902,7 @@ msgstr ""
 #. succès : annoyances
 #: core/achievementLibrary.js
 msgid ""
-"Vingt clics droits. Oui, tu le fais exprès. Le Système prélève des frais de "
+"Vingt clics droits. Oui, tu le fais exprès. Le Comité prélève des frais de "
 "dossier."
 msgstr ""
 
@@ -3016,8 +3014,8 @@ msgstr ""
 #. succès : overfeeds
 #: core/achievementLibrary.js
 msgid ""
-"Vingt-cinq repas de trop. Le Système t'a inscrit à un concours de "
-"pâtisserie. Tu as perdu."
+"Vingt-cinq repas de trop. Le Comité t'a inscrit à un concours de pâtisserie. "
+"Tu as perdu."
 msgstr ""
 
 #. succès : pointless-brushes
@@ -3242,7 +3240,7 @@ msgstr ""
 #. succès : rock-bottom
 #: core/achievementLibrary.js
 msgid ""
-"Toutes les jauges au plus bas. Le Système n'a pas de mots. Si, un seul : "
+"Toutes les jauges au plus bas. Le Comité n'a pas de mots. Si, un seul : "
 "bravo."
 msgstr ""
 
@@ -3394,7 +3392,7 @@ msgstr ""
 #: core/achievementLibrary.js
 msgid ""
 "Dix ans. Ce succès a été écrit en pensant que personne ne l'obtiendrait. Le "
-"Système est ému. Un peu."
+"Comité est ému. Un peu."
 msgstr ""
 
 #. succès : still-here
@@ -3431,7 +3429,7 @@ msgstr ""
 
 #. succès : overpolite
 #: core/achievementLibrary.js
-msgid "Cinq cents bonjours. Même le Système ne dit pas bonjour autant."
+msgid "Cinq cents bonjours. Même le Comité ne dit pas bonjour autant."
 msgstr ""
 
 #. succès : extinction
@@ -3447,7 +3445,7 @@ msgstr ""
 #. succès : extinction
 #: core/achievementLibrary.js
 msgid ""
-"Mille proies. Leur espèce a porté plainte. Le Système a classé l'affaire."
+"Mille proies. Leur espèce a porté plainte. Le Comité a classé l'affaire."
 msgstr ""
 
 #. succès : all-nighter
@@ -3479,7 +3477,7 @@ msgstr ""
 
 #. succès : ceiling-fall
 #: core/achievementLibrary.js
-msgid "Il est tombé du plafond. Tu as ri. Le Système a enregistré ton rire."
+msgid "Il est tombé du plafond. Tu as ri. Le Comité a enregistré ton rire."
 msgstr ""
 
 #. succès : rescues
@@ -3500,7 +3498,7 @@ msgstr ""
 #. succès : rescues
 #: core/achievementLibrary.js
 msgid ""
-"Il est sorti de l'écran. Le Système l'a rattrapé. Tu n'avais rien remarqué."
+"Il est sorti de l'écran. Le Comité l'a ramené. Tu n'avais rien remarqué."
 msgstr ""
 
 #. succès : rescues
@@ -3542,7 +3540,7 @@ msgstr ""
 #. succès : tickle-sleep
 #: core/achievementLibrary.js
 msgid ""
-"Chatouiller quelqu'un qui dort. Même le Système trouve ça bas. Frais de "
+"Chatouiller quelqu'un qui dort. Même le Comité trouve ça bas. Frais de "
 "dossier."
 msgstr ""
 
@@ -3710,7 +3708,7 @@ msgstr ""
 #. succès : sock-worn
 #: core/achievementLibrary.js
 msgid ""
-"Une chaussette sur la tête. Propre, on l'espère. Le Système préfère ne pas "
+"Une chaussette sur la tête. Propre, on l'espère. Le Comité préfère ne pas "
 "vérifier."
 msgstr ""
 
@@ -3727,8 +3725,8 @@ msgstr ""
 #. succès : foilhat-worn
 #: core/achievementLibrary.js
 msgid ""
-"Chapeau en papier alu enfilé. Le Système ne capte plus ses pensées. Il n'y "
-"avait pas grand-chose à capter."
+"Chapeau en papier alu enfilé. Le Comité renonce à lire dans tes pensées. Il "
+"n'y avait pas grand-chose à lire."
 msgstr ""
 
 #. succès : foilhat-worn
@@ -3918,7 +3916,7 @@ msgstr ""
 #. succès : menu-opens
 #: core/achievementLibrary.js
 msgid ""
-"Dix mille ouvertures du menu. Le Système a vérifié : non, tu n'as vraiment "
+"Dix mille ouvertures du menu. Le Comité a vérifié : non, tu n'as vraiment "
 "rien d'autre à faire."
 msgstr ""
 
@@ -3989,7 +3987,7 @@ msgstr ""
 #. succès : progress-opens
 #: core/achievementLibrary.js
 msgid ""
-"Cent consultations. Le Système envisage de te facturer la bande passante."
+"Cent consultations. Le Comité songe à te facturer des jetons de présence."
 msgstr ""
 
 #. succès : journal-opens
@@ -4040,7 +4038,7 @@ msgstr ""
 
 #. succès : vacations
 #: core/achievementLibrary.js
-msgid "Cinq départs en vacances. Il a arrêté de compter. Pas le Système."
+msgid "Cinq départs en vacances. Il a arrêté de compter. Pas le Comité."
 msgstr ""
 
 #. succès : vacations
@@ -4142,7 +4140,7 @@ msgstr ""
 #. succès : right-click-revenge
 #: core/achievementLibrary.js
 msgid ""
-"Cinquante objets retirés d'un clic droit. Le Système voit se dessiner une "
+"Cinquante objets retirés d'un clic droit. Le Comité voit se dessiner une "
 "tendance."
 msgstr ""
 
@@ -4224,7 +4222,7 @@ msgstr ""
 #. succès : bowl-overfills
 #: core/achievementLibrary.js
 msgid ""
-"Remplir une gamelle déjà pleine, trois fois. La gravité et le Système "
+"Remplir une gamelle déjà pleine, trois fois. La gravité et le Comité "
 "désapprouvent."
 msgstr ""
 
@@ -4258,8 +4256,8 @@ msgstr ""
 #. succès : prey-drops
 #: core/achievementLibrary.js
 msgid ""
-"Cinquante proies. Le Système a prévenu les services vétérinaires. Ils sont "
-"en pause."
+"Cinquante proies. Le Comité a prévenu les services vétérinaires. Ils sont en "
+"pause."
 msgstr ""
 
 #. succès : broke
@@ -4275,7 +4273,7 @@ msgstr ""
 #. succès : broke
 #: core/achievementLibrary.js
 msgid ""
-"Zéro pièce. Le Système te donne un conseil gratuit : arrête d'acheter des "
+"Zéro pièce. Le Comité te donne un conseil gratuit : arrête d'acheter des "
 "chapeaux."
 msgstr ""
 
@@ -4317,7 +4315,7 @@ msgstr ""
 
 #. succès : dragon-hoard
 #: core/achievementLibrary.js
-msgid "Mille pièces et tu ne dépenses rien. Le Système respecte. Un peu."
+msgid "Mille pièces et tu ne dépenses rien. Le Comité respecte. Un peu."
 msgstr ""
 
 #. succès : night-menu
@@ -4363,6 +4361,6 @@ msgstr ""
 #. succès : food-thief
 #: core/achievementLibrary.js
 msgid ""
-"Tu as retiré la nourriture qu'il allait manger. Le Système n'a rien vu. Si. "
+"Tu as retiré la nourriture qu'il allait manger. Le Comité n'a rien vu. Si. "
 "Frais de dossier."
 msgstr ""

@@ -1,8 +1,8 @@
-// Le Système : la voix des notifications de succès, façon animateur de jeu
+// Le Comité : la voix des notifications de succès, façon animateur de jeu
 // cynique. Sobre pour un vrai succès, déchaîné pour une bêtise ; il tutoie le
 // joueur et se moque de lui, jamais de l'animal. Module pur (hasard injecté).
 // Les textes des succès (nom, commentaire, récompense) arrivent déjà traduits
-// par buildAchievements ; les phrases du Système sont traduites ici.
+// par buildAchievements ; les phrases du Comité sont traduites ici.
 
 import { boxLabel } from './lootBoxes.js';
 import { formatCount } from './achievements.js';
@@ -10,14 +10,14 @@ import { accessoryLabel } from './accessories.js';
 import { _, N_, ngettext, fmt } from './i18n.js';
 
 /** Nom du narrateur (texte source ; affiché traduit). */
-export const NARRATOR = N_('Le Système');
+export const NARRATOR = N_('Le Comité');
 
-export const SOBER_OPENERS = [N_('Nouveau succès !'), N_('Succès débloqué.'), N_('Le Système prend note.')];
+export const SOBER_OPENERS = [N_('Nouveau succès !'), N_('Succès débloqué.'), N_('Le Comité prend note.')];
 export const TROLL_OPENERS = [
   N_('Nouveau succès !'),
   N_('Bêtise débloquée !'),
   N_('Attention, succès en approche.'),
-  N_('Le Système a tout vu.'),
+  N_('Le Comité a tout vu.'),
 ];
 /** `null` : pas de conclusion. */
 export const TROLL_CLOSERS = [
@@ -25,8 +25,8 @@ export const TROLL_CLOSERS = [
   N_('Nos sponsors se désolidarisent.'),
   N_('Ce succès ne compte pour rien. Comme les autres.'),
   N_('Applaudissements enregistrés.'),
-  N_("Le Système n'en revient pas."),
-  N_('Personne ne te jugera. Sauf le Système.'),
+  N_("Le Comité n'en revient pas."),
+  N_('Personne ne te jugera. Sauf le Comité.'),
   null,
 ];
 
@@ -115,19 +115,19 @@ export function announceBurst({ who = null, defs, coins = 0 }) {
   const parts = [
     who
       ? fmt(ngettext(
-        "Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont {list}.",
-        "Le Système a pris du retard : {name} obtient {count} succès d'un coup, dont {list}.",
+        "Le Comité a pris du retard : {name} obtient {count} succès d'un coup, dont {list}.",
+        "Le Comité a pris du retard : {name} obtient {count} succès d'un coup, dont {list}.",
         count,
       ), { name: who, count, list })
       : fmt(ngettext(
-        "Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont {list}.",
-        "Le Système a pris du retard : tu obtiens {count} succès d'un coup, dont {list}.",
+        "Le Comité a pris du retard : tu obtiens {count} succès d'un coup, dont {list}.",
+        "Le Comité a pris du retard : tu obtiens {count} succès d'un coup, dont {list}.",
         count,
       ), { count, list }),
   ];
   const trolls = defs.filter((def) => def.troll).length;
   if (trolls > 0) {
-    parts.push(fmt(ngettext('Dont {n} bêtise. Le Système ne dira rien.', 'Dont {n} bêtises. Le Système ne dira rien.', trolls), { n: trolls }));
+    parts.push(fmt(ngettext('Dont {n} bêtise. Le Comité ne dira rien.', 'Dont {n} bêtises. Le Comité ne dira rien.', trolls), { n: trolls }));
   }
   if (coins > 0) parts.push(fmt(_('+{coins}.'), { coins: coinsText(coins) }));
   return { title: _(NARRATOR), body: parts.join(' ') };
@@ -139,8 +139,8 @@ export function announceTrophy({ label, count }) {
     title: _(NARRATOR),
     body: fmt(
       ngettext(
-        '{count} succès. Tu as droit à : {trophy}. Le Système est presque impressionné.',
-        '{count} succès. Tu as droit à : {trophy}. Le Système est presque impressionné.',
+        '{count} succès. Tu as droit à : {trophy}. Le Comité est presque impressionné.',
+        '{count} succès. Tu as droit à : {trophy}. Le Comité est presque impressionné.',
         count,
       ),
       { count: formatCount(count), trophy: label.toLowerCase() },

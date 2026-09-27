@@ -3,7 +3,7 @@
 // entrées ; format dans docs/progression.md).
 //
 // Les « troll » (bêtises de l'animal, gestes du joueur) sont cachés jusqu'à
-// leur découverte ; `quip` est le commentaire du Système qui les annonce
+// leur découverte ; `quip` est le commentaire du Comité qui les annonce
 // (core/narrator.js), `reward` leur récompense farfelue. Les titres sont des
 // appositions invariables (« Minou, as de la sieste ») : les créatures n'ont
 // pas de genre.
@@ -252,7 +252,7 @@ export const LIBRARY = Object.freeze([
     description: 'Être chatouillé {n} fois', title: 'martyr des chatouilles',
     quips: [
       "Cinquante chatouilles. Il rit, mais à l'intérieur, il prépare sa vengeance.",
-      "Deux cent cinquante chatouilles. Le Système a prévenu une association. Elle n'a pas rappelé.",
+      "Deux cent cinquante chatouilles. Le Comité a prévenu une association. Elle n'a pas rappelé.",
     ],
     reward: [{ coins: 1 }, { box: 'silver' }],
   },
@@ -292,7 +292,7 @@ export const LIBRARY = Object.freeze([
     names: ['Oups', 'Récidive'],
     description: 'Avoir {n} accident{s}',
     quips: [
-      'Un petit accident. Le Système a tout vu. Les spectateurs aussi.',
+      'Un petit accident. Le Comité a tout vu. Les spectateurs aussi.',
       "Dix accidents. Voici le cône de la honte. On ne sait pas encore qui doit le porter.",
     ],
     reward: [{ coins: 0 }, { accessory: 'cone' }],
@@ -319,7 +319,7 @@ export const LIBRARY = Object.freeze([
     names: ['Tu le fais exprès ?', 'Clic droit compulsif'],
     description: 'Être agacé {n} fois (clic droit)', title: 'souffre-douleur officiel',
     quips: [
-      'Vingt clics droits. Oui, tu le fais exprès. Le Système prélève des frais de dossier.',
+      'Vingt clics droits. Oui, tu le fais exprès. Le Comité prélève des frais de dossier.',
       "Cent agacements. Il a fondé un groupe de soutien. Tu n'y es pas invité.",
     ],
     reward: [{ coins: -1, text: 'frais de dossier' }, { box: 'silver' }],
@@ -348,7 +348,7 @@ export const LIBRARY = Object.freeze([
     description: 'Être nourri {n} fois sans avoir faim',
     quips: [
       "Il n'avait plus faim. Tu as insisté. Cinq fois.",
-      'Vingt-cinq repas de trop. Le Système t\'a inscrit à un concours de pâtisserie. Tu as perdu.',
+      'Vingt-cinq repas de trop. Le Comité t\'a inscrit à un concours de pâtisserie. Tu as perdu.',
     ],
     reward: [{ coins: 0 }, { box: 'bronze' }],
   },
@@ -413,7 +413,7 @@ export const LIBRARY = Object.freeze([
   {
     id: 'rock-bottom', troll: true, mark: 'state:rock-bottom', requires: { can: ['sleep', 'groom', 'relieve'] },
     name: 'Au fond du trou', description: 'Avoir toutes les jauges au plus bas',
-    quip: "Toutes les jauges au plus bas. Le Système n'a pas de mots. Si, un seul : bravo.",
+    quip: "Toutes les jauges au plus bas. Le Comité n'a pas de mots. Si, un seul : bravo.",
     reward: { text: 'une pelle, pour creuser plus bas' },
   },
   {
@@ -456,7 +456,7 @@ export const LIBRARY = Object.freeze([
   {
     id: 'still-here', troll: true, stat: 'daysAlive', atLeast: 3650, name: 'Tu es encore là ?', description: 'Vivre 3 650 jours',
     title: 'fossile de bureau',
-    quip: "Dix ans. Ce succès a été écrit en pensant que personne ne l'obtiendrait. Le Système est ému. Un peu.",
+    quip: "Dix ans. Ce succès a été écrit en pensant que personne ne l'obtiendrait. Le Comité est ému. Un peu.",
     reward: { box: 'legendary' },
   },
   {
@@ -466,12 +466,12 @@ export const LIBRARY = Object.freeze([
   {
     id: 'overpolite', troll: true, stat: 'greets', atLeast: 500, name: 'Politesse excessive',
     description: 'Saluer ou être salué 500 fois',
-    quip: 'Cinq cents bonjours. Même le Système ne dit pas bonjour autant.', reward: { coins: 1 },
+    quip: 'Cinq cents bonjours. Même le Comité ne dit pas bonjour autant.', reward: { coins: 1 },
   },
   {
     id: 'extinction', troll: true, stat: 'hunts', atLeast: 1000, requires: { can: 'hunt' }, name: 'Extinction',
     description: 'Attraper 1 000 proies',
-    quip: "Mille proies. Leur espèce a porté plainte. Le Système a classé l'affaire.", reward: { box: 'gold' },
+    quip: "Mille proies. Leur espèce a porté plainte. Le Comité a classé l'affaire.", reward: { box: 'gold' },
   },
   {
     id: 'all-nighter', troll: true, mark: 'moment:all-nighter', requires: { can: 'sleep' }, name: 'Nuit blanche',
@@ -481,13 +481,13 @@ export const LIBRARY = Object.freeze([
   {
     id: 'ceiling-fall', troll: true, mark: 'moment:ceiling-fall', requires: { can: 'ceiling' }, name: 'Décollage du plafond',
     description: 'Tomber du plafond',
-    quip: 'Il est tombé du plafond. Tu as ri. Le Système a enregistré ton rire.', reward: { coins: 1 },
+    quip: 'Il est tombé du plafond. Tu as ri. Le Comité a enregistré ton rire.', reward: { coins: 1 },
   },
   {
     series: 'rescues', troll: true, stat: 'rescues', tiers: [1, 10],
     names: ['Porté disparu', 'Triangle des Bermudes'],
     description: "Sortir de l'écran {n} fois",
-    quips: ["Il est sorti de l'écran. Le Système l'a rattrapé. Tu n'avais rien remarqué.", "Dix disparitions. À ce stade, c'est un numéro de magie."],
+    quips: ["Il est sorti de l'écran. Le Comité l'a ramené. Tu n'avais rien remarqué.", "Dix disparitions. À ce stade, c'est un numéro de magie."],
     reward: [{ text: 'un avis de recherche' }, { box: 'bronze' }],
   },
   {
@@ -498,7 +498,7 @@ export const LIBRARY = Object.freeze([
   {
     id: 'tickle-sleep', troll: true, mark: 'state:tickle-sleep', requires: { can: 'sleep' }, name: 'Cauchemar chatouilleux',
     description: 'Être chatouillé en dormant',
-    quip: "Chatouiller quelqu'un qui dort. Même le Système trouve ça bas. Frais de dossier.",
+    quip: "Chatouiller quelqu'un qui dort. Même le Comité trouve ça bas. Frais de dossier.",
     reward: { coins: -1, text: 'frais de dossier' },
   },
   {
@@ -546,11 +546,11 @@ export const LIBRARY = Object.freeze([
   },
   {
     id: 'sock-worn', troll: true, mark: 'accessory:sock', name: 'Chaussette de compétition', description: 'Porter la chaussette',
-    quip: "Une chaussette sur la tête. Propre, on l'espère. Le Système préfère ne pas vérifier.", reward: { coins: 1 },
+    quip: "Une chaussette sur la tête. Propre, on l'espère. Le Comité préfère ne pas vérifier.", reward: { coins: 1 },
   },
   {
     id: 'foilhat-worn', troll: true, mark: 'accessory:foilhat', name: 'Ils nous écoutent', description: 'Porter le chapeau en papier alu',
-    quip: "Chapeau en papier alu enfilé. Le Système ne capte plus ses pensées. Il n'y avait pas grand-chose à capter.",
+    quip: "Chapeau en papier alu enfilé. Le Comité renonce à lire dans tes pensées. Il n'y avait pas grand-chose à lire.",
     reward: { text: 'un rouleau d’aluminium entamé' },
   },
   {
@@ -605,7 +605,7 @@ export const LIBRARY = Object.freeze([
       "Tu as ouvert le menu. Bravo. C'est le début d'une longue addiction.",
       "Cent ouvertures. Il n'y a toujours rien de nouveau dedans.",
       "Mille ouvertures. Le menu a demandé une mesure d'éloignement.",
-      "Dix mille ouvertures du menu. Le Système a vérifié : non, tu n'as vraiment rien d'autre à faire.",
+      "Dix mille ouvertures du menu. Le Comité a vérifié : non, tu n'as vraiment rien d'autre à faire.",
     ],
     reward: [{ coins: 0 }, { box: 'bronze' }, { box: 'silver' }, { box: 'legendary' }],
   },
@@ -630,7 +630,7 @@ export const LIBRARY = Object.freeze([
     description: 'Ouvrir la fenêtre de progression {n} fois',
     quips: [
       'Vingt-cinq consultations. Les chiffres ne montent pas plus vite quand on les regarde.',
-      'Cent consultations. Le Système envisage de te facturer la bande passante.',
+      'Cent consultations. Le Comité songe à te facturer des jetons de présence.',
     ],
     reward: [{ coins: 0 }, { box: 'bronze' }],
   },
@@ -650,7 +650,7 @@ export const LIBRARY = Object.freeze([
     description: 'Partir en vacances {n} fois',
     quips: [
       'Mode vacances. Il ne bougera plus. Toi, profite. Et culpabilise un peu.',
-      'Cinq départs en vacances. Il a arrêté de compter. Pas le Système.',
+      'Cinq départs en vacances. Il a arrêté de compter. Pas le Comité.',
     ],
     reward: [{ text: 'une carte postale' }, { box: 'bronze' }],
   },
@@ -684,7 +684,7 @@ export const LIBRARY = Object.freeze([
   {
     id: 'right-click-revenge', scope: 'player', troll: true, stat: 'itemsRemoved', atLeast: 50, name: 'Clic droit vengeur',
     description: "Retirer 50 objets d'un clic droit",
-    quip: 'Cinquante objets retirés d\'un clic droit. Le Système voit se dessiner une tendance.', reward: { coins: 0 },
+    quip: 'Cinquante objets retirés d\'un clic droit. Le Comité voit se dessiner une tendance.', reward: { coins: 0 },
   },
   {
     id: 'pet-hotel', scope: 'player', troll: true, mark: 'desk:beds', name: 'Hôtel pour animaux',
@@ -711,7 +711,7 @@ export const LIBRARY = Object.freeze([
     names: ['Débordement', 'Les yeux plus gros que la gamelle'],
     description: 'Remplir {n} fois une gamelle déjà pleine',
     quips: [
-      'Remplir une gamelle déjà pleine, trois fois. La gravité et le Système désapprouvent.',
+      'Remplir une gamelle déjà pleine, trois fois. La gravité et le Comité désapprouvent.',
       'Vingt débordements. Le bureau sent la croquette.',
     ],
     reward: [{ coins: 0 }, { box: 'bronze' }],
@@ -722,13 +722,13 @@ export const LIBRARY = Object.freeze([
     description: 'Lâcher {n} proies',
     quips: [
       "Dix proies lâchées. Ce n'est plus de la chasse, c'est de la livraison à domicile.",
-      'Cinquante proies. Le Système a prévenu les services vétérinaires. Ils sont en pause.',
+      'Cinquante proies. Le Comité a prévenu les services vétérinaires. Ils sont en pause.',
     ],
     reward: [{ coins: 1 }, { box: 'silver' }],
   },
   {
     id: 'broke', scope: 'player', troll: true, mark: 'state:broke', name: 'Fauché', description: 'Tomber à zéro pièce après un achat',
-    quip: "Zéro pièce. Le Système te donne un conseil gratuit : arrête d'acheter des chapeaux.",
+    quip: "Zéro pièce. Le Comité te donne un conseil gratuit : arrête d'acheter des chapeaux.",
     reward: { text: 'un conseil (non remboursable)' },
   },
   {
@@ -740,7 +740,7 @@ export const LIBRARY = Object.freeze([
   {
     id: 'dragon-hoard', scope: 'player', troll: true, stat: 'coins', atLeast: 1000, name: 'Dragon sur son trésor',
     description: 'Avoir 1 000 pièces en poche',
-    quip: 'Mille pièces et tu ne dépenses rien. Le Système respecte. Un peu.', reward: { box: 'gold' },
+    quip: 'Mille pièces et tu ne dépenses rien. Le Comité respecte. Un peu.', reward: { box: 'gold' },
   },
   {
     id: 'night-menu', scope: 'player', troll: true, mark: 'moment:night-menu', name: 'Insomnie',
@@ -755,7 +755,7 @@ export const LIBRARY = Object.freeze([
   {
     id: 'food-thief', scope: 'player', troll: true, mark: 'moment:food-thief', name: 'Voleur de goûter',
     description: "Retirer la nourriture qu'un animal allait manger",
-    quip: "Tu as retiré la nourriture qu'il allait manger. Le Système n'a rien vu. Si. Frais de dossier.",
+    quip: "Tu as retiré la nourriture qu'il allait manger. Le Comité n'a rien vu. Si. Frais de dossier.",
     reward: { coins: -1, text: 'frais de dossier' },
   },
 ]);

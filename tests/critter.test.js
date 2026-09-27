@@ -2776,7 +2776,7 @@ test('bêtises : œuf caressé, chatouilles, survols, caresse en plein repas, so
   egg.c.setLife(Life.create(lifeSeq(0.1, 0.5, 0.5), { growth: true }));
   egg.c.interact('click');
   egg.c.interact('click');
-  assert.equal(egg.c.stats.get('eggPets'), 2, "l'œuf ne réagit pas, mais le Système compte");
+  assert.equal(egg.c.stats.get('eggPets'), 2, "l'œuf ne réagit pas, mais le Comité compte");
 
   const { c, surfaces } = worldCritter();
   c.stateTimer = 1e9;

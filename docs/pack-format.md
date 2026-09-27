@@ -191,7 +191,7 @@ Champs d'un succès :
 - textes :
   - `name` ;
   - `description` ;
-  - `quip` (commentaire du Système) ;
+  - `quip` (commentaire du Comité) ;
   - `title` ;
 - listes :
   - `names` (un par palier) ;
