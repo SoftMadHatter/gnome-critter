@@ -1,6 +1,6 @@
-// Accessoire porté (chapeau, nœud, lunettes...) : un petit acteur non réactif
-// posé sur la tête de l'animal, ancré via la section `anchors.head` du pack.
-// Ajouté à uiGroup sans addChrome : il laisse passer les clics.
+// A worn accessory (hat, bow tie, glasses...): a small non-reactive actor
+// placed on the critter's head, anchored via the pack's `anchors.head`
+// section. Added to uiGroup without addChrome: it lets clicks through.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -12,14 +12,14 @@ import { loadImage } from './packLoader.js';
 
 /**
  * @param {string} dir extension/assets/accessories
- * @returns {Record<string, St.ImageContent>} vide si le chargement échoue
+ * @returns {Record<string, St.ImageContent>} empty if loading fails
  */
 export function loadAccessoryImages(dir) {
   const images = {};
   try {
     for (const id of Object.keys(ACCESSORIES)) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
   } catch (e) {
-    console.warn(`Critter : accessoires indisponibles (${e.message})`);
+    console.warn(`Critter: accessories unavailable (${e.message})`);
     return {};
   }
   return images;
@@ -35,16 +35,16 @@ export class AccessoryActor {
     this._anchors = anchors;
     this._id = null;
     this.actor = new Clutter.Actor({ reactive: false, visible: false, pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }) });
-    // Accessoires dessinés au double de leur taille d'affichage : réduction lissée.
+    // Accessories drawn at double their display size: smoothed downscaling.
     this.actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
     Main.layoutManager.uiGroup.add_child(this.actor);
   }
 
   /**
-   * @param {string|null} id accessoire à porter, ou null
-   * @param {{x:number, y:number, width:number, height:number}} box rectangle du sprite à l'écran
-   * @param {number} facing 1 (droite) ou -1 (gauche)
-   * @param {boolean} visible faux quand le sprite est masqué
+   * @param {string|null} id accessory to wear, or null
+   * @param {{x:number, y:number, width:number, height:number}} box the sprite's on-screen rectangle
+   * @param {number} facing 1 (right) or -1 (left)
+   * @param {boolean} visible false when the sprite is hidden
    */
   update(id, box, facing, visible) {
     const image = id && visible ? this._images[id] : null;

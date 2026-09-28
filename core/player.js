@@ -1,10 +1,10 @@
-// État du joueur : pièces, achats, journal, gestes comptés et succès du
-// joueur. Module pur, sauvegardé à part de celui des animaux (clé GSettings
-// `saved-player`).
+// Player state: coins, purchases, journal, tracked gestures and player
+// achievements. Pure module, saved separately from the animals' state
+// (GSettings key `saved-player`).
 
 import { Stats, PLAYER_STAT_KEYS } from './stats.js';
 
-/** Gains de pièces par événement d'animal. */
+/** Coin rewards per animal event. */
 export const COIN_REWARDS = Object.freeze({
   ate: 1,
   played: 2,
@@ -16,7 +16,7 @@ export const COIN_REWARDS = Object.freeze({
   trickLearned: 10,
 });
 
-/** Événements répétables qu'on peut provoquer à la chaîne : gains espacés dans le temps. */
+/** Repeatable events that could otherwise be triggered in a chain: gains spaced out over time. */
 export const COOLDOWN_EVENTS = Object.freeze(new Set(['ate', 'played', 'brushed', 'purring']));
 
 const COOLDOWN_SECONDS = 30;
@@ -30,14 +30,14 @@ export class Player {
   constructor({ coins = 0, owned = [], journal = [], stats = null, unlocked = [], achievementCount = 0 } = {}) {
     this.coins = Number.isFinite(coins) && coins >= 0 ? Math.floor(coins) : 0;
     this.owned = Array.isArray(owned) ? owned.filter((id) => typeof id === 'string') : [];
-    /** Entrées `{id, t, text, body?, unread?}` ; `body` = texte complet d'une annonce, `unread` = pas encore vue. */
+    /** Entries `{id, t, text, body?, unread?}`; `body` = full text of an announcement, `unread` = not seen yet. */
     this.journal = [];
     if (Array.isArray(journal)) {
       const valid = journal.filter((e) => e && Number.isFinite(e.t) && typeof e.text === 'string').slice(-JOURNAL_LIMIT);
       let nextId = Math.max(0, ...valid.map((e) => (Number.isInteger(e.id) ? e.id : 0))) + 1;
       const seen = new Set();
       for (const e of valid) {
-        // Anciennes sauvegardes : pas d'id (attribué ici), entrées lues.
+        // Older saves: no id (assigned here), entries already read.
         const id = Number.isInteger(e.id) && e.id > 0 && !seen.has(e.id) ? e.id : nextId++;
         seen.add(id);
         const entry = { id, t: e.t, text: e.text };
@@ -46,17 +46,17 @@ export class Player {
         this.journal.push(entry);
       }
     }
-    /** Gestes du joueur (menus, bureau...) et marques, base des succès du joueur. */
+    /** Player gestures (menus, desktop...) and marks, the basis for player achievements. */
     this.stats = new Stats(PLAYER_STAT_KEYS);
     this.stats.restore(stats);
-    /** Succès du joueur obtenus. */
+    /** Player achievements unlocked. */
     this.unlocked = new Set(Array.isArray(unlocked) ? unlocked.filter((id) => typeof id === 'string') : []);
-    /** Total des succès obtenus (animaux et joueur), qui ne redescend jamais : base des trophées. */
+    /** Total achievements unlocked (animals and player), which never goes down: the basis for trophies. */
     this.achievementCount = Number.isFinite(achievementCount) && achievementCount >= 0 ? Math.floor(achievementCount) : 0;
     this._lastAward = new Map();
   }
 
-  /** Faits des succès du joueur : compteurs, solde, accessoires possédés, marques. */
+  /** Player achievement facts: counters, balance, accessories owned, marks. */
   progressFacts() {
     return {
       stats: { ...this.stats.counters, coins: this.coins, accessoriesOwned: this.owned.length },
@@ -65,9 +65,9 @@ export class Player {
   }
 
   /**
-   * Crédite des pièces ; `cooldown` > 0 espace les gains d'une même source
-   * (l'animal et l'événement) pour empêcher de les enchaîner en boucle.
-   * @returns {number} pièces réellement gagnées
+   * Credits coins; `cooldown` > 0 spaces out gains from the same source
+   * (the animal and the event) to prevent chaining them in a loop.
+   * @returns {number} coins actually earned
    */
   award(source, amount, nowSeconds, cooldown = 0) {
     if (!(amount > 0)) return 0;
@@ -80,7 +80,7 @@ export class Player {
     return amount;
   }
 
-  /** Gain lié à un événement d'animal (table COIN_REWARDS, délai pour les répétables). */
+  /** Gain tied to an animal event (the COIN_REWARDS table, a cooldown for repeatable ones). */
   awardEvent(critterKey, event, nowSeconds) {
     const amount = COIN_REWARDS[event];
     if (!amount) return 0;
@@ -88,7 +88,7 @@ export class Player {
     return this.award(`${critterKey}:${event}`, amount, nowSeconds, cooldown);
   }
 
-  /** @returns {boolean} faux (rien débité) si le solde est insuffisant */
+  /** @returns {boolean} false (nothing debited) if the balance is insufficient */
   spend(price) {
     if (!(price >= 0) || price > this.coins) return false;
     this.coins -= price;
@@ -104,8 +104,8 @@ export class Player {
   }
 
   /**
-   * Ajoute une entrée au journal et la renvoie. Avec `body` (texte complet d'une annonce), elle est
-   * non lue tant qu'on ne l'a pas marquée lue ; sans, c'est un simple événement, déjà lu.
+   * Adds an entry to the journal and returns it. With `body` (an announcement's full text), it is
+   * unread until marked as read; without, it's a plain event, already read.
    */
   log(text, nowMs, { body = null, unread = false } = {}) {
     const id = this.journal.reduce((max, e) => Math.max(max, e.id), 0) + 1;
@@ -121,7 +121,7 @@ export class Player {
     return this.journal.filter((e) => e.unread).length;
   }
 
-  /** Marque une entrée lue ; renvoie vrai si elle était non lue. */
+  /** Marks an entry as read; returns true if it was unread. */
   markRead(id) {
     const entry = this.journal.find((e) => e.id === id);
     if (!entry?.unread) return false;
@@ -145,7 +145,7 @@ export class Player {
     });
   }
 
-  /** Relit une sauvegarde sans jamais lever d'exception (joueur neuf si illisible). */
+  /** Reads back a save, never throwing (a fresh player if unreadable). */
   static parse(text) {
     try {
       const data = JSON.parse(text);

@@ -90,8 +90,8 @@ test('findWallNear trouve un mur proche horizontalement dont la portée vertical
   assert.ok(near);
   assert.equal(near.x, 400);
 
-  assert.equal(findWallNear(walls, 500, 250, 260), null); // trop loin horizontalement
-  assert.equal(findWallNear(walls, 402, 350, 360), null); // hors de la portée verticale du mur
+  assert.equal(findWallNear(walls, 500, 250, 260), null); // too far horizontally
+  assert.equal(findWallNear(walls, 402, 350, 360), null); // outside the wall's vertical reach
 });
 
 test('findCeilingAbove trouve le segment ceiling le plus proche au-dessus d\'un point', () => {
@@ -106,36 +106,36 @@ test('findCeilingAbove trouve le segment ceiling le plus proche au-dessus d\'un 
   assert.equal(found.surfaceId, 'w');
 
   assert.equal(findCeilingAbove(segments, 450, 300, 5), findCeilingAbove(segments, 450, 300, 5));
-  assert.equal(findCeilingAbove(segments, 450, 299, 5), null); // déjà passé au-dessus, hors de portée
+  assert.equal(findCeilingAbove(segments, 450, 299, 5), null); // already past above, out of reach
 });
 
 test('findReachableWall trouve le mur le plus proche dont le bas est au niveau donné', () => {
   const { walls } = computeSurfaces({
     monitors: [{ x: 0, y: 0, width: 1000, height: 1000 }],
     windows: [
-      { id: 'floating', x: 400, y: 200, width: 200, height: 100 }, // bas à 300
-      { id: 'grounded', x: 100, y: 900, width: 50, height: 100 }, // bas à 1000, au niveau du sol
+      { id: 'floating', x: 400, y: 200, width: 200, height: 100 }, // bottom at 300
+      { id: 'grounded', x: 100, y: 900, width: 50, height: 100 }, // bottom at 1000, at ground level
     ],
   });
 
-  // Au niveau du sol (y=1000) : le mur de la fenêtre posée au sol, plus
-  // proche que les murs du moniteur, l'emporte.
+  // At ground level (y=1000): the wall of the window resting on the
+  // ground, closer than the monitor's walls, wins.
   const near = findReachableWall(walls, 120, 1000);
   assert.ok(near);
   assert.equal(near.surfaceId, 'grounded');
 
-  // Loin de cette fenêtre, toujours au sol : un mur du moniteur.
+  // Far from that window, still at ground level: a monitor wall.
   const farFromWindow = findReachableWall(walls, 900, 1000);
   assert.equal(farFromWindow.surfaceId, 'monitor:0');
   assert.equal(farFromWindow.side, 'right');
 
-  // Au niveau du bas de la fenêtre flottante (y=300) : SON mur, pas ceux
-  // du sol/moniteur qui ne sont pas au niveau ici.
+  // At the level of the floating window's bottom (y=300): ITS wall, not
+  // the ground/monitor ones, which aren't at this level here.
   const atFloatingWindow = findReachableWall(walls, 450, 300);
   assert.equal(atFloatingWindow.surfaceId, 'floating');
   assert.equal(atFloatingWindow.side, 'left');
 
-  // À un niveau où aucun mur n'a son bas : rien de "atteignable".
+  // At a level where no wall has its bottom: nothing "reachable".
   assert.equal(findReachableWall(walls, 450, 500), null);
 });
 
@@ -153,7 +153,7 @@ test('findReachableShelf trouve le rebord le plus proche au même niveau, hors l
   assert.ok(nearest);
   assert.equal(nearest.surfaceId, 'near');
 
-  // La surface déjà occupée ('near') est exclue : le suivant l'emporte.
+  // The already-occupied surface ('near') is excluded: the next one wins.
   const excludingNear = findReachableShelf(segments, 250, 300, 'near');
   assert.equal(excludingNear.surfaceId, 'far');
 
@@ -161,7 +161,7 @@ test('findReachableShelf trouve le rebord le plus proche au même niveau, hors l
   assert.equal(findReachableShelf(segments, 450, 999, 'unrelated'), null, 'aucun rebord à ce niveau');
 });
 
-// --- Point au sol (remise en place après une veille) -----------------------------
+// --- Ground point (repositioning after sleep) -----------------------------
 
 test('groundPoint : bas du moniteur sous le point, abscisse ramenée dans ses bornes', () => {
   const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];

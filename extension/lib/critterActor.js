@@ -1,7 +1,7 @@
-// Représentation visuelle d'un Critter : un Clutter.Actor posé dans
-// Main.layoutManager.uiGroup, dont le contenu (Clutter.Image) change selon
-// l'état renvoyé par core/critter.js. Gère aussi le clic/glisser et le clic
-// simple (caresse) directement sur l'acteur.
+// Visual representation of a Critter: a Clutter.Actor placed in
+// Main.layoutManager.uiGroup, whose content (Clutter.Image) changes
+// according to the state returned by core/critter.js. Also handles
+// click/drag and the plain click (pet) directly on the actor.
 
 import Clutter from 'gi://Clutter';
 import Graphene from 'gi://Graphene';
@@ -15,8 +15,8 @@ import { NameTag } from './nameTag.js';
 const DRAG_BEGIN_THRESHOLD_PX = 4;
 const EGG_FRAME_SECONDS = 0.6;
 
-// Animation de repli d'un état que le pack ne décrit pas, avant le repli
-// final sur "idle" : une allure rapide ressemble à son allure normale.
+// Fallback animation for a state the pack doesn't describe, before the
+// final fallback to "idle": a fast gait looks like its normal gait.
 const ANIMATION_FALLBACKS = {
   run: ['walk'],
   swimFast: ['swim'],
@@ -41,15 +41,15 @@ export class CritterActor {
    * @param {import('../../core/critter.js').Critter} critter
    * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
    * @param {Gio.Settings} settings
-   * @param {Record<string, St.ImageContent>} [bubbleIcons] icônes des bulles de pensée (aucune bulle si vide)
-   * @param {object} [menuOwner] actions du menu contextuel (voir CritterMenu) ; pas de menu si absent
-   * @param {{framesFor: Function}|null} [eggSheet] feuille de l'œuf (générique, avec variantes de couleur)
+   * @param {Record<string, St.ImageContent>} [bubbleIcons] thought bubble icons (no bubble if empty)
+   * @param {object} [menuOwner] context menu actions (see CritterMenu); no menu if absent
+   * @param {{framesFor: Function}|null} [eggSheet] egg sheet (generic, with color variants)
    */
   constructor(critter, pack, settings, bubbleIcons = {}, menuOwner = null, eggSheet = null) {
     this.critter = critter;
     this.pack = pack;
     this._settings = settings;
-    this._animState = null; // état d'animation en cours (peut différer de critter.state pour les réactions)
+    this._animState = null; // current animation state (may differ from critter.state during reactions)
     this._frameIndex = 0;
     this._frameElapsed = 0;
     this._reaction = null; // {name, elapsed}
@@ -75,8 +75,8 @@ export class CritterActor {
       pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
     });
 
-    // Pack au dessin fin (feuilles plus grandes que spriteSize) : réduction lissée ;
-    // pixel-art pur : au plus proche voisin, sinon flou en HiDPI et au retournement.
+    // Fine-drawn pack (sheets larger than spriteSize): smoothed downscaling;
+    // pure pixel art: nearest-neighbor, otherwise blur on HiDPI and on flip.
     this.actor.set_content_scaling_filters(
       pack.smooth ? Clutter.ScalingFilter.TRILINEAR : Clutter.ScalingFilter.NEAREST,
       pack.smooth ? Clutter.ScalingFilter.LINEAR : Clutter.ScalingFilter.NEAREST,
@@ -99,12 +99,12 @@ export class CritterActor {
   }
 
   /**
-   * Clic/double-clic/clic droit/glisser via le framework de gestes Clutter
-   * (mutter-18, GNOME 50) : event.get_click_count() n'existe plus sur
-   * Clutter.Event, et plus aucun widget du Shell ne détecte ça via des
-   * signaux bruts (button-press-event/motion-event/button-release-event) --
-   * y compris le glisser, cf. le slider de ui/popupMenu.js qui utilise
-   * Clutter.PanGesture avec le même global.stage.grab() que ci-dessous.
+   * Click/double-click/right-click/drag via the Clutter gesture framework
+   * (mutter-18, GNOME 50): event.get_click_count() no longer exists on
+   * Clutter.Event, and no Shell widget detects this via raw signals
+   * (button-press-event/motion-event/button-release-event) anymore --
+   * including drag, cf. the slider in ui/popupMenu.js, which uses
+   * Clutter.PanGesture with the same global.stage.grab() as below.
    */
   _setupGestures() {
     const clickGesture = new Clutter.ClickGesture();
@@ -115,9 +115,8 @@ export class CritterActor {
     doubleClickGesture.connect('recognize', () => this.critter.interact('doubleClick'));
     this.actor.add_action(doubleClickGesture);
 
-    // recognize_on_press : action immédiate, pas de glisser possible au
-    // clic droit (même pattern que ui/appDisplay.js pour le menu contextuel
-    // des icônes).
+    // recognize_on_press: immediate action, no drag possible on right
+    // click (same pattern as ui/appDisplay.js for icons' context menu).
     const rightClickGesture = new Clutter.ClickGesture({
       required_button: Clutter.BUTTON_SECONDARY,
       recognize_on_press: true,
@@ -125,8 +124,8 @@ export class CritterActor {
     rightClickGesture.connect('recognize', () => this.critter.interact('rightClick'));
     this.actor.add_action(rightClickGesture);
 
-    // Clic milieu : menu contextuel (nourrir, gamelle, lit). Le clic droit
-    // reste « agacé ».
+    // Middle click: context menu (feed, bowl, bed). Right click stays
+    // "annoyed".
     if (this._menu) {
       const middleClickGesture = new Clutter.ClickGesture({
         required_button: Clutter.BUTTON_MIDDLE,
@@ -141,11 +140,10 @@ export class CritterActor {
     const panGesture = new Clutter.PanGesture();
     panGesture.set_begin_threshold(DRAG_BEGIN_THRESHOLD_PX);
     panGesture.connect('recognize', () => {
-      // Capture tous les événements pointeur pendant le glisser, même
-      // quand le curseur passe au-dessus d'une vraie fenêtre : sans grab,
-      // Mutter livre sinon les mises à jour directement au client Wayland
-      // de la fenêtre survolée (le drag "se figeait" dès que la souris
-      // quittait le sprite).
+      // Captures every pointer event during the drag, even when the
+      // cursor moves over a real window: without a grab, Mutter otherwise
+      // delivers updates directly to the hovered window's Wayland client
+      // (the drag would "freeze" as soon as the mouse left the sprite).
       this._grab = global.stage.grab(this.actor);
       this.critter.startDrag();
     });
@@ -163,7 +161,7 @@ export class CritterActor {
     this.actor.add_action(panGesture);
   }
 
-  /** Active l'affichage des accessoires (images et point d'ancrage de la tête). */
+  /** Enables the display of accessories (images and the head anchor point). */
   attachAccessories(images, anchors) {
     if (Object.keys(images).length > 0) this._accessory = new AccessoryActor(images, anchors);
   }
@@ -185,7 +183,7 @@ export class CritterActor {
     );
   }
 
-  /** Ambiance de nuit : léger assombrissement du sprite. */
+  /** Night ambiance: a slight darkening of the sprite. */
   setNight(night) {
     if (night === this._night) return;
     this._night = night;
@@ -197,7 +195,7 @@ export class CritterActor {
     this._nightEffect.set_enabled(night);
   }
 
-  /** Taille affichée : la taille du pack, mise à l'échelle du stade (bébé plus petit). */
+  /** Displayed size: the pack's size, scaled by the stage (baby is smaller). */
   _displaySize() {
     const size = this.pack.spriteSize;
     return { width: Math.round(size.width * this._scale), height: Math.round(size.height * this._scale) };
@@ -208,21 +206,21 @@ export class CritterActor {
     if (this.actor.width !== size.width || this.actor.height !== size.height) {
       this.actor.set_size(size.width, size.height);
     }
-    // critter.y est le point d'accroche : les pieds pour tout état posé sur
-    // le dessus d'une surface, mais le haut du sprite pour CEILING (accroché
-    // sous un surplomb, donc suspendu SOUS ce point plutôt que dessus).
+    // critter.y is the anchor point: the feet for any state resting on top
+    // of a surface, but the top of the sprite for CEILING (latched under
+    // an overhang, so hanging BELOW this point rather than above it).
     const y = this.critter.state === State.CEILING ? this.critter.y : this.critter.y - size.height;
     this.actor.set_position(this.critter.x - size.width / 2, y);
     this.actor.scale_x = this.critter.facing < 0 ? -1 : 1;
   }
 
   /**
-   * Fait avancer l'animation d'un pas de temps. À appeler juste après
-   * `critter.tick()`, avec le snapshot qu'il a renvoyé.
+   * Advances the animation by one time step. Call this right after
+   * `critter.tick()`, with the snapshot it returned.
    * @param {number} dt
    * @param {{state: string, event: string|null}} snapshot
    */
-  /** Nouvelle apparence (évolution) : bascule sur le jeu de frames correspondant. */
+  /** New appearance (evolution): switches to the matching frame set. */
   _refreshAppearance(snapshot) {
     const { hue, tone, saturation } = snapshot.appearance;
     const key = `${snapshot.stage}|${Math.round(hue)}|${Math.round(tone)}|${saturation}`;
@@ -275,8 +273,8 @@ export class CritterActor {
 
   _updateSprite(dt, snapshot) {
     this._stage = snapshot.stage;
-    // Tant qu'il n'a pas éclos, rien d'autre que l'œuf : même en chute ou
-    // pendant un glisser, et sans aucune réaction de l'espèce.
+    // As long as it hasn't hatched, nothing but the egg: even while
+    // falling or during a drag, and with no species reaction at all.
     if (snapshot.stage === 'egg') {
       this._reaction = null;
       const packEgg = this._frames.animationFrames.egg;
@@ -287,11 +285,11 @@ export class CritterActor {
       return;
     }
 
-    // La garde sur this._reaction?.name évite qu'un événement répété (ex.
-    // 'noticed' au survol, qui peut se redéclencher souvent si le curseur
-    // reste immobile pendant que le critter marche dessous) ne redémarre
-    // sans cesse la même réaction depuis le début ; une réaction DIFFÉRENTE
-    // interrompt toujours l'actuelle normalement.
+    // The guard on this._reaction?.name prevents a repeated event (e.g.
+    // 'noticed' on hover, which can retrigger often if the cursor stays
+    // still while the critter walks underneath) from endlessly restarting
+    // the same reaction from the start; a DIFFERENT reaction always
+    // interrupts the current one normally.
     if (
       snapshot.event &&
       this._frames.reactionFrames[snapshot.event] &&
@@ -329,7 +327,7 @@ export class CritterActor {
     global.display.get_sound_player().play_from_file(file, `Critter: ${name}`, null);
   }
 
-  /** Œuf (celui de l'espèce ou le générique) : se balance, puis se fissure à l'approche de l'éclosion. */
+  /** Egg (the species' own, or the generic one): sways, then cracks as hatching approaches. */
   _applyEgg(dt, snapshot, frames) {
     if (this._animState !== State.EGG) {
       this._animState = State.EGG;

@@ -1,8 +1,8 @@
-// Données de la page de revue : packs, succès développés comme le jeu les
-// calcule (speciesProfile + buildAchievements), origine et gabarit source de
-// chaque succès. Hors du français, le catalogue po/<langue>.po est branché
-// et chaque pack est localisé (section `translations`) ; la version
-// française reste disponible pour les contrôles des textes source.
+// Data for the review page: packs, achievements expanded the way the game
+// computes them (speciesProfile + buildAchievements), origin and source
+// template of every achievement. Outside of French, the po/<language>.po
+// catalog is plugged in and every pack is localized (`translations`
+// section); the French version stays available for source-text checks.
 
 import { buildAchievements, speciesProfile } from '../../core/achievements.js';
 import { LIBRARY } from '../../core/achievementLibrary.js';
@@ -13,18 +13,18 @@ import { parsePo, translatorFrom } from './po.js';
 
 async function fetchOk(url) {
   const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`${url} : ${response.status} ${response.statusText}`);
+  if (!response.ok) throw new Error(`${url}: ${response.status} ${response.statusText}`);
   return response;
 }
 
 const fetchJson = async (url) => (await fetchOk(url)).json();
 
 /**
- * Un pack prêt à relire, dans la langue du traducteur actif.
+ * A pack ready to review, in the active translator's language.
  * @param {string} id
- * @param {object} raw pack.json tel qu'écrit (textes source en français)
- * @param {Set<string>} files fichiers du pack (chemins relatifs)
- * @param {string} [lang] langue d'affichage (`fr`, `en`)
+ * @param {object} raw pack.json as written (source text in French)
+ * @param {Set<string>} files the pack's files (relative paths)
+ * @param {string} [lang] display language (`fr`, `en`)
  */
 export function preparePack(id, raw, files, lang = 'fr') {
   const meta = localizePack(raw, lang);
@@ -46,13 +46,13 @@ export function preparePack(id, raw, files, lang = 'fr') {
     player,
     all: [...critter, ...player],
     ignored,
-    /** Origine d'un succès : 'library', 'pack' (propre au pack) ou 'override' (bibliothèque remplacée par le pack). */
+    /** An achievement's origin: 'library', 'pack' (specific to the pack), or 'override' (library entry replaced by the pack). */
     origin(def) {
       const key = keyOf(def);
       if (!own.has(key)) return 'library';
       return library.has(key) ? 'override' : 'pack';
     },
-    /** Gabarit source (entrée du pack ou de la bibliothèque, en français) d'un succès. */
+    /** An achievement's source template (pack or library entry, in French). */
     source(def) {
       const key = keyOf(def);
       return own.get(key) ?? library.get(key);
@@ -61,9 +61,9 @@ export function preparePack(id, raw, files, lang = 'fr') {
 }
 
 /**
- * Charge tous les packs servis par le serveur de revue.
- * @param {string} [lang] langue d'affichage ; hors du français, chaque pack garde
- *   sa version française dans `french` et le catalogue lu est rendu dans `catalog`
+ * Loads every pack served by the review server.
+ * @param {string} [lang] display language; outside of French, every pack keeps
+ *   its French version in `french` and the loaded catalog is returned in `catalog`
  */
 export async function loadData(lang = 'fr') {
   if (!LANGUAGES.includes(lang)) lang = 'fr';

@@ -1,15 +1,14 @@
-// Bibliothèque commune des succès, développée pour chaque espèce par
-// core/achievements.js (un pack peut remplacer, retirer ou ajouter des
-// entrées ; format dans docs/progression.md).
+// Common achievement library, expanded for each species by
+// core/achievements.js (a pack can replace, remove or add entries; format
+// in docs/progression.md).
 //
-// Les « troll » (bêtises de l'animal, gestes du joueur) sont cachés jusqu'à
-// leur découverte ; `quip` est le commentaire du Comité qui les annonce
-// (core/narrator.js), `reward` leur récompense farfelue. Les titres sont des
-// appositions invariables (« Minou, as de la sieste ») : les créatures n'ont
-// pas de genre.
+// The "troll" ones (an animal's mischief, the player's gestures) are
+// hidden until discovered; `quip` is the Committee's comment announcing
+// them (core/narrator.js), `reward` their silly reward. Titles are
+// invariable appositions ("Minou, nap ace"): creatures have no gender.
 
 export const LIBRARY = Object.freeze([
-  // --- Soins ---------------------------------------------------------------------
+  // --- Care ---------------------------------------------------------------------
   {
     series: 'meals', category: 'care', stat: 'meals', tiers: [10, 50, 200, 1000, 5000],
     names: ['Petit creux', 'Bon appétit', 'Belle fourchette', 'Estomac sur pattes', 'Gouffre sans fond'],
@@ -46,7 +45,7 @@ export const LIBRARY = Object.freeze([
     description: 'Saluer ou être salué {n} fois', title: "vedette de l'accueil",
   },
 
-  // --- Jeu -----------------------------------------------------------------------
+  // --- Play -----------------------------------------------------------------------
   {
     series: 'playSessions', category: 'play', stat: 'playSessions', tiers: [10, 50, 200, 1000],
     names: ['Récréation', 'Partie de plaisir', 'Infatigable', 'Tornade ludique'],
@@ -73,7 +72,7 @@ export const LIBRARY = Object.freeze([
     description: "Pousser l'anneau {n} fois", title: "otarie d'honneur",
   },
 
-  // --- Exploration ----------------------------------------------------------------
+  // --- Exploration ------------------------------------------------------------------
   {
     series: 'runs', category: 'exploration', stat: 'runs', tiers: [10, { at: 50, id: 'speedster' }, 200, 1000],
     requires: { can: 'ground' },
@@ -119,7 +118,7 @@ export const LIBRARY = Object.freeze([
     description: 'Grignoter {n} fois une plante', title: 'tondeuse à gazon',
   },
 
-  // --- Vie -----------------------------------------------------------------------
+  // --- Life -----------------------------------------------------------------------
   {
     series: 'daysAlive', category: 'life', stat: 'daysAlive', tiers: [1, 7, { at: 30, id: 'old-timer' }, 100, 365, 1000],
     names: ['Premier jour', 'Première semaine', 'Doyen', 'Centenaire (en jours)', 'Un an de bureau', 'Millénaire (en jours)'],
@@ -157,7 +156,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 1 }, { coins: 1 }, { box: 'bronze' }],
   },
 
-  // --- Caractère (une série par caractère) -----------------------------------------
+  // --- Personality (one series per trait) -----------------------------------------
   {
     series: 'trait-playful', category: 'play', stat: 'playSessions', tiers: [25, 100, 500], requires: { trait: 'playful' },
     names: ["Boule d'énergie", 'Pile électrique', 'Ouragan'],
@@ -180,7 +179,7 @@ export const LIBRARY = Object.freeze([
     description: 'Fuir {n} fois (caractère timide)', title: 'ninja du bureau',
   },
 
-  // --- Collection -------------------------------------------------------------------
+  // --- Collection --------------------------------------------------------------------
   {
     series: 'foodsTasted', category: 'collection', marks: 'food', tiers: [2, 4, 'all'],
     names: ['Palais curieux', 'Gastronomie', 'Tour du menu'],
@@ -222,7 +221,7 @@ export const LIBRARY = Object.freeze([
     description: 'Obtenir {n} succès', title: 'légende vivante',
   },
 
-  // --- Saisons ----------------------------------------------------------------------
+  // --- Seasons ----------------------------------------------------------------------
   { id: 'christmas', category: 'seasons', mark: 'holiday:christmas', name: 'Joyeux Noël', description: 'Être là à Noël', coins: 20 },
   { id: 'newyear', category: 'seasons', mark: 'holiday:newyear', name: 'Bonne année', description: "Être là le jour de l'An", coins: 20 },
   { id: 'valentine', category: 'seasons', mark: 'holiday:valentine', name: 'Cœur de Saint-Valentin', description: 'Être là à la Saint-Valentin', coins: 20 },
@@ -241,7 +240,7 @@ export const LIBRARY = Object.freeze([
     description: 'Vivre {n} saison{s} différente{s}', title: 'baromètre vivant',
   },
 
-  // --- Bêtises de l'animal (troll, cachées) -------------------------------------------
+  // --- Animal mischief (troll, hidden) -------------------------------------------
   {
     series: 'egg-pets', troll: true, stat: 'eggPets', tiers: [10, 50],
     names: ['Toc toc', 'Obstination'],
@@ -581,7 +580,7 @@ export const LIBRARY = Object.freeze([
     quip: 'Cent notifications remarquées. Lui, au moins, il les lit. (Non. Personne ne les lit.)', reward: { coins: 1 },
   },
 
-  // --- Toi (succès du joueur, partagés entre animaux) ---------------------------------
+  // --- You (player achievements, shared between animals) ---------------------------------
   {
     series: 'accessoriesOwned', scope: 'player', stat: 'accessoriesOwned', tiers: [1, 2, 4],
     names: ['Premier achat', 'Garde-robe', 'Collection de chapeaux'],
@@ -603,7 +602,7 @@ export const LIBRARY = Object.freeze([
     description: 'Ramasser {n} cadeaux',
   },
 
-  // --- Bêtises du joueur (troll, cachées) ---------------------------------------------
+  // --- Player mischief (troll, hidden) ---------------------------------------------
   {
     series: 'menu-opens', scope: 'player', troll: true, stat: 'menuOpens', tiers: [1, 100, 1000, 10000],
     names: ['Curiosité', 'Habitué du menu', 'Accro au menu', "Tu n'as vraiment rien d'autre à faire ?"],

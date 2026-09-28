@@ -1,6 +1,6 @@
-// Onglet « Contrôles » : erreurs de structure et avertissements sur les
-// textes (voir checks.js), pour le pack affiché ou pour tous les packs ;
-// hors du français, contrôles du catalogue de la langue et des traductions.
+// "Checks" tab: structural errors and text warnings (see checks.js), for
+// the displayed pack or for every pack; outside of French, checks on the
+// language's catalog and translations.
 
 import { h, select, table, badge } from '../dom.js';
 

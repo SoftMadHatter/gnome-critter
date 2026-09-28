@@ -1,62 +1,61 @@
-# Vie de l'animal : croissance, caractère, évolution
+# Critter life: growth, temperament, evolution
 
-Chaque animal a une vie (`core/life.js`, pur et testé) : il naît d'un œuf,
-grandit par stades, a un caractère et une couleur tirés à la naissance,
-évolue selon les soins reçus, et peut partir hiberner s'il est trop négligé.
-Il n'y a jamais de mort.
+Every critter has a life (`core/life.js`, pure and tested): it's born from an
+egg, grows through stages, has a temperament and a color drawn at birth,
+evolves according to the care it receives, and can go into hibernation if too
+neglected. There is never death.
 
-## Stades
+## Stages
 
-| Stade | Commence à | Effets |
+| Stage | Starts at | Effects |
 |---|---|---|
-| Œuf | naissance | immobile, posé, se balance puis se fissure ; besoins figés |
-| Bébé | 15 min | affiché à 50 %, vitesses x0,7, dort plus (x1,5), besoins x1,2 |
-| Jeune | 6 h | affiché à 75 % |
-| Adulte | 48 h | taille normale ; l'évolution est fixée à ce passage |
-| Senior | 30 jours | vitesses x0,8, dort plus (x1,3) |
+| Egg | birth | motionless, resting, sways then cracks; needs frozen |
+| Baby | 15 min | displayed at 50%, speeds x0.7, sleeps more (x1.5), needs x1.2 |
+| Young | 6 h | displayed at 75% |
+| Adult | 48 h | normal size; evolution is set at this transition |
+| Senior | 30 days | speeds x0.8, sleeps more (x1.3) |
 
-L'âge est du temps réel : le mode vacances le fige, et le temps passé animal
-éteint est rattrapé à demi-vitesse (plafonné à 8 h par démarrage). Un animal
-neuf naît en œuf ; avec la croissance désactivée (préférences), il naît
-adulte. Les sauvegardes d'avant la croissance deviennent des adultes.
-La « vitesse de croissance » des préférences (1 à 1000) sert à essayer les
-stades sans attendre des jours.
+Age is real time: vacation mode freezes it, and time spent with the critter
+off is caught up at half speed (capped at 8 h per startup). A new critter is
+born as an egg; with growth disabled (preferences), it's born an adult. Saves
+from before growth existed become adults. The preferences' "growth speed"
+(1 to 1000) is used to try out stages without waiting days.
 
-## Caractère
+## Temperament
 
-Tiré au hasard à la naissance et conservé :
+Drawn at random at birth and kept:
 
-| Trait | Effet |
+| Trait | Effect |
 |---|---|
-| joueur | joue x1,6, court x1,5, s'ennuie plus vite (x1,4) |
-| paresseux | dort x1,8, activités énergiques x0,6, fatigue plus lente (x0,8) |
-| gourmand | cherche à manger x1,5, a faim plus vite (x1,4) |
-| timide | salue x0,4, suit le curseur x0,6, fuit x1,5 |
+| playful | plays x1.6, runs x1.5, gets bored faster (x1.4) |
+| lazy | sleeps x1.8, energetic activities x0.6, tires more slowly (x0.8) |
+| greedy | seeks food x1.5, gets hungry faster (x1.4) |
+| shy | greets x0.4, follows the cursor x0.6, flees x1.5 |
 
-Les facteurs multiplient les poids de comportement et les débits de besoins
-(cumulés avec ceux du stade). Le caractère et le stade apparaissent dans le
-menu de l'icône de barre (« Adulte, joueur, choyé, 3 j »).
+The factors multiply behavior weights and need decay rates (stacked with the
+stage's). Temperament and stage appear in the tray icon menu ("Adult,
+playful, doted-on, 3 d").
 
-## Apparence
+## Appearance
 
-À la naissance l'animal reçoit un décalage de teinte aléatoire (par défaut
-+/-35 degrés, réglable par pack) : deux chats de la même espèce n'ont pas la
-même couleur. La variation est calculée au chargement (`core/colorShift.js`)
-sur les pixels colorés ; noirs, blancs et gris très sombres restent
-intacts. Les gris (le chat) ne bougent pas par rotation : le pack peut
-demander de les coloriser (`colorizeGrays`) avec une teinte tirée à part.
+At birth the critter gets a random hue shift (+/-35 degrees by default,
+adjustable per pack): two cats of the same species won't have the same
+color. The variation is computed at load time (`core/colorShift.js`) on
+colored pixels; blacks, whites, and very dark grays stay untouched. Grays
+(the cat) don't move under rotation: the pack can request they be colorized
+(`colorizeGrays`) with a separately drawn hue.
 
-Au passage à l'adulte, la moyenne des soins fixe une variante : choyé
-(couleurs plus vives), normal, ou négligé (couleurs ternes).
+At the transition to adult, the average of the care received sets a variant:
+doted-on (brighter colors), normal, or neglected (dull colors).
 
 ## Hibernation
 
-Une santé sous 15 pendant 6 h de temps actif (divisé par la difficulté, figé
-en vacances) met l'animal en hibernation : immobile, besoins et âge figés.
-Un clic, un brossage ou « Réveiller » (menu de l'animal) le réveille avec
-des jauges remises à un niveau moyen. Le survol ne le réveille pas.
+Health below 15 for 6 h of active time (divided by difficulty, frozen during
+vacation) puts the critter into hibernation: motionless, needs and age
+frozen. A click, a brushing, or "Wake up" (critter menu) wakes it with gauges
+reset to a middling level. Hovering doesn't wake it.
 
-## Réglages par pack (`pack.json`)
+## Per-pack settings (`pack.json`)
 
 ```json
 "appearance": { "hueRange": [-35, 35], "colorizeGrays": true, "graySaturation": 0.4 },
@@ -66,24 +65,23 @@ des jauges remises à un niveau moyen. Le survol ne le réveille pas.
 }
 ```
 
-`appearance.enabled: false` supprime la variation de couleur. `stages`
-règle, par stade, l'échelle d'affichage (0,25 à 2) et/ou un `folder` (chemin
-relatif sûr) de feuilles propres au stade : mêmes noms de fichiers, mêmes
-dimensions que l'adulte, avec repli sur la feuille adulte si l'une manque.
-Avec un dossier l'échelle est facultative (1 : le sprite est déjà dessiné à sa
-taille) ; sans dossier, l'échelle réduit le sprite adulte. Les autres clés
-sont ignorées avec un avertissement, et `tests/packs.test.js` valide ces
-sections.
+`appearance.enabled: false` removes the color variation. `stages` sets, per
+stage, the display scale (0.25 to 2) and/or a `folder` (safe relative path)
+of stage-specific sheets: same file names, same dimensions as the adult,
+falling back to the adult sheet if one is missing. With a folder the scale is
+optional (1: the sprite is already drawn at its size); without a folder, the
+scale shrinks the adult sprite. Other keys are ignored with a warning, and
+`tests/packs.test.js` validates these sections.
 
-Les packs `cat`, `bird`, `bug` et `fish` fournissent bébé (grosse tête, petit
-corps), jeune (plus élancé) et senior (poil grisonnant), générés par
-`scripts/gen_species_sprites.py` à partir des frames adultes, plus un œuf
-propre à l'espèce (animation `egg`, 4 frames : posé, deux oscillations,
-fissuré). Le bébé insecte est une larve (chenille) qui reprend les poses de
-l'adulte, donc les mêmes déplacements ; le générateur accepte un dessin
-spécifique par stade (`stage_draw`).
+The `cat`, `bird`, `bug`, and `fish` packs provide baby (big head, small
+body), young (leaner), and senior (graying fur) sprites, generated by
+`scripts/gen_species_sprites.py` from the adult frames, plus a
+species-specific egg (`egg` animation, 4 frames: resting, two wobbles,
+cracked). The insect baby is a larva (caterpillar) that reuses the adult's
+poses, so the same movements; the generator accepts a stage-specific drawing
+(`stage_draw`).
 
-Animations facultatives : `egg` (sinon l'œuf générique de
-`extension/assets/life/egg.png`, teinté comme l'animal) et `hibernate`
-(repli sur `sleep` puis `idle`). Réactions : `hatched` (éclosion), `grew`
-(nouveau stade), `awakened` (réveil).
+Optional animations: `egg` (otherwise the generic egg from
+`extension/assets/life/egg.png`, tinted like the critter) and `hibernate`
+(falls back to `sleep` then `idle`). Reactions: `hatched` (hatching), `grew`
+(new stage), `awakened` (waking up).

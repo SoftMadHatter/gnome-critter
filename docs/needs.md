@@ -1,159 +1,153 @@
-# Besoins et humeur
+# Needs and mood
 
-Chaque animal a des jauges de 0 à 100, où **100 = satisfait**. Elles baissent
-avec le temps réel, orientent son comportement, sont sauvegardées et
-visibles dans l'icône de la barre supérieure et dans les bulles de pensée.
-Le modèle est dans `core/needs.js` (pur, testé), le `Critter` en possède une
-instance.
+Every critter has gauges from 0 to 100, where **100 = satisfied**. They drop
+with real time, steer its behavior, are saved, and are visible in the top-bar
+icon and in thought bubbles. The model is in `core/needs.js` (pure, tested);
+the `Critter` owns an instance of it.
 
-## Jauges
+## Gauges
 
-| Jauge | Baisse (par heure, difficulté normale) | Remontée |
+| Gauge | Decay (per hour, normal difficulty) | Rise |
 |---|---|---|
-| `satiety` (satiété) | 5 | manger : gain propre à l'aliment (`needs.diet`) |
-| `energy` | 6 | dormir : +60 par heure |
-| `cleanliness` | 4 | fin d'un lavage : +30 ; brossage : +25 |
-| `stimulation` (contre l'ennui) | 10 | activité physique : +25 par heure ; jeu : +25 ; réactions |
-| `affection` | 4 | caresse +8 (ronronnement +12), chatouille +3, salutation +4, jeu +6, brossage +6 |
-| `relief` (soulagement) | 8, et un cinquième du gain de chaque repas | se soulager : +85 |
-| `health` | baisse de 6 par heure quand la moyenne des cinq autres est sous 25 | remonte de 4 par heure au-dessus de 50 |
+| `satiety` | 5 | eating: gain specific to the food (`needs.diet`) |
+| `energy` | 6 | sleeping: +60 per hour |
+| `cleanliness` | 4 | end of a wash: +30; brushing: +25 |
+| `stimulation` (against boredom) | 10 | physical activity: +25 per hour; play: +25; reactions |
+| `affection` | 4 | pet +8 (purring +12), tickle +3, greeting +4, play +6, brushing +6 |
+| `relief` | 8, plus a fifth of each meal's gain | relieving itself: +85 |
+| `health` | drops 6 per hour when the average of the other five is below 25 | rises 4 per hour above 50 |
 
-L'humeur (`mood`) n'est pas stockée : moyenne des cinq besoins pondérée par
-la santé. Un nouvel animal démarre à 80 partout. Il n'y a jamais de mort :
-la santé se rétablit dès que l'on s'occupe de l'animal.
+Mood (`mood`) isn't stored: it's the average of the five needs weighted by
+health. A new critter starts at 80 everywhere. There is never death: health
+recovers as soon as the critter is cared for.
 
-Pendant le sommeil, les besoins baissent à 25 % de leur vitesse.
+While asleep, needs drop at 25% of their speed.
 
-## Effet sur le comportement
+## Effect on behavior
 
-Le critter garde la décision : les jauges multiplient seulement les poids de
-son tirage (`needMultiplier`), sans jamais forcer un état. Énergie basse :
-sommeil plus probable. Propreté basse : lavage. Affection basse : il suit
-davantage le curseur. Stimulation basse : activités énergiques (course,
-vol, nage rapide, escalade). Une jauge comblée (au-dessus de 90) réduit au
-contraire l'activité correspondante. Sous 30 de santé, les activités
-énergiques sont réduites à 30 %.
+The critter keeps the decision: gauges only multiply the weights of its
+draw (`needMultiplier`), never forcing a state. Low energy: sleep is more
+likely. Low cleanliness: washing. Low affection: it follows the cursor more.
+Low stimulation: energetic activities (running, flying, fast swimming,
+climbing). A gauge that's full (above 90) instead reduces the matching
+activity. Below 30 health, energetic activities are reduced to 30%.
 
-## Besoins naturels
+## Natural needs
 
-L'animal doit se soulager. Sous 60 sa jauge de soulagement lui donne de plus en
-plus envie d'y aller (sous 30 : bulle « urgent »).
+The critter needs to relieve itself. Below 60 its relief gauge makes it want
+to go more and more (below 30: "urgent" bubble).
 
-- **Où** : une **litière** propre posée sur sa surface (« Bureau… » > « Poser une
-  litière » ; un animal qui vole rejoint sa surface), sinon le **coin** le plus
-  proche (bord de la fenêtre ou de l'écran). Il s'accroupit 3,5 s, puis le
-  soulagement remonte. Le poisson n'a pas ce besoin.
-- **Litière** : sale après 3 usages (et plus utilisée) ; un clic la nettoie.
-- **Trace** : hors litière l'animal laisse une trace ; un **clic** la nettoie (+1
-  pièce), « Nettoyer les traces » dans « Bureau… » les retire toutes. Une trace
-  proche (200 px, même surface) fait baisser la propreté (6 par heure, trois
-  traces au plus) ; **après 2 h** elle vieillit et fait baisser la santé (5 par
-  heure et par trace, trois au plus, atténué par l'autonomie : un animal
-  autonome nettoie derrière lui). Tout est figé en mode vacances.
-- **Accident** : si le soulagement tombe sous 8, il se soulage sur place (trace,
-  propreté -15).
+- **Where**: a clean **litter box** placed on its surface ("Desktop…" >
+  "Place a litter box"; a flying critter joins its surface), otherwise the
+  nearest **corner** (edge of the window or the screen). It crouches for
+  3.5 s, then relief rises. Fish don't have this need.
+- **Litter box**: dirty after 3 uses (and no longer used); a click cleans it.
+- **Mess**: outside a litter box the critter leaves a mess; a **click** cleans
+  it up (+1 coin), "Clean up messes" in "Desktop…" removes them all. A nearby
+  mess (200 px, same surface) lowers cleanliness (6 per hour, three messes at
+  most); **after 2 h** it ages and lowers health (5 per hour per mess, three
+  at most, dampened by autonomy: an autonomous critter cleans up after
+  itself). Everything is frozen in vacation mode.
+- **Accident**: if relief drops below 8, the critter relieves itself on the
+  spot (a mess, cleanliness -15).
 
-## Nourriture, gamelle et lit
+## Food, bowl, and bed
 
-Les objets sont des entités du bureau (`core/items.js`), qui tombent sur le
-sol ou un rebord de fenêtre comme les animaux et retombent si la fenêtre
-bouge ou disparaît.
+Objects are desktop entities (`core/items.js`), which fall onto the ground
+or a window ledge like critters do and fall again if the window moves or
+disappears.
 
-- **Donner à manger** : clic milieu sur l'animal (menu contextuel) ou menu de
-  l'icône de barre. L'aliment tombe à côté de l'animal. Aliments : viande,
-  poisson, pâtée, croquettes, graines, vers de farine, pomme, et pour le
-  poisson plancton et flocons (flottants). Une nourriture non mangée expire
-  (15 min, plancton et flocons 10 min). Les plantes du régime ne s'y trouvent
-  pas : elles se posent avec « Poser une plante ».
-- **Régime** : chaque espèce ne mange que les aliments de son `needs.diet`,
-  avec un gain de satiété par aliment ; l'aliment au gain maximal fait aussi
-  plaisir (affection +5). Un animal rassasié ignore la nourriture, un affamé
-  la préfère à tout. Il la rejoint en marchant, en volant vers un autre
-  rebord (oiseau) ou en nageant (poisson et plancton), puis mange (état `eat`).
-- **Bouchées et restes** : un aliment se mange en plusieurs bouchées (viande,
-  poisson, pâtée, plancton, flocons : 2 ; croquettes, graines, vers, pomme :
-  3), de quelques secondes chacune, et chaque bouchée apporte sa part du gain.
-  Tant que la satiété reste sous 80, l'animal enchaîne ; au-delà, il laisse un
-  **reste entamé** (os à moitié rongé, arêtes, tas qui a diminué...), qu'il
-  finira plus tard ou qu'un autre mangera. Le reste se voit et se sauvegarde.
-  La réaction « a mangé », l'affection et le compteur `mealsFavorite` viennent
-  à la fin du repas (pour le préféré : repas fini).
-- **Gamelle** : « Poser une gamelle » en pose une vide, au choix en céramique,
-  inox ou bois ; « Remplir la gamelle » remplit la plus proche (ou en crée
-  une en céramique) avec 5 portions d'un aliment. Elle se vide portion par
-  portion et son contenu se voit : l'aliment choisi, en tas plein, à moitié
-  ou au fond. La nourriture flottante ne va pas en gamelle (le menu ne la
-  propose pas).
-- **Lit** : « Poser un lit », au choix coussin, panier en osier ou couffin.
-  Quand un animal veut dormir et qu'un lit est sur sa surface, il s'y rend,
-  et récupère 1,5 fois plus vite dessus.
-- **Déplacer / retirer** : les objets se glissent à la souris (ils retombent
-  au relâchement), clic droit pour en retirer un, « Retirer les objets »
-  pour tout enlever. Gamelles, lits, jouets et nourriture fraîche (restes
-  compris) sont conservés au redémarrage avec leur modèle (clé `saved-items`).
+- **Feeding**: middle click on the critter (context menu) or the tray icon
+  menu. The food drops next to the critter. Foods: meat, fish, wet food,
+  kibble, seeds, mealworms, apple, and for fish plankton and flakes
+  (floating). Uneaten food expires (15 min, plankton and flakes 10 min).
+  Diet plants aren't among them: they're placed with "Place a plant".
+- **Diet**: each species only eats the foods in its `needs.diet`, each with a
+  satiety gain; the food with the highest gain also pleases it (affection
+  +5). A full critter ignores food, a hungry one prefers it to anything
+  else. It reaches it on foot, by flying to another ledge (bird), or by
+  swimming (fish and plankton), then eats (`eat` state).
+- **Bites and leftovers**: a food is eaten in several bites (meat, fish, wet
+  food, plankton, flakes: 2; kibble, seeds, mealworms, apple: 3), a few
+  seconds each, and each bite brings its share of the gain. As long as
+  satiety stays below 80, the critter keeps eating; beyond that, it leaves a
+  **started leftover** (a half-gnawed bone, fish bones, a pile that's
+  shrunk…), which it will finish later or another critter will eat. The
+  leftover is visible and saved. The "ate" reaction, affection, and the
+  `mealsFavorite` counter come at the end of the meal (for the favorite food:
+  the meal finished).
+- **Bowl**: "Place a bowl" places an empty one, in ceramic, steel, or wood;
+  "Fill the bowl" fills the nearest one (or creates a ceramic one) with 5
+  portions of a food. It empties portion by portion and its contents are
+  visible: the chosen food, as a full pile, half, or at the bottom. Floating
+  food doesn't go in a bowl (the menu doesn't offer it).
+- **Bed**: "Place a bed", in cushion, wicker basket, or cradle. When a
+  critter wants to sleep and a bed is on its surface, it goes there, and
+  recovers 1.5 times faster on it.
+- **Moving / removing**: objects can be dragged with the mouse (they fall
+  again on release), right click to remove one, "Remove objects" to remove
+  them all. Bowls, beds, toys, and fresh food (including leftovers) are kept
+  across restarts with their model (`saved-items` key).
 
-## Jouer, caresser, brosser
+## Playing, petting, brushing
 
-- **Jouets** : balle, pelote de laine et peluche pour les espèces qui
-  marchent, anneau flottant pour le poisson (« Jouer » dans le menu de
-  l'animal, « Poser un jouet » dans le menu de l'icône, qui ne proposent que
-  les jouets adaptés). La balle prend une couleur au hasard (rouge, bleue,
-  jaune, verte), la pelote aussi (rose, bleue, jaune), la peluche un modèle
-  (ours, lapin, grenouille). La balle roule avec du frottement, rebondit,
-  rebondit contre les bords de l'écran et peut tomber du rebord d'une
-  fenêtre ; la pelote roule de même mais freine vite et rebondit à peine ;
-  la peluche reste posée. Un animal qui s'ennuie va jouer (à la course) : il
-  frappe la balle ou la pelote puis la poursuit, ou se colle à la peluche.
-  L'anneau flotte sans gravité : un poisson qui s'ennuie le rejoint et le
-  pousse du museau, l'anneau file, ralentit et rebondit sur les bords de
-  l'écran. Une session dure 6 à 12 s et, menée à son terme, donne
-  stimulation +25 et affection +6. Un animal comblé ne joue presque pas.
-- **Lancer à la souris** : les objets se glissent, et partent avec l'élan du
-  pointeur au relâchement (jusqu'à 900 px/s), pour lancer la balle.
-- **Pointeur laser** : interrupteur dans les deux menus. Un point rouge suit
-  le curseur et les animaux se précipitent dessus (le poisson le poursuit
-  aussi, en 2D). Le mode est en mémoire : éteint à chaque activation.
-- **Caresses prolongées** : à partir de la 3e caresse en moins de 3 s d'écart
-  (clics), l'animal ronronne (`purring`, affection +12 au lieu de +8).
-- **Brosser** : dans le menu contextuel ; l'animal reste immobile 4 s
-  (`brushed`), propreté +25, affection +6. Réveille un animal endormi.
-- **Ranger les jouets** : retire tous les jouets d'un coup, sans toucher à la
-  gamelle, au lit ni à la nourriture (« Retirer les objets » enlève tout).
-  Les jouets sont conservés au redémarrage.
+- **Toys**: ball, wool ball, and plush toy for walking species, floating
+  ring for fish ("Play" in the critter menu, "Place a toy" in the icon menu,
+  which only offer toys suited to the species). The ball gets a random color
+  (red, blue, yellow, green), so does the wool ball (pink, blue, yellow), and
+  the plush toy a model (bear, rabbit, frog). The ball rolls with friction,
+  bounces, bounces off the screen's edges, and can fall off a window ledge;
+  the wool ball rolls the same way but brakes quickly and barely bounces; the
+  plush toy stays put. A bored critter goes to play (by running): it hits the
+  ball or wool ball then chases it, or snuggles up to the plush toy. The ring
+  floats without gravity: a bored fish reaches it and pushes it with its
+  snout, the ring shoots off, slows down, and bounces off the screen's edges.
+  A session lasts 6 to 12 s and, played through to the end, gives stimulation
+  +25 and affection +6. A satisfied critter barely plays.
+- **Throwing with the mouse**: objects can be dragged, and leave with the
+  pointer's momentum on release (up to 900 px/s), to throw the ball.
+- **Laser pointer**: a toggle in both menus. A red dot follows the cursor and
+  critters rush to it (fish chase it too, in 2D). The mode isn't remembered:
+  it's off on every activation.
+- **Extended petting**: from the 3rd pet within 3 s of the previous one
+  (clicks), the critter purrs (`purring`, affection +12 instead of +8).
+- **Brushing**: in the context menu; the critter stays still for 4 s
+  (`brushed`), cleanliness +25, affection +6. Wakes a sleeping critter.
+- **Tidy up toys**: removes all toys at once, without touching the bowl,
+  bed, or food ("Remove objects" removes everything). Toys are kept across
+  restarts.
 
-## Difficulté et mode vacances
+## Difficulty and vacation mode
 
-Réglages des préférences (et mode vacances aussi dans le menu de l'icône) :
-difficulté détendue (x0,4), normale (x1), stricte (x2). Le mode vacances
-fige toutes les jauges, y compris pendant le rattrapage hors ligne. Les
-changements agissent tout de suite, sans recharger l'extension.
+Preferences settings (vacation mode is also in the icon menu): relaxed
+difficulty (x0.4), normal (x1), strict (x2). Vacation mode freezes every
+gauge, including during offline catch-up. Changes apply immediately, without
+reloading the extension.
 
-## Bulles de pensée
+## Thought bubbles
 
-Quand une jauge passe sous 30 (ou la santé sous 40, prioritaire), une bulle
-apparaît au-dessus de l'animal : faim, sommeil, saleté, ennui, coeur
-(affection), croix verte (santé). Les icônes viennent de
-`extension/assets/bubbles/`, générées par `scripts/gen_ui_sprites.py`. Les
-bulles ne bloquent jamais les clics.
+When a gauge drops below 30 (or health below 40, which takes priority), a
+bubble appears above the critter: hunger, sleep, dirt, boredom, heart
+(affection), green cross (health). The icons come from
+`extension/assets/bubbles/`, generated by `scripts/gen_ui_sprites.py`.
+Bubbles never block clicks.
 
-## Sauvegarde et rattrapage
+## Saving and catch-up
 
-Les jauges sont sauvegardées avec la position (voir l'étape 9), toutes les
-30 secondes et à la désactivation. Au redémarrage, le temps passé animal
-éteint est rattrapé à demi-vitesse, plafonné à 8 heures. Les anciennes
-sauvegardes (version 1, position seule) restent lisibles.
+Gauges are saved along with position, every 30 seconds and on disable. On restart, the time spent with the critter off is caught up at
+half speed, capped at 8 hours. Old saves (version 1, position only) remain
+readable.
 
-## Réglages par espèce
+## Per-species settings
 
-Section optionnelle `needs` de `pack.json` :
+Optional `needs` section of `pack.json`:
 
 ```json
 "needs": { "decayPerHour": { "energy": 3, "cleanliness": 2 } }
 ```
 
-La clé `diet` liste les aliments acceptés (`meat`, `fish`, `kibble`,
-`seeds`, `plankton`) avec leur gain de satiété (> 0). Seules les cinq jauges de
-besoin acceptent un débit (nombre >= 0, 0 pour
-désactiver une jauge : le poisson ne dort ni ne se lave). Les autres clés
-sont ignorées avec un avertissement dans le journal de GNOME Shell.
-`tests/packs.test.js` valide cette section pour chaque pack.
+The `diet` key lists the accepted foods (`meat`, `fish`, `kibble`, `seeds`,
+`plankton`) with their satiety gain (> 0). Only the five need gauges accept a
+decay rate (a number >= 0, 0 to disable a gauge: fish neither sleep nor
+wash). Other keys are ignored with a warning in the GNOME Shell log.
+`tests/packs.test.js` validates this section for every pack.

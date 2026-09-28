@@ -1,16 +1,17 @@
-// Boîtes du Comité, récompense farfelue de certains succès « troll » :
-// ouvertes d'office, elles contiennent le plus souvent rien (ou presque), et
-// parfois un vrai lot qui grossit avec la boîte. Module pur (hasard injecté).
+// The Committee's boxes, a silly reward from certain "troll" achievements:
+// opened right away, they most often contain nothing (or nearly), and
+// sometimes a real prize that grows with the box's tier. Pure module
+// (randomness injected).
 
 import { ACCESSORIES, accessoryLabel } from './accessories.js';
 import { _, N_ } from './i18n.js';
 
-/** Accessoires « farces » qu'une boîte peut offrir. */
+/** "Joke" accessories a box can award. */
 const JOKES = Object.keys(ACCESSORIES).filter((id) => ACCESSORIES[id].joke);
 
 /**
- * Tables de tirage `[poids, lot]`. Un lot `accessory: 'joke'` donne une farce
- * pas encore possédée, sinon son `fallback`.
+ * Loot tables `[weight, prize]`. A prize with `accessory: 'joke'` gives a
+ * joke accessory not yet owned, otherwise its `fallback`.
  */
 export const BOX_TABLES = Object.freeze({
   bronze: [
@@ -50,16 +51,16 @@ export const BOX_LABELS = Object.freeze({
   legendary: N_('une boîte légendaire'),
 });
 
-/** Nom affiché d'une boîte (« une boîte en or »). */
+/** Displayed name of a box ("a gold box"). */
 export function boxLabel(tier) {
   return BOX_LABELS[tier] ? _(BOX_LABELS[tier]) : tier;
 }
 
 /**
- * Ouvre une boîte.
- * @param {string} tier bronze, silver, gold, platinum ou legendary
+ * Opens a box.
+ * @param {string} tier bronze, silver, gold, platinum or legendary
  * @param {() => number} random
- * @param {{owned?: string[]}} [context] accessoires déjà possédés
+ * @param {{owned?: string[]}} [context] accessories already owned
  * @returns {{coins: number, accessory: string|null, text: string}}
  */
 export function openBox(tier, random, { owned = [] } = {}) {

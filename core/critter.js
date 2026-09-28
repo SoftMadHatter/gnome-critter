@@ -22,76 +22,76 @@ import {
   groundPoint,
 } from './surfaceMap.js';
 
-/** États possibles. Volontairement une simple union de chaînes : facile à
- * sérialiser, à logger, et à mapper vers un nom d'animation dans un pack. */
+/** Possible states. Deliberately a simple string union: easy to
+ * serialize, log, and map to an animation name in a pack. */
 export const State = Object.freeze({
   IDLE: 'idle',
   WALK: 'walk',
   FALL: 'fall',
   DRAG: 'drag',
-  CLIMB: 'climb', // sur un mur, vertical
-  CEILING: 'ceiling', // marche au plafond, tête en bas
+  CLIMB: 'climb', // on a wall, vertical
+  CEILING: 'ceiling', // walks on the ceiling, upside down
   SWIM: 'swim',
   FLY: 'fly',
-  RUN: 'run', // marche rapide (même mécanique que WALK)
-  SWIM_FAST: 'swimFast', // nage rapide (mêmes sessions que SWIM)
-  FLY_FAST: 'flyFast', // vol rapide (mêmes sessions que FLY, se pose aussi)
-  DIVE: 'dive', // piqué en fin de vol vers la surface visée
+  RUN: 'run', // fast walk (same mechanic as WALK)
+  SWIM_FAST: 'swimFast', // fast swim (same sessions as SWIM)
+  FLY_FAST: 'flyFast', // fast flight (same sessions as FLY, also lands)
+  DIVE: 'dive', // dive at the end of a flight toward the targeted surface
   SLEEP: 'sleep',
-  WASH: 'wash', // idle passif minuté, se lave sur place (même mécanisme que SLEEP)
-  FOLLOW: 'follow', // marche vers le curseur, cible recalculée en continu
-  GREET: 'greet', // marche vers le critter le plus proche, salue en l'atteignant
-  SEEK_WALL: 'seekWall', // marche vers un mur atteignable pour grimper délibérément
-  SEEK_FOCUS: 'seekFocus', // marche vers la fenêtre qui vient de prendre le focus
-  SEEK_NAP: 'seekNap', // marche vers un rebord de fenêtre proche avant de s'endormir
-  CHASE: 'chase', // poursuit une cible précise (référence fixe, pas "le plus proche")
-  FLEE: 'flee', // s'éloigne d'un poursuivant
-  SEEK_FOOD: 'seekFood', // rejoint une nourriture visée
-  EAT: 'eat', // mange, immobile
-  EGG: 'egg', // œuf : immobile, posé, jusqu'à l'éclosion
-  HIBERNATE: 'hibernate', // hibernation après une négligence prolongée
-  PLAY: 'play', // rejoint et joue avec un jouet, ou poursuit le pointeur laser
-  BRUSHED: 'brushed', // se laisse brosser, immobile
-  TRICK: 'trick', // exécute un tour (assis, roulade...)
-  RELIEVE: 'relieve', // va à la litière (ou au coin) et se soulage
-  HUNT: 'hunt', // poursuit une proie (animal autonome)
-  GIFT: 'gift', // apporte un cadeau au curseur
-  REMIND: 'remind', // vient vers le curseur rappeler au joueur de faire une pause
+  WASH: 'wash', // timed passive idle, washes in place (same mechanism as SLEEP)
+  FOLLOW: 'follow', // walks toward the cursor, target recalculated continuously
+  GREET: 'greet', // walks toward the nearest critter, greets it on arrival
+  SEEK_WALL: 'seekWall', // walks toward a reachable wall to climb deliberately
+  SEEK_FOCUS: 'seekFocus', // walks toward the window that just took focus
+  SEEK_NAP: 'seekNap', // walks toward a nearby window ledge before falling asleep
+  CHASE: 'chase', // chases a specific target (a fixed reference, not "the nearest one")
+  FLEE: 'flee', // moves away from a pursuer
+  SEEK_FOOD: 'seekFood', // heads toward a targeted food
+  EAT: 'eat', // eating, motionless
+  EGG: 'egg', // egg: motionless, resting, until it hatches
+  HIBERNATE: 'hibernate', // hibernation after prolonged neglect
+  PLAY: 'play', // reaches and plays with a toy, or chases the laser pointer
+  BRUSHED: 'brushed', // lets itself be brushed, motionless
+  TRICK: 'trick', // performs a trick (sit, roll...)
+  RELIEVE: 'relieve', // goes to the litter box (or a corner) and relieves itself
+  HUNT: 'hunt', // chases prey (an autonomous animal)
+  GIFT: 'gift', // brings a gift to the cursor
+  REMIND: 'remind', // comes to the cursor to remind the player to take a break
 });
 
-/** Types de surface qu'une espèce peut savoir utiliser. */
+/** Surface types a species can know how to use. */
 export const Locomotion = Object.freeze({
-  GROUND: 'ground', // sol + rebords de fenêtres (segments 'ground'/'shelf')
+  GROUND: 'ground', // ground + window ledges ('ground'/'shelf' segments)
   WALL: 'wall',
   CEILING: 'ceiling',
   WATER: 'water',
   AIR: 'air',
 });
 
-/** Geste brut détecté côté extension -> nom d'événement thématique émis
- * (et donc nom de réaction dans pack.json). Centralisé ici pour rester
- * facile à retoucher sans aller fouiller la détection d'événements Clutter. */
+/** Raw gesture detected on the extension side -> thematic event name emitted
+ * (and thus the reaction name in pack.json). Centralized here to stay easy
+ * to tweak without digging through Clutter event detection. */
 const INTERACTION_REACTIONS = {
   click: 'petted',
   doubleClick: 'tickled',
   rightClick: 'annoyed',
   hover: 'noticed',
   windowOpened: 'startled',
-  notification: 'noticed', // une notification arrive (contenu jamais lu)
-  typing: 'noticed', // le joueur tape (touches jamais lues), limité par typingCooldown
-  userReturned: 'greeted', // le joueur revient après une absence
-  meetCritter: 'greeted', // posé sur LA CIBLE d'un GREET (voir _tickGreet) : arrive entre deux de ses propres ticks, donc via interact()/_pendingEvent comme les autres événements externes -- contrairement à l'initiateur, qui pose this.lastEvent directement puisque ça se passe DANS son propre tick.
+  notification: 'noticed', // a notification arrives (content never read)
+  typing: 'noticed', // the player is typing (keys never read), throttled by typingCooldown
+  userReturned: 'greeted', // the player returns after being away
+  meetCritter: 'greeted', // set on THE TARGET of a GREET (see _tickGreet): arrives between two of its own ticks, so through interact()/_pendingEvent like other external events -- unlike the initiator, which sets this.lastEvent directly since that happens WITHIN its own tick.
 };
 
-/** États où l'animal se dépense (gain de stimulation, cf. Needs.advance). */
-/** Compteur incrémenté à chaque événement d'animal. */
+/** States where the animal exerts itself (stimulation gain, see Needs.advance). */
+/** Counter incremented on every animal event. */
 const EVENT_STATS = {
   ate: 'meals', played: 'playSessions', brushed: 'brushes', purring: 'purrs', petted: 'pets', greeted: 'greets',
   tickled: 'tickles', startled: 'startles', awakened: 'awakenings', annoyed: 'annoyances', sick: 'sicknesses',
   birthday: 'birthdays',
 };
 
-/** Compteurs d'activité : entrée dans un état depuis un état qui n'en fait pas partie. */
+/** Activity counters: entering a state from a state not part of the same group. */
 const STATE_GROUPS = [
   ['climbs', new Set(['climb'])],
   ['flights', new Set(['fly', 'flyFast', 'dive'])],
@@ -114,143 +114,143 @@ const ACTIVE_STATES = new Set([
   State.SEEK_FOCUS, State.SEEK_NAP, State.CHASE, State.FLEE, State.SEEK_FOOD, State.PLAY, State.REMIND, State.GIFT, State.HUNT,
 ]);
 
-/** Activités idle dont le poids suit la stimulation (l'animal s'ennuie : il bouge). */
+/** Idle activities whose weight follows stimulation (the animal is bored: it moves). */
 const ENERGETIC_ACTIVITIES = new Set(['run', 'fly', 'flyFast', 'swim', 'swimFast', 'climb']);
 
-/** Gestes qui réveillent un animal endormi. */
+/** Gestures that wake up a sleeping animal. */
 const WAKING_GESTURES = new Set(['click', 'doubleClick', 'rightClick']);
 
 const DEFAULT_CONFIG = {
   speciesId: 'unknown',
-  needsRateScale: 1, // difficulté * (vacances ? 0 : 1), voir core/needs.js
-  needsRates: {}, // débits par heure propres à l'espèce (section `needs` du pack, filtrée par needsOverrides)
-  lifeAgeScale: 1, // vitesse de croissance (réglage), 0 en mode vacances
-  stageScales: {}, // échelle d'affichage par stade (section `stages` du pack, filtrée par stagesOverrides)
-  needsDiet: {}, // aliment -> gain de satiété (section `needs.diet` du pack) ; un aliment absent est ignoré
-  foodWeight: 40, // multiplié par la faim : un affamé préfère manger, un rassasié ignore
-  foodSeekDuration: [6, 12], // temps maximal pour rejoindre une nourriture
-  eatDuration: [2, 4], // durée d'une bouchée
-  eatMoreBelow: 80, // satiété sous laquelle il enchaîne la bouchée suivante ; au-dessus, il laisse un reste
-  bedSleepFactor: 1.5, // multiplicateur du gain d'énergie en dormant sur un lit
-  bedRadius: 24, // distance sous laquelle on dort « sur » le lit
-  playWeight: 30, // multiplié par l'ennui : un animal qui s'ennuie joue
-  laserWeight: 80, // mode pointeur laser actif : il se précipite dessus
+  needsRateScale: 1, // difficulty * (vacation mode ? 0 : 1), see core/needs.js
+  needsRates: {}, // species-specific hourly rates (pack's `needs` section, filtered by needsOverrides)
+  lifeAgeScale: 1, // growth speed (setting), 0 in vacation mode
+  stageScales: {}, // per-stage display scale (pack's `stages` section, filtered by stagesOverrides)
+  needsDiet: {}, // food -> satiety gain (pack's `needs.diet` section); a missing food is ignored
+  foodWeight: 40, // multiplied by hunger: a hungry animal prefers eating, a full one ignores it
+  foodSeekDuration: [6, 12], // maximum time to reach a food
+  eatDuration: [2, 4], // duration of a bite
+  eatMoreBelow: 80, // satiety below which it chains into the next bite; above, it leaves a leftover
+  bedSleepFactor: 1.5, // energy-gain multiplier while sleeping on a bed
+  bedRadius: 24, // distance below which it sleeps "on" the bed
+  playWeight: 30, // multiplied by boredom: a bored animal plays
+  laserWeight: 80, // active laser pointer mode: it rushes to it
   playDuration: [6, 12],
-  kickDistance: 18, // distance sous laquelle il « touche » la balle
-  kickInterval: 1.2, // secondes entre deux frappes
-  floatingPlayChance: 0.2, // espèce sans sol qui s'ennuie : chance par seconde d'aller jouer avec un jouet flottant
-  floatingPlayBelow: 60, // stimulation sous laquelle elle s'ennuie assez pour y aller
-  petStreakWindow: 3, // secondes max entre deux caresses d'une même série
-  petStreakMin: 3, // caresses pour que la série devienne un ronronnement
+  kickDistance: 18, // distance below which it "touches" the ball
+  kickInterval: 1.2, // seconds between two kicks
+  floatingPlayChance: 0.2, // a bored groundless species: chance per second of going to play with a floating toy
+  floatingPlayBelow: 60, // stimulation below which it's bored enough to go
+  petStreakWindow: 3, // max seconds between two pets of the same streak
+  petStreakMin: 3, // pets for the streak to turn into purring
   brushDuration: 4,
-  nightSleepFactor: 3, // nuit : poids du sommeil
-  nightEnergeticFactor: 0.4, // nuit : poids des activités énergiques
-  awaySleepFactor: 4, // joueur absent : poids du sommeil
+  nightSleepFactor: 3, // night: sleep weight
+  nightEnergeticFactor: 0.4, // night: weight of energetic activities
+  awaySleepFactor: 4, // player away: sleep weight
   awayEnergeticFactor: 0.3,
-  remindWeight: 1000, // rappel de pause demandé : il l'emporte
-  remindDuration: 25, // secondes passées près du curseur
-  tricks: [], // tours de l'espèce (liste `tricks` du pack, filtrée par tricksOverrides)
-  giftWeight: 6, // rare : un animal très affectueux ramène un cadeau
-  giftCooldown: 1200, // secondes entre deux cadeaux
-  giftAffection: 70, // affection minimale pour offrir
+  remindWeight: 1000, // a break reminder was requested: it wins out
+  remindDuration: 25, // seconds spent near the cursor
+  tricks: [], // the species' tricks (pack's `tricks` list, filtered by tricksOverrides)
+  giftWeight: 6, // rare: a very affectionate animal brings back a gift
+  giftCooldown: 1200, // seconds between two gifts
+  giftAffection: 70, // minimum affection to give one
   giftDuration: [12, 25],
-  giftChancePerSecond: 0.01, // espèce sans sol : chance par seconde de partir offrir
-  autonomyMode: 'auto', // `auto` (suit la croissance), `off`, `partial`, `full` (voir core/autonomy.js)
-  needsPrey: {}, // proies chassées -> gain de satiété (section `needs.prey` du pack)
-  huntWeight: 30, // multiplié par l'autonomie et la faim
-  grazeWeight: 15, // idem, pour les plantes
-  huntDuration: 12, // secondes de poursuite au plus
-  catchDistance: 14, // distance à laquelle il attrape la proie
-  reliefWeight: 60, // multiplié par l'urgence : un animal pressé y va tout de suite
-  reliefDuration: 3.5, // secondes accroupi
-  accidentBelow: 8, // soulagement sous lequel l'animal se soulage sur place
+  giftChancePerSecond: 0.01, // a groundless species: chance per second of going to give one
+  autonomyMode: 'auto', // `auto` (follows growth), `off`, `partial`, `full` (see core/autonomy.js)
+  needsPrey: {}, // hunted prey -> satiety gain (pack's `needs.prey` section)
+  huntWeight: 30, // multiplied by autonomy and hunger
+  grazeWeight: 15, // same, for plants
+  huntDuration: 12, // seconds of pursuit at most
+  catchDistance: 14, // distance at which it catches the prey
+  reliefWeight: 60, // multiplied by urgency: an animal in a hurry goes right away
+  reliefDuration: 3.5, // seconds crouched
+  accidentBelow: 8, // relief level below which the animal relieves itself in place
   accidentCleanlinessLoss: 15,
-  messRadius: 200, // distance à laquelle une trace le dérange
-  messCleanlinessLoss: 6, // propreté perdue par heure et par trace proche (trois au plus)
-  oldMessHealthLoss: 5, // santé perdue par heure et par vieille trace proche (trois au plus)
-  moldSickness: 20, // santé perdue en mangeant de la nourriture moisie
-  achievements: [], // succès du pack (section `achievements`, filtrée par achievementsOverrides)
-  typingCooldown: 20, // secondes minimales entre deux réactions à la frappe
+  messRadius: 200, // distance at which a mess bothers it
+  messCleanlinessLoss: 6, // cleanliness lost per hour and per nearby mess (three at most)
+  oldMessHealthLoss: 5, // health lost per hour and per nearby old mess (three at most)
+  moldSickness: 20, // health lost from eating moldy food
+  achievements: [], // the pack's achievements (`achievements` section, filtered by achievementsOverrides)
+  typingCooldown: 20, // minimum seconds between two reactions to typing
   walkSpeed: 40, // px/s
   climbSpeed: 30,
   swimSpeed: 25,
   flySpeed: 60,
   gravity: 900, // px/s^2
   terminalVelocity: 800,
-  idleDuration: [1.5, 4], // secondes, [min, max]
+  idleDuration: [1.5, 4], // seconds, [min, max]
   walkDuration: [1, 3],
-  // Poids relatifs du choix pondéré fait par _tickWaiting entre les
-  // activités idle (voir weightedChoice ci-dessous) : pas besoin de sommer
-  // à 1, seule l'importance relative compte. Valeurs choisies pour garder
-  // le ressenti des anciennes probabilités indépendantes (5%/6%/12%/reste).
+  // Relative weights of the weighted choice made by _tickWaiting between
+  // idle activities (see weightedChoice below): no need to sum to 1, only
+  // relative importance matters. Values chosen to keep the feel of the old
+  // independent probabilities (5%/6%/12%/rest).
   walkWeight: 77,
   sleepWeight: 5,
-  sleepDuration: [20, 90], // secondes ; chaque espèce règle la sienne (le chat va jusqu'à 15 minutes)
+  sleepDuration: [20, 90], // seconds; each species sets its own (the cat goes up to 15 minutes)
   washWeight: 6,
   washDuration: [3, 6],
   followWeight: 12,
   followDuration: [2, 4],
-  followMaxDistance: 600, // au-delà, suivre le curseur devient très improbable (pas impossible)
+  followMaxDistance: 600, // beyond this, following the cursor becomes very unlikely (not impossible)
   greetWeight: 10,
   greetDuration: [2, 4],
   greetMaxDistance: 600,
-  greetDistance: 20, // distance en dessous de laquelle on considère avoir "atteint" l'autre critter
+  greetDistance: 20, // distance below which it's considered to have "reached" the other critter
   climbSeekWeight: 10,
   climbSeekDuration: [3, 6],
   climbSeekMaxDistance: 600,
-  climbApproachDistance: 6, // distance en dessous de laquelle on considère avoir "atteint" le mur
+  climbApproachDistance: 6, // distance below which it's considered to have "reached" the wall
   seekFocusWeight: 10,
   seekFocusDuration: [3, 6],
   seekFocusMaxDistance: 600,
-  seekFocusDistance: 20, // distance en dessous de laquelle on considère avoir "atteint" la fenêtre
-  chaseChance: 0.4, // probabilité d'enchaîner sur une poursuite après un GREET réussi
+  seekFocusDistance: 20, // distance below which it's considered to have "reached" the window
+  chaseChance: 0.4, // probability of chaining into a chase after a successful GREET
   chaseDuration: [2, 4],
   fleeWeight: 50,
   fleeMaxDistance: 600,
   fleeDuration: [2, 4],
-  napSeekMaxDistance: 400, // recherche locale, plus courte que les 600 des autres comportements ("proche" au sens du roadmap)
+  napSeekMaxDistance: 400, // local search, shorter than the 600 of other behaviours ("nearby", not "anywhere on screen")
   napSeekDuration: [3, 6],
   napApproachDistance: 6,
   runWeight: 10,
-  runSpeedFactor: 2.2, // multiplicateur de walkSpeed
+  runSpeedFactor: 2.2, // multiplier of walkSpeed
   swimFastWeight: 4,
   swimFastFactor: 2.2,
   flyFastWeight: 4,
   flyFastFactor: 2.2,
-  fastChance: 0.2, // espèce sans sol : probabilité qu'une nouvelle session enchaînée soit rapide
-  diveChance: 0.25, // probabilité PAR SECONDE de piquer quand la cible est assez basse et l'angle raide
-  diveMinHeight: 120, // dénivelé minimal (px) vers la cible pour piquer
+  fastChance: 0.2, // a groundless species: probability that a newly chained session is fast
+  diveChance: 0.25, // probability PER SECOND of diving when the target is low enough and the angle steep
+  diveMinHeight: 120, // minimum height difference (px) toward the target to dive
   diveSpeedFactor: 3.5,
-  flyCruiseChance: 0.6, // probabilité de monter d'abord vers une altitude de croisière au décollage
-  swimRetargetDuration: [5, 10], // cadence de reciblage de la nage (le vol libre garde roamRetargetDuration)
-  swimTurnMax: 60, // degrés : virage maximal à chaque reciblage de nage
+  flyCruiseChance: 0.6, // probability of first climbing to a cruising altitude on takeoff
+  swimRetargetDuration: [5, 10], // retargeting cadence while swimming (free flight keeps roamRetargetDuration)
+  swimTurnMax: 60, // degrees: maximum turn on each swim retarget
   flyWeight: 8,
   flyDuration: [4, 8],
   swimWeight: 8,
   swimDuration: [4, 8],
-  flyRetargetChance: 0.01, // probabilité PAR SECONDE de changer de cible d'atterrissage en plein vol (très rare)
-  roamRetargetDuration: [1, 3], // cadence de reciblage pendant une session FLY/SWIM
-  swimWaveFrequency: 4, // rad/s, cadence du battement de nage
-  swimWaveAmplitude: 0.6, // fraction de la composante perpendiculaire à la trajectoire directe (< 1 : reste orienté vers la cible)
-  repeatPenalty: 0.3, // multiplicateur de poids si la dernière activité spéciale était déjà celle-ci
+  flyRetargetChance: 0.01, // probability PER SECOND of changing landing target mid-flight (very rare)
+  roamRetargetDuration: [1, 3], // retargeting cadence during a FLY/SWIM session
+  swimWaveFrequency: 4, // rad/s, swim stroke cadence
+  swimWaveAmplitude: 0.6, // fraction of the component perpendicular to the direct path (< 1: stays oriented toward the target)
+  repeatPenalty: 0.3, // weight multiplier if the last special activity was already this one
   supportedSurfaces: new Set([Locomotion.GROUND]),
   random: Math.random,
 };
 
 /**
- * Tire un flottant uniforme dans [min, max] avec la fonction random fournie
- * (remplaçable pour des tests déterministes).
+ * Draws a uniform float in [min, max] with the given random function
+ * (replaceable for deterministic tests).
  */
 function randRange([min, max], random) {
   return min + random() * (max - min);
 }
 
 /**
- * Choisit un candidat au hasard, proportionnellement à son poids (les poids
- * n'ont pas besoin de sommer à 1, seule leur importance relative compte).
+ * Picks a random candidate, proportionally to its weight (weights don't
+ * need to sum to 1, only their relative importance matters).
  * @param {{value: *, weight: number}[]} candidates
  * @param {() => number} random
- * @returns {*} null si la somme des poids est <= 0 (aucun candidat valable)
+ * @returns {*} null if the sum of the weights is <= 0 (no valid candidate)
  */
 export function weightedChoice(candidates, random) {
   const total = candidates.reduce((sum, c) => sum + c.weight, 0);
@@ -261,14 +261,14 @@ export function weightedChoice(candidates, random) {
     if (r < c.weight) return c.value;
     r -= c.weight;
   }
-  return candidates[candidates.length - 1].value; // filet flottant
+  return candidates[candidates.length - 1].value; // floating-point safety net
 }
 
 /**
- * Filtre la section `behavior` d'un pack.json avant de l'appliquer : seules
- * les clés existantes de DEFAULT_CONFIG de type nombre ou intervalle
- * [min, max] passent. random (fonction), supportedSurfaces (Set) et les
- * clés inconnues sont écartées : un JSON ne doit pas pouvoir casser le cœur.
+ * Filters a pack.json's `behavior` section before applying it: only keys
+ * already in DEFAULT_CONFIG, of type number or a [min, max] range, pass
+ * through. random (function), supportedSurfaces (Set) and unknown keys
+ * are dropped: a JSON file must never be able to break the core.
  * @param {object} [raw]
  * @returns {{config: object, ignored: string[]}}
  */
@@ -299,44 +299,43 @@ export class Critter {
     this.config = { ...this._baseConfig };
     this.needs = new Needs({ rates: this.config.needsRates, rateScale: this.config.needsRateScale });
     this._baseRates = { ...this.needs.rates };
-    /** Adulte neutre par défaut : le Manager fournit la vraie vie (œuf, caractère,
-     * couleur) avec setLife(), ce qui garde le cœur déterministe pour les tests. */
+    /** A neutral adult by default: the Manager provides the real life (egg,
+     * trait, colour) via setLife(), which keeps the core deterministic for tests. */
     this.life = new Life({}, { scales: this.config.stageScales });
     this.x = initialPosition.x;
     this.y = initialPosition.y;
     this.vx = 0;
     this.vy = 0;
-    this.facing = 1; // 1 = droite, -1 = gauche
-    this.state = State.FALL; // au démarrage, on tombe jusqu'à trouver un support
+    this.facing = 1; // 1 = right, -1 = left
+    this.state = State.FALL; // at startup, it falls until it finds a surface
     this.stateTimer = 0;
     this.currentSurface = null;
     this.walkTargetX = null;
-    this.wallSide = null; // 'left' | 'right' pendant CLIMB
+    this.wallSide = null; // 'left' | 'right' during CLIMB
     this._dragTarget = null;
-    /** Dernière activité spéciale choisie par _tickWaiting ('sleep'/'wash'/
-     * 'follow', jamais 'walk') : sert de mémoire anti-répétition. */
+    /** Last special activity chosen by _tickWaiting ('sleep'/'wash'/
+     * 'follow', never 'walk'): used as an anti-repetition memory. */
     this._lastActivity = null;
-    /** Référence Critter précise poursuivie pendant CHASE (pas recalculée
-     * par proximité, contrairement à FOLLOW/GREET/SEEK_WALL/SEEK_FOCUS). */
+    /** Specific Critter reference chased during CHASE (not recomputed by
+     * proximity, unlike FOLLOW/GREET/SEEK_WALL/SEEK_FOCUS). */
     this._chaseTarget = null;
-    /** Référence Critter dont on s'éloigne pendant FLEE. */
+    /** Critter reference being moved away from during FLEE. */
     this._fleeFrom = null;
-    /** Invitation posée par proposeChase() : simple opportunité de plus
-     * pour le choix pondéré de _tickWaiting, pas un ordre -- peut être
-     * ignorée si un autre candidat l'emporte au tirage. */
+    /** Invitation set by proposeChase(): just one more opportunity for
+     * _tickWaiting's weighted choice, not an order -- can be ignored if
+     * another candidate wins the draw. */
     this._chaseInvitation = null;
-    /** Compte à rebours avant le prochain reciblage pendant FLY/SWIM
-     * (undefined tant qu'aucune session n'a démarré : _tickRoam s'en
-     * accommode, cf. sa garde). */
+    /** Countdown to the next retarget during FLY/SWIM (undefined until a
+     * session has started: _tickRoam handles that, see its guard). */
     this._roamTimer = undefined;
-    /** Phase de l'ondulation de nage (State.SWIM), continue d'une session à l'autre. */
+    /** Phase of the swim wave (State.SWIM), continuous from one session to the next. */
     this._swimPhase = undefined;
-    /** Dernier événement notable (pour déclencher un son/une réaction), vidé à chaque tick. */
+    /** Last notable event (to trigger a sound/a reaction), cleared every tick. */
     this.lastEvent = null;
-    /** Événement posé par une méthode publique (pet/startDrag/...) entre deux
-     * ticks. On ne l'écrit pas directement dans lastEvent car tick() vide
-     * lastEvent en entrée : sans cette file, un événement posé juste avant
-     * tick() serait effacé avant d'avoir pu être lu par l'appelant. */
+    /** Event set by a public method (pet/startDrag/...) between two ticks.
+     * Not written directly into lastEvent because tick() clears lastEvent
+     * on entry: without this queue, an event set just before tick() would
+     * be wiped before the caller could read it. */
     this._pendingEvent = null;
     this._clock = 0;
     this._lastPetAt = -Infinity;
@@ -345,37 +344,37 @@ export class Critter {
     this._lastTypingAt = -Infinity;
     this._acknowledged = false;
     this.stats = new Stats();
-    this.autonomy = 0; // niveau d'autonomie courant (recalculé à chaque tick)
+    this.autonomy = 0; // current autonomy level (recomputed every tick)
     this._reliefTarget = null;
     this._pendingMess = null;
     this._huntTarget = null;
     this.tricks = new TrickBook();
     this._trick = null;
-    this._lastGiftAt = 0; // le premier cadeau n'arrive qu'après giftCooldown secondes d activité
+    this._lastGiftAt = 0; // the first gift only arrives after giftCooldown seconds of activity
     this._pendingGift = null;
     this._giftArrived = false;
-    /** Accessoire porté (id de core/accessories.js) ou null. */
+    /** Accessory worn (id from core/accessories.js) or null. */
     this.accessory = null;
-    /** Nom de la créature (choisi ou tiré à la naissance), ou null. */
+    /** The creature's name (chosen or rolled at birth), or null. */
     this.name = null;
-    /** Succès déjà obtenus et ceux à annoncer (voir takeUnlocked). */
+    /** Achievements already earned and those to announce (see takeUnlocked). */
     this.unlocked = new Set();
     this._pendingUnlocked = [];
-    /** Titre choisi (id du succès qui l'a donné), ou null. */
+    /** Chosen title (id of the achievement that granted it), or null. */
     this.title = null;
     this._sleepStreak = 0;
-    this._awakeStreak = 0; // secondes éveillé d'affilée (bêtise « Nuit blanche »)
-    this._fallStartY = null; // hauteur de départ de la chute en cours (bêtise « Saut sans parachute »)
-    this._now = null; // date courante (ms), fournie par le Manager (options.progress.now)
+    this._awakeStreak = 0; // seconds awake in a row ("All-nighter" mischief)
+    this._fallStartY = null; // starting height of the current fall ("No parachute" mischief)
+    this._now = null; // current date (ms), provided by the Manager (options.progress.now)
     this._achieveTimer = 0;
   }
 
-  /** Remplace la vie (œuf, caractère...) et recalcule la configuration qui en découle. */
+  /** Replaces the life (egg, trait...) and recomputes the configuration that depends on it. */
   setLife(life) {
     this.life = life;
     this._recomputeConfig();
-    // Un œuf (ou un hibernant) qui remplace un animal déjà actif : posé, il passe tout de
-    // suite à l'état immobile ; en l'air, il retombe d'abord.
+    // An egg (or a hibernating animal) replacing an already-active animal: if
+    // resting, it goes straight to the still state; if airborne, it falls first.
     if (this._lifeFrozen() && this.state !== State.DRAG && this.state !== State.FALL) {
       if (this.currentSurface) this.state = this.life.hibernating ? State.HIBERNATE : State.EGG;
       else this._enterState(State.FALL);
@@ -383,9 +382,9 @@ export class Critter {
   }
 
   /**
-   * Configuration effective = configuration de base (défauts + pack) avec les
-   * facteurs de caractère et de stade sur les poids et les vitesses, et les
-   * débits de besoins ajustés. Rappelé à chaque changement de vie.
+   * Effective configuration = base configuration (defaults + pack) with
+   * the trait and stage factors applied to weights and speeds, and the
+   * need rates adjusted. Called again on every life change.
    */
   _recomputeConfig() {
     const mods = modifiersFor(this.life.trait, this.life.stage);
@@ -405,7 +404,7 @@ export class Critter {
     this.config.lifeAgeScale = scale;
   }
 
-  /** Le joueur réveille l'animal hibernant (soin) : jauges remontées, retour au repos. */
+  /** The player wakes the hibernating animal (a caring gesture): gauges restored, back to resting. */
   wake() {
     if (!this.life.wake()) return;
     this.stats.add('hibernationWakes');
@@ -419,7 +418,7 @@ export class Critter {
     if (EVENT_STATS[event]) this.stats.add(EVENT_STATS[event]);
   }
 
-  /** Compteurs d'activité, sommeil, marques et évaluation des succès (une fois par seconde). */
+  /** Activity, sleep and mark counters, and achievement evaluation (once a second). */
   _trackProgress(dt, previousState, options = {}) {
     if (this._lifeFrozen()) {
       this._sleepStreak = 0;
@@ -433,7 +432,7 @@ export class Critter {
         this._fallStartY = this.y;
         if (previousState === State.CEILING) this.stats.mark('moment', 'ceiling-fall');
       } else if (previousState === State.FALL && this._fallStartY !== null) {
-        // Chute de presque toute la hauteur de l'écran.
+        // A fall spanning almost the whole screen height.
         if (this.y - this._fallStartY >= (options.worldBounds?.height ?? 800) * 0.75) this.stats.mark('moment', 'skydive');
         this._fallStartY = null;
       }
@@ -461,7 +460,7 @@ export class Critter {
     }
   }
 
-  /** Marques relevées une fois par seconde : saison, fêtes, heure, jauges extrêmes, tenue du moment. */
+  /** Marks recorded once a second: season, holidays, time of day, extreme gauges, current outfit. */
   _markMoments() {
     if (this._now !== null) {
       const date = new Date(this._now);
@@ -481,7 +480,7 @@ export class Critter {
     if (this.state === State.PLAY && this.accessory === 'sock') this.stats.mark('state', 'sock-play');
   }
 
-  /** Faits des succès : compteurs, âge, stade atteint, tours appris, succès obtenus, marques. */
+  /** Achievement facts: counters, age, stage reached, tricks learned, achievements earned, marks. */
   progressFacts() {
     return {
       stats: {
@@ -495,18 +494,18 @@ export class Critter {
     };
   }
 
-  /** Geste du joueur envers l'animal, compté pour les succès : 'overfeed' (nourri alors qu'il n'a pas faim). */
+  /** A player gesture toward the animal, counted for achievements: 'overfeed' (fed while not hungry). */
   noteAction(kind) {
     if (this.life.stage === 'egg') return;
     if (kind === 'overfeed') this.stats.add('overfeeds');
   }
 
-  /** Choisit un titre parmi ceux gagnés (id du succès qui l'a donné) ; null ou un titre non gagné l'enlève. */
+  /** Picks a title among those earned (id of the achievement that granted it); null or an unearned title removes it. */
   setTitle(id) {
     this.title = typeof id === 'string' && this.unlocked.has(id) ? id : null;
   }
 
-  /** Nomme la créature ; un texte vide ou invalide ne change rien. */
+  /** Names the creature; an empty or invalid text changes nothing. */
   setName(text) {
     const name = sanitizeName(text);
     if (name !== null) {
@@ -516,21 +515,21 @@ export class Critter {
     return this.name;
   }
 
-  /** Équipe un accessoire (le Manager vérifie qu'il est acheté ou de saison) ; null pour l'enlever. */
+  /** Equips an accessory (the Manager checks it's bought or in season); null to remove it. */
   equip(id) {
     this.accessory = typeof id === 'string' ? id : null;
     if (this.accessory && this.life.stage !== 'egg') this.stats.mark('accessory', this.accessory);
   }
 
-  /** Succès débloqués depuis le dernier appel (chacun une seule fois). */
+  /** Achievements unlocked since the last call (each one only once). */
   takeUnlocked() {
     const ids = this._pendingUnlocked;
     this._pendingUnlocked = [];
     return ids;
   }
 
-  /** Point d'extension de la persistance : tout ce qui doit survivre à un
-   * redémarrage (le mode compagnon y ajoutera humeur, faim...) va dans `extra`. */
+  /** Persistence extension point: anything that needs to survive a
+   * restart (mood, hunger... as the game grows) goes in `extra`. */
   serialize() {
     return {
       x: Math.round(this.x),
@@ -549,8 +548,8 @@ export class Critter {
     };
   }
 
-  /** Repart en chute depuis la position sauvée : les surfaces ayant pu
-   * changer, on se repose sur ce qui se trouve dessous. */
+  /** Falls again from the saved position: since surfaces may have
+   * changed, it relies on whatever is now underneath. */
   restore(saved, { elapsedSeconds = 0 } = {}) {
     this.x = saved.x;
     this.y = saved.y;
@@ -573,21 +572,21 @@ export class Critter {
   }
 
   /**
-   * Après un changement de résolution ou d'écran, l'animal peut se retrouver
-   * hors de tout moniteur : il réapparaît alors en haut du moniteur le plus
-   * proche et retombe. Sans effet pendant un glisser (l'utilisateur le tient).
+   * After a resolution or monitor change, the animal can end up outside
+   * every monitor: it then reappears at the top of the closest monitor
+   * and falls. No effect during a drag (the user is holding it).
    * @param {{x:number,y:number,width:number,height:number}[]} monitors
-   * @param {number} spriteHeight hauteur du sprite (y désigne les pieds)
-   * @returns {boolean} vrai s'il a été replacé
+   * @param {number} spriteHeight sprite height (y designates the feet)
+   * @returns {boolean} true if it was repositioned
    */
-  /** Besoins et décisions à l'arrêt : dans l'œuf ou en hibernation. */
+  /** Needs and decisions on hold: while in the egg or hibernating. */
   _lifeFrozen() {
     return this.life.hibernating || this.life.stage === 'egg';
   }
 
   ensureVisible(monitors, spriteHeight) {
     if (this.state === State.DRAG || monitors.length === 0) return false;
-    // Un pixel au-dessus des pieds : posé sur le bord bas d'un moniteur, il est visible.
+    // One pixel above the feet: resting on a monitor's bottom edge, it's visible.
     if (isInsideAnyMonitor(monitors, this.x, this.y - 1)) return false;
     const point = respawnPoint(monitors, this.x, this.y, spriteHeight);
     if (!point) return false;
@@ -602,10 +601,10 @@ export class Critter {
   }
 
   /**
-   * Après une veille : ramène l'animal au sol (bas du moniteur le plus proche) au lieu de le
-   * laisser coincé sur la barre du haut ou sur une fenêtre. Ignore l'animal saisi et les
-   * espèces sans sol (poisson, volants), qui ne « retombent » pas.
-   * @returns {boolean} vrai si l'animal a été déplacé
+   * After a suspend: brings the animal back to the ground (bottom of the closest monitor)
+   * instead of leaving it stuck on the top bar or on a window. Ignores a grabbed animal and
+   * groundless species (fish, flying ones), which don't "fall back down".
+   * @returns {boolean} true if the animal was moved
    */
   regroundAfterResume(monitors) {
     if (this.state === State.DRAG || !this.supports(Locomotion.GROUND)) return false;
@@ -620,7 +619,7 @@ export class Critter {
     return true;
   }
 
-  /** Réglage d'autonomie vivant : `auto`, `off`, `partial` ou `full`. */
+  /** Live autonomy setting: `auto`, `off`, `partial` or `full`. */
   setAutonomyMode(mode) {
     this._baseConfig.autonomyMode = mode;
     this.config.autonomyMode = mode;
@@ -634,7 +633,7 @@ export class Critter {
     return this.config.supportedSurfaces.has(locomotion);
   }
 
-  // --- Interactions utilisateur -------------------------------------------------
+  // --- User interactions -------------------------------------------------
 
   startDrag() {
     if (this.life.stage !== 'egg') {
@@ -666,16 +665,16 @@ export class Critter {
   }
 
   /**
-   * Pose une réaction ponctuelle sans toucher à l'état physique (contraste
-   * avec startDrag/endDrag, qui changent aussi state/vx/vy). `kind` est le
-   * geste brut détecté côté extension (ex. 'doubleClick') ; INTERACTION_REACTIONS
-   * fait le lien vers le nom d'événement thématique correspondant, pour que
-   * ce mapping reste modifiable à un seul endroit.
+   * Sets a one-off reaction without touching the physical state (unlike
+   * startDrag/endDrag, which also change state/vx/vy). `kind` is the raw
+   * gesture detected on the extension side (e.g. 'doubleClick');
+   * INTERACTION_REACTIONS maps it to the corresponding thematic event
+   * name, so that mapping stays editable in one place.
    */
   interact(kind) {
-    // Dans l'œuf : aucune interaction (ni réaction, ni caresse) ; seul le glisser reste possible.
+    // In the egg: no interaction (neither reaction nor pet); only dragging remains possible.
     if (this.life.stage === 'egg') {
-      if (kind === 'click') this.stats.add('eggPets'); // il ne se passe rien, mais le Comité compte
+      if (kind === 'click') this.stats.add('eggPets'); // nothing happens, but the Committee counts it
       return;
     }
     let event = INTERACTION_REACTIONS[kind];
@@ -689,33 +688,33 @@ export class Critter {
     if (kind === 'click' && this.state === State.EAT) this.stats.mark('state', 'pet-while-eating');
     if (kind === 'click' && this.state === State.RELIEVE) this.stats.mark('state', 'pet-while-relieving');
     if (kind === 'doubleClick' && this.state === State.SLEEP) this.stats.mark('state', 'tickle-sleep');
-    if (kind === 'userReturned' && this.state === State.SLEEP) this._enterState(State.IDLE); // il t'accueille
+    if (kind === 'userReturned' && this.state === State.SLEEP) this._enterState(State.IDLE); // it greets you
     if (kind === 'click' && this.state === State.REMIND) {
-      this._acknowledged = true; // le joueur a vu le rappel
+      this._acknowledged = true; // the player saw the reminder
       this._enterState(State.IDLE);
     }
     if (kind === 'click') {
-      // Des caresses rapprochées forment une série : à partir de la 3e,
-      // ronronnement (plus d'affection) au lieu d'une simple caresse.
+      // Pets close together form a streak: from the 3rd one, purring
+      // (more affection) instead of a plain pet.
       this._petStreak = this._clock - this._lastPetAt <= this.config.petStreakWindow ? this._petStreak + 1 : 1;
       this._lastPetAt = this._clock;
       if (this._petStreak >= this.config.petStreakMin) event = 'purring';
     }
     if (event) this._pendingEvent = event;
-    // Seul un clic réveille : ni le survol, ni une fenêtre qui s'ouvre. Une
-    // surface qui bouge ou disparaît sous l'animal le réveille par la chute
-    // (cf. _tickWaiting/_resyncCurrentSurface).
+    // Only a click wakes it up: neither hovering nor a window opening
+    // does. A surface that moves or disappears under the animal wakes it
+    // through falling instead (see _tickWaiting/_resyncCurrentSurface).
     if (this.state === State.SLEEP && WAKING_GESTURES.has(kind)) this._enterState(State.IDLE);
     if (this.state === State.HIBERNATE && WAKING_GESTURES.has(kind)) this.wake();
   }
 
   /**
-   * Propose une fuite (utilisé par CHASE, cf. _tickGreet) : ne force rien,
-   * juste une opportunité de plus pour le choix pondéré de _tickWaiting
-   * -- la cible pourra l'accepter ou l'ignorer à sa prochaine décision
-   * idle, au même titre que sleep/wash/follow/etc.
+   * Proposes a chase (used by CHASE, see _tickGreet): forces nothing,
+   * just one more opportunity for _tickWaiting's weighted choice -- the
+   * target can accept or ignore it on its next idle decision, same as
+   * sleep/wash/follow/etc.
    */
-  /** Vrai une seule fois après un clic sur l'animal venu rappeler la pause (le Manager remet le compteur à zéro). */
+  /** True only once after a click on the animal that came to remind about a break (the Manager resets the counter). */
   takeAcknowledgement() {
     const acknowledged = this._acknowledged;
     this._acknowledged = false;
@@ -727,19 +726,19 @@ export class Critter {
     this._chaseInvitation = chaser;
   }
 
-  // --- Boucle principale ----------------------------------------------------
+  // --- Main loop ----------------------------------------------------
 
   /**
-   * @param {number} dt secondes écoulées depuis le tick précédent
+   * @param {number} dt seconds elapsed since the previous tick
    * @param {{segments: import('./surfaceMap.js').Segment[], walls: import('./surfaceMap.js').Wall[]}} surfaces
-   * @param {{worldBounds: {x:number,y:number,width:number,height:number}, pointer: {x:number,y:number}, otherCritters: {x:number,y:number,critter?:Critter}[]}} options bornes globales (union des moniteurs, utilisées par FLY/sécurité), position du curseur (utilisée par FOLLOW) et positions des autres critters, avec référence optionnelle à l'instance (utilisées par GREET pour cibler et, en arrivant, déclencher une réaction sur elle)
+   * @param {{worldBounds: {x:number,y:number,width:number,height:number}, pointer: {x:number,y:number}, otherCritters: {x:number,y:number,critter?:Critter}[]}} options global bounds (union of the monitors, used by FLY/safety), cursor position (used by FOLLOW) and other critters' positions, with an optional reference to the instance (used by GREET to target and, on arrival, trigger a reaction on it)
    */
   tick(dt, surfaces, options = {}) {
     this._now = options.progress?.now ?? null;
     this.lastEvent = this._pendingEvent;
     this._pendingEvent = null;
-    // L'événement venu de l'extérieur agit sur les jauges tout de suite : la
-    // logique du tick peut ensuite écraser lastEvent (ex. 'sleep').
+    // An event coming from outside affects the gauges right away: the
+    // tick's own logic can overwrite lastEvent afterward (e.g. 'sleep').
     const external = this.lastEvent;
     if (external) {
       this.needs.apply(external);
@@ -762,15 +761,15 @@ export class Critter {
         mood: this.needs.mood,
         health: this.needs.values.health,
         ageScale: this.config.lifeAgeScale,
-        needsScale: this.needs.rateScale * (1 - this.autonomy), // un animal autonome ne tombe pas dans la négligence
+        needsScale: this.needs.rateScale * (1 - this.autonomy), // an autonomous animal doesn't fall into neglect
       }),
     );
 
-    // La fenêtre/le rebord sur lequel on s'est posé a pu être fermé,
-    // déplacé ou redimensionné depuis le tick où `currentSurface` a été
-    // mémorisé : on le retrouve dans les surfaces fraîchement recalculées
-    // de CE tick avant d'agir, sinon on continue de raisonner sur des
-    // coordonnées périmées (le critter resterait suspendu dans le vide).
+    // The window/ledge it landed on may have been closed, moved or
+    // resized since the tick `currentSurface` was stored: it's looked up
+    // again in THIS tick's freshly recomputed surfaces before acting,
+    // otherwise we'd keep reasoning on stale coordinates (the critter
+    // would stay suspended in mid-air).
     if (this.currentSurface && this.currentSurface.surfaceId !== undefined) {
       this._resyncCurrentSurface(surfaces);
     }
@@ -893,12 +892,12 @@ export class Critter {
     };
   }
 
-  // --- Implémentations par état ----------------------------------------------
+  // --- Per-state implementations ----------------------------------------------
 
   /**
-   * Remplace `currentSurface` par sa version à jour dans `surfaces` (mêmes
-   * `surfaceId`/`type`, ou `side` pour un mur), ou fait tomber le critter si
-   * elle n'existe plus (fenêtre fermée entre-temps).
+   * Replaces `currentSurface` with its up-to-date version in `surfaces`
+   * (same `surfaceId`/`type`, or `side` for a wall), or makes the critter
+   * fall if it no longer exists (a window closed in the meantime).
    */
   _resyncCurrentSurface(surfaces) {
     const surface = this.currentSurface;
@@ -939,8 +938,8 @@ export class Critter {
       } else if (landing.type === 'water' && this.supports(Locomotion.WATER)) {
         this._startRoam(State.SWIM);
       } else if (groundless) {
-        // Espèce sans sol (poisson, créature purement aérienne) : ne se pose
-        // jamais, repart directement dans son roaming (spawn, fin de glisser).
+        // A groundless species (fish, a purely airborne creature): never
+        // settles down, goes straight back into roaming (spawn, end of drag).
         this._startRoam(groundless);
       } else {
         this._enterState(State.IDLE);
@@ -952,7 +951,7 @@ export class Critter {
     if (this.supports(Locomotion.WALL)) {
       const wall = findWallNear(surfaces.walls, this.x, Math.min(this.y, nextY), Math.max(this.y, nextY));
       if (wall) {
-        this.x = wall.x; // plaqué contre le mur, pas juste "à epsilon près"
+        this.x = wall.x; // flush against the wall, not just "close enough"
         this.y = clamp(nextY, wall.y1, wall.y2);
         this.vy = 0;
         this.currentSurface = wall;
@@ -964,8 +963,8 @@ export class Critter {
 
     this.y = nextY;
 
-    // Filet de sécurité : si on tombe hors de tout moniteur connu, on se
-    // replie sur le bas du premier moniteur pour ne jamais sortir de l'écran.
+    // Safety net: if it falls outside every known monitor, fall back to
+    // the bottom of the first monitor so it never leaves the screen.
     const bounds = options.worldBounds;
     if (bounds && this.y > bounds.y + bounds.height + 200) {
       this.x = clamp(this.x, bounds.x, bounds.x + bounds.width);
@@ -976,8 +975,8 @@ export class Critter {
   }
 
   _tickWaiting(dt, surfaces, options = {}) {
-    // Vérifie qu'on n'est pas resté « en l'air » suite à une fenêtre fermée
-    // ou déplacée sous nos pieds.
+    // Checks it hasn't been left "in mid-air" following a window closed
+    // or moved out from under its feet.
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
       return;
@@ -991,7 +990,7 @@ export class Critter {
       return;
     }
 
-    // Urgence : il ne tient plus, il se soulage sur place (trace, propreté en baisse).
+    // Emergency: it can't hold it any longer, it relieves itself in place (a mess, cleanliness drops).
     if (this.needs.values.relief < this.config.accidentBelow && this.supports(Locomotion.GROUND) && this.currentSurface) {
       this._accident();
       return;
@@ -1005,8 +1004,8 @@ export class Critter {
 
     if (this.currentSurface && options.pointer) {
       const distance = Math.abs(options.pointer.x - this.x);
-      // Moins tentant de suivre un curseur loin, jamais totalement exclu
-      // (il peut se rapprocher pendant que le critter marche vers lui).
+      // Less tempting to follow a distant cursor, never fully excluded
+      // (it might get closer while the critter walks toward it).
       const proximity = clamp(1 - distance / this.config.followMaxDistance, 0.15, 1);
       candidates.push({ value: 'follow', weight: this.config.followWeight * proximity });
     }
@@ -1054,9 +1053,9 @@ export class Critter {
     }
     if (this._giftReady(options)) candidates.push({ value: 'gift', weight: this.config.giftWeight });
 
-    // Autonomie : un animal qui se débrouille chasse et grignote, selon sa faim.
+    // Autonomy: an animal that fends for itself hunts and forages, depending on its hunger.
     const prey = this._preyTargets(options);
-    // Envie de se soulager : nulle tant que la jauge est confortable (>= 60), de plus en plus forte ensuite.
+    // Urge to relieve itself: none while the gauge is comfortable (>= 60), growing stronger after.
     if (this.supports(Locomotion.GROUND) && this.currentSurface && this.needs.values.relief < 60) {
       candidates.push({ value: 'relieve', weight: this.config.reliefWeight * 4 * ((60 - this.needs.values.relief) / 60) });
     }
@@ -1064,8 +1063,8 @@ export class Critter {
     const plants = this.autonomy > 0 ? this._edibleTargets(options, { plants: true }) : [];
     if (plants.length > 0) candidates.push({ value: 'graze', weight: this.config.grazeWeight * this.autonomy });
 
-    // Décollage/plongeon : poids fixes, pas de proximité (rien à "viser"
-    // pour un décollage, contrairement aux comportements ci-dessus).
+    // Takeoff/dive: fixed weights, no proximity (nothing to "target" for
+    // a takeoff, unlike the behaviours above).
     if (this.supports(Locomotion.GROUND)) {
       candidates.push({ value: 'run', weight: this.config.runWeight });
     }
@@ -1078,12 +1077,12 @@ export class Critter {
       candidates.push({ value: 'swimFast', weight: this.config.swimFastWeight });
     }
 
-    // Invitation posée par proposeChase() (voir _tickGreet/_tickChase) :
-    // consommée en une seule fois ici, acceptée ou pas -- pas de relance si
-    // elle perd le tirage, c'est ça qui porte le "peut l'ignorer". Poids
-    // relatif à la distance au poursuivant AU MOMENT de la décision
-    // (référence live : il a pu se rapprocher ou s'éloigner entre-temps),
-    // même schéma que les autres comportements de proximité.
+    // Invitation set by proposeChase() (see _tickGreet/_tickChase):
+    // consumed once here, accepted or not -- no retry if it loses the
+    // draw, that's what "can ignore it" means. Weight relative to the
+    // distance to the pursuer AT THE TIME of the decision (a live
+    // reference: it may have gotten closer or farther in the meantime),
+    // the same pattern as the other proximity-based behaviours.
     const chaseInvitation = this._chaseInvitation;
     this._chaseInvitation = null;
     if (chaseInvitation) {
@@ -1092,8 +1091,8 @@ export class Critter {
       candidates.push({ value: 'flee', weight: this.config.fleeWeight * proximity });
     }
 
-    // Les besoins orientent le choix sans jamais le forcer : un poids
-    // multiplié reste un tirage.
+    // Needs steer the choice without ever forcing it: a multiplied
+    // weight is still a random draw.
     const levels = this.needs.values;
     const tired = levels.health < 30;
     for (const c of candidates) {
@@ -1109,7 +1108,7 @@ export class Critter {
       }
     }
 
-    // Contexte du monde : la nuit et l'absence du joueur poussent à dormir.
+    // World context: night and the player being away push toward sleep.
     const ambient = options.ambient ?? {};
     const sleepy = (ambient.night ? this.config.nightSleepFactor : 1) * (ambient.away ? this.config.awaySleepFactor : 1);
     const lively =
@@ -1119,9 +1118,9 @@ export class Critter {
       else if (ENERGETIC_ACTIVITIES.has(c.value) || c.value === 'play') c.weight *= lively;
     }
 
-    // Anti-répétition : uniquement sur les activités spéciales. "walk" est
-    // déjà l'option la plus fréquente ; la pénaliser aussi surcorrigerait
-    // en faveur des autres à chaque cycle qui suit une marche.
+    // Anti-repetition: special activities only. "walk" is already the
+    // most frequent option; penalizing it too would overcorrect in
+    // favour of the others on every cycle that follows a walk.
     for (const c of candidates) {
       if (c.value !== 'walk' && c.value === this._lastActivity) {
         c.weight *= this.config.repeatPenalty;
@@ -1129,7 +1128,7 @@ export class Critter {
     }
 
     const choice = weightedChoice(candidates, this.config.random);
-    this._lastActivity = choice; // 'walk' ne matche jamais la garde !== 'walk' ci-dessus : équivalent à un reset
+    this._lastActivity = choice; // 'walk' never matches the !== 'walk' guard above: equivalent to a reset
 
     switch (choice) {
       case 'food':
@@ -1163,10 +1162,10 @@ export class Critter {
         this._startSeekFood(plants[0]);
         return;
       case 'sleep': {
-        // Un lit passe avant tout, quelle que soit la distance : on s'y rend
-        // (le temps de marche s'adapte), ou on dort directement dessus si on y
-        // est déjà. Espèce qui vole avec un lit sur une autre surface :
-        // décollage vers ce lit, la sieste suivra une fois posée.
+        // A bed takes priority over everything, whatever the distance: it
+        // heads there (walk time adjusts), or sleeps right on it if
+        // already there. A flying species with a bed on another surface:
+        // takes off toward that bed, the nap follows once landed.
         const beds = (options.items ?? []).filter((i) => i.type === 'bed' && !i.removed && i.surface && !i.grabbed);
         const here = this.currentSurface
           ? beds
@@ -1194,9 +1193,9 @@ export class Critter {
           this._takeOffToward(bed);
           return;
         }
-        // Sieste ciblée : plutôt que de dormir sur place, cherche d'abord
-        // un rebord de fenêtre proche et atteignable en marchant ; repli
-        // sur place si rien à portée (comportement d'avant ce raffinement).
+        // Targeted nap: rather than sleeping in place, first looks for a
+        // nearby window ledge reachable by walking; falls back to
+        // sleeping in place if nothing is in range (the behaviour before this refinement).
         const shelf = this.currentSurface
           ? findReachableShelf(
               surfaces.segments,
@@ -1273,8 +1272,8 @@ export class Critter {
       return;
     }
 
-    // Cible recalculée à chaque tick (contrairement à WALK, qui vise un
-    // point fixe) : le critter suit un curseur qui continue de bouger.
+    // Target recomputed every tick (unlike WALK, which aims at a fixed
+    // point): the critter follows a cursor that keeps moving.
     this._chase(dt, options.pointer.x);
   }
 
@@ -1284,9 +1283,9 @@ export class Critter {
       return;
     }
 
-    // Recalculé à chaque tick, comme le pointeur pour FOLLOW : pas de suivi
-    // d'identité par id, si un autre critter devient plus proche entre-temps
-    // la cible peut changer en cours de route.
+    // Recomputed every tick, like the pointer for FOLLOW: no tracking by
+    // id, if another critter gets closer in the meantime the target can
+    // change mid-way.
     const target = options.otherCritters?.length
       ? options.otherCritters.reduce((a, b) => (Math.abs(b.x - this.x) < Math.abs(a.x - this.x) ? b : a))
       : null;
@@ -1297,19 +1296,19 @@ export class Critter {
     }
 
     if (Math.abs(target.x - this.x) < this.config.greetDistance) {
-      // this.lastEvent directement pour SOI-MÊME (pas interact()) : déclenché
-      // DANS ce tick, après que tick() a déjà copié _pendingEvent vers
-      // lastEvent en entrée -- passer par interact() ici décalerait
-      // l'événement au tick suivant. Même pattern que 'landed'/'sleep'/'wash'
-      // ailleurs. Pour LA CIBLE en revanche, la salutation arrive bien entre
-      // deux de ses propres ticks : interact() (donc _pendingEvent) est le
-      // mécanisme approprié, comme pour un événement externe (windowOpened).
+      // this.lastEvent set directly for ITSELF (not interact()): triggered
+      // WITHIN this tick, after tick() has already copied _pendingEvent
+      // into lastEvent on entry -- going through interact() here would
+      // push the event to the next tick. Same pattern as 'landed'/'sleep'/
+      // 'wash' elsewhere. For THE TARGET, though, the greeting does arrive
+      // between two of its own ticks: interact() (thus _pendingEvent) is
+      // the right mechanism, same as for an external event (windowOpened).
       this.lastEvent = 'greeted';
       target.critter?.interact('meetCritter');
 
-      // Enchaîne parfois sur une poursuite au lieu de repasser directement
-      // en IDLE : propose (pas n'impose pas, cf. proposeChase) à la cible
-      // de fuir, et se lance à sa poursuite.
+      // Sometimes chains into a chase instead of going straight back to
+      // IDLE: proposes (doesn't impose, see proposeChase) that the target
+      // flee, and gives chase.
       if (target.critter && this.config.random() < this.config.chaseChance) {
         target.critter.proposeChase(this);
         this.state = State.CHASE;
@@ -1322,17 +1321,17 @@ export class Critter {
       return;
     }
 
-    // Pas atteignable (autre niveau, mur au milieu...) : le critter bute
-    // contre le bord de sa propre surface et stateTimer finit par expirer
-    // normalement, pas de cas particulier à gérer ici.
+    // Unreachable (a different level, a wall in the way...): the critter
+    // butts against the edge of its own surface and stateTimer eventually
+    // expires normally, no special case to handle here.
     this._chase(dt, target.x);
   }
 
   /**
-   * Contrairement à GREET/FOLLOW/SEEK_WALL/SEEK_FOCUS, la cible est une
-   * référence FIXE (`_chaseTarget`, posée par _tickGreet) plutôt que
-   * recalculée par proximité à chaque tick : une vraie poursuite suit une
-   * cible précise, pas "qui que ce soit de plus proche".
+   * Unlike GREET/FOLLOW/SEEK_WALL/SEEK_FOCUS, the target is a FIXED
+   * reference (`_chaseTarget`, set by _tickGreet) rather than recomputed
+   * by proximity every tick: a real chase follows a specific target, not
+   * "whoever is closest".
    */
   _tickChase(dt) {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
@@ -1347,18 +1346,18 @@ export class Critter {
     }
 
     if (Math.abs(this._chaseTarget.x - this.x) < this.config.greetDistance) {
-      // Rattrapé : réutilise 'greeted' (départ ET arrivée d'une poursuite
-      // restent la même émotion) plutôt que d'ajouter un nouvel événement
-      // et ses assets rien que pour ça.
+      // Caught up: reuses 'greeted' (both the start AND the end of a
+      // chase stay the same emotion) rather than adding a new event and
+      // its assets just for this.
       this.lastEvent = 'greeted';
-      this._chaseTarget.interact('meetCritter'); // la cible réagit aussi en se faisant rattraper
+      this._chaseTarget.interact('meetCritter'); // the target also reacts to being caught
       this._chaseTarget = null;
       this._enterState(State.IDLE);
       return;
     }
 
-    // Référence live : suit la cible où qu'elle se soit rendue, pas une
-    // position figée au moment où la poursuite a commencé.
+    // A live reference: follows the target wherever it has gone, not a
+    // position frozen at the moment the chase started.
     this._chase(dt, this._chaseTarget.x);
   }
 
@@ -1374,8 +1373,7 @@ export class Critter {
       return;
     }
 
-    // Symétrique de _chase, mais en s'éloignant de la cible plutôt qu'en
-    // s'en approchant.
+    // The mirror image of _chase, but moving away from the target instead of toward it.
     const dir = sign(this.x - this._fleeFrom.x) || this.facing || 1;
     this.facing = dir;
     this.x += dir * this.config.walkSpeed * dt;
@@ -1414,8 +1412,8 @@ export class Critter {
       return;
     }
 
-    // Recalculé à chaque tick (comme SEEK_WALL) : un rebord peut devenir
-    // injoignable (fenêtre fermée/déplacée) en chemin.
+    // Recomputed every tick (like SEEK_WALL): a ledge can become
+    // unreachable (a closed/moved window) along the way.
     const shelf = this.currentSurface
       ? findReachableShelf(
           surfaces.segments,
@@ -1431,7 +1429,7 @@ export class Critter {
       return;
     }
 
-    const targetX = clamp(this.x, shelf.x1, shelf.x2); // point le plus proche sur le rebord
+    const targetX = clamp(this.x, shelf.x1, shelf.x2); // closest point on the ledge
     if (Math.abs(targetX - this.x) < this.config.napApproachDistance) {
       this.x = targetX;
       this.y = shelf.y;
@@ -1445,10 +1443,10 @@ export class Critter {
     this._chase(dt, targetX);
   }
 
-  // --- Nourriture et lit ----------------------------------------------------
+  // --- Food and bed ----------------------------------------------------
 
-  /** Cibles comestibles pour cette espèce, la plus proche d'abord. */
-  /** Cibles comestibles ; les plantes (grignotage, autonomie) sont demandées à part. */
+  /** Edible targets for this species, closest first. */
+  /** Edible targets; plants (foraging, autonomy) are requested separately. */
   _edibleTargets(options, { plants = false } = {}) {
     if (!options.items?.length) return [];
     return edibleFor(options.items, this.config.needsDiet, {
@@ -1457,11 +1455,11 @@ export class Critter {
       canFly: this.supports(Locomotion.AIR),
       floating: !this.supports(Locomotion.GROUND),
       self: this,
-      avoidMold: this.autonomy >= 0.5, // un animal autonome ne mange pas de nourriture moisie
+      avoidMold: this.autonomy >= 0.5, // an autonomous animal doesn't eat moldy food
     }).filter((e) => (e.item.type === 'plant') === plants);
   }
 
-  /** Proies que cette espèce chasse, atteignables : la plus proche d'abord. */
+  /** Prey this species hunts, reachable: closest first. */
   _preyTargets(options) {
     if (!options.items?.length || this.autonomy <= 0) return [];
     const floating = !this.supports(Locomotion.GROUND);
@@ -1488,8 +1486,8 @@ export class Critter {
     const sameSurface = seg && this.currentSurface && seg.surfaceId === this.currentSurface.surfaceId;
 
     if (!item.floating && !sameSurface) {
-      // Espèce qui vole, nourriture sur une autre surface : décollage vers
-      // cette surface ; une fois posée, la nourriture sera sur sa surface.
+      // A flying species, food on another surface: takes off toward that
+      // surface; once landed, the food will be on its surface.
       this._takeOffToward(item);
       return;
     }
@@ -1505,7 +1503,7 @@ export class Critter {
     return !item || item.consumed || item.removed || item.grabbed || (item.type === 'bowl' && item.portions <= 0);
   }
 
-  /** Abandon (cible mangée, disparue, injoignable) : retour au repos ou au roaming. */
+  /** Gives up (target eaten, gone, unreachable): back to resting or roaming. */
   _giveUpFood() {
     this._releaseFood();
     const roam = this._groundlessRoamState();
@@ -1576,12 +1574,12 @@ export class Critter {
     if (item.kind) this.stats.mark('food', item.kind);
     if (this._now !== null && new Date(this._now).getHours() === 5) this.stats.mark('moment', 'early-meal');
     if (sick) {
-      // Nourriture moisie : un petit coup de santé, une bulle « malade » à soigner.
+      // Moldy food: a small health hit, a "sick" bubble to remedy.
       this.needs.boost('health', -this.config.moldSickness);
       this.lastEvent = 'sick';
     } else {
-      // Encore faim et un reste : bouchée suivante, sans lâcher l'aliment ;
-      // sinon il laisse le reste entamé (pour plus tard, ou un autre).
+      // Still hungry and a bite left: next bite, without letting go of
+      // the food; otherwise it leaves the started leftover (for later, or another).
       if (!finished && this.needs.values.satiety < this.config.eatMoreBelow) {
         item.claimedBy = this;
         this.stateTimer = randRange(this.config.eatDuration, this.config.random);
@@ -1598,9 +1596,9 @@ export class Critter {
     this._giveUpFood();
   }
 
-  // --- Besoins naturels -----------------------------------------------------------
+  // --- Natural needs -----------------------------------------------------------
 
-  /** Trace à déposer, demandée par l'animal (le Manager en fait un objet), ou null. */
+  /** A mess to drop, requested by the animal (the Manager turns it into an item), or null. */
   takeMess() {
     const mess = this._pendingMess;
     this._pendingMess = null;
@@ -1616,7 +1614,7 @@ export class Critter {
     this._enterState(State.IDLE);
   }
 
-  /** Va à une litière propre de sa surface, sinon au coin (bord) le plus proche ; en vol, rejoint la surface de la litière. */
+  /** Goes to a clean litter box on its surface, otherwise the nearest corner (edge); while flying, heads to the litter box's surface. */
   _startRelieve(options) {
     const seg = this.currentSurface;
     const litter =
@@ -1628,7 +1626,7 @@ export class Critter {
     const corner = Math.abs(this.x - seg.x1) < Math.abs(seg.x2 - this.x) ? seg.x1 + 10 : seg.x2 - 10;
     this._reliefTarget = { x: clamp(litter ? litter.x : corner, seg.x1 + 4, seg.x2 - 4), litter, acting: false };
     this.state = State.RELIEVE;
-    this.stateTimer = 20; // trajet : au-delà, il se soulage là où il est
+    this.stateTimer = 20; // travel time: beyond this, it relieves itself wherever it is
   }
 
   _tickRelieve(dt) {
@@ -1641,7 +1639,7 @@ export class Critter {
       this._enterState(State.IDLE);
       return;
     }
-    // Litière devenue sale, retirée ou déplacée en chemin : il se rabat sur le coin le plus proche.
+    // The litter box became dirty, was removed or moved along the way: it falls back on the nearest corner.
     if (target.litter && (target.litter.removed || target.litter.grabbed || isDirty(target.litter))) {
       const seg = this.currentSurface;
       target.litter = null;
@@ -1671,9 +1669,9 @@ export class Critter {
   }
 
   /**
-   * Traces proches sur la même surface : elles salissent, et les vieilles
-   * (plus de deux heures) rendent malade, sauf pour un animal autonome qui
-   * nettoie derrière lui. Figé en mode vacances.
+   * Nearby messes on the same surface: they dirty it, and old ones (over
+   * two hours) make the animal sick, except for an autonomous animal
+   * that cleans up after itself. Frozen in vacation mode.
    */
   _environment(dt, options) {
     if (this._lifeFrozen() || !this.currentSurface || !options.items?.length || this.needs.rateScale <= 0) return;
@@ -1690,12 +1688,12 @@ export class Critter {
     if (old > 0) this.needs.boost('health', -this.config.oldMessHealthLoss * Math.min(old, 3) * (1 - this.autonomy) * hours);
   }
 
-  // --- Chasse ---------------------------------------------------------------------
+  // --- Hunting ---------------------------------------------------------------------
 
   _startHunt(prey) {
     const sameSurface = prey.surface && this.currentSurface && prey.surface.surfaceId === this.currentSurface.surfaceId;
     if (!prey.floating && !sameSurface) {
-      this._takeOffToward(prey); // espèce qui vole : décolle vers la surface de la proie
+      this._takeOffToward(prey); // a flying species: takes off toward the prey's surface
       return;
     }
     this._releaseFood();
@@ -1712,7 +1710,7 @@ export class Critter {
     else this._enterState(State.IDLE);
   }
 
-  /** Poursuite : abandon sans conséquence si la proie s'échappe, disparaît ou change de surface. */
+  /** Chase: gives up without consequence if the prey escapes, disappears, or changes surface. */
   _tickHunt(dt) {
     const groundless = !this.supports(Locomotion.GROUND);
     if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
@@ -1746,7 +1744,7 @@ export class Critter {
     this._chase(dt, prey.x, this.config.walkSpeed * this.config.runSpeedFactor);
   }
 
-  /** La proie est attrapée : elle se fige, l'animal la mange (état EAT réutilisé). */
+  /** The prey is caught: it freezes, the critter eats it (EAT state reused). */
   _catch(prey) {
     prey.caught = true;
     this._huntTarget = null;
@@ -1755,8 +1753,8 @@ export class Critter {
     this._startEating();
   }
 
-  /** Décolle vers la surface d'un objet (espèce qui vole) ; une fois posée,
-   * l'objet sera sur sa surface et pourra être rejoint à pied. */
+  /** Takes off toward an object's surface (flying species); once landed,
+   * the object will be on its surface and can be reached on foot. */
   _takeOffToward(item, x = item.x) {
     const seg = item.surface;
     this._releaseFood();
@@ -1765,7 +1763,7 @@ export class Critter {
     this._flyTarget = { segment: seg, x: clamp(x, seg.x1 + margin, seg.x2 - margin), y: seg.y };
   }
 
-  /** Avance vers un point en 2D (espèce sans sol) ; renvoie la distance restante. */
+  /** Moves toward a 2D point (groundless species); returns the remaining distance. */
   _approach2D(dt, targetX, targetY, speed) {
     const toX = targetX - this.x;
     const toY = targetY - this.y;
@@ -1778,7 +1776,7 @@ export class Critter {
     return distance - step;
   }
 
-  // --- Jeu, caresses, brossage ------------------------------------------------
+  // --- Play, petting, brushing ------------------------------------------------
 
   _startPlay(target) {
     if (target.laser) this.stats.add('laserChases');
@@ -1788,7 +1786,7 @@ export class Critter {
     this.stateTimer = randRange(this.config.playDuration, this.config.random);
   }
 
-  /** Fin d'une session (jouée jusqu'au bout : récompense) ou abandon. */
+  /** End of a session (played through to the end: reward) or abandonment. */
   _endPlay(completed) {
     if (completed && this._playTarget?.item) this.stats.mark('toy', this._playTarget.item.kind);
     this._playTarget = null;
@@ -1842,7 +1840,7 @@ export class Critter {
         ? this.config.swimSpeed * this.config.swimFastFactor
         : this.config.flySpeed * this.config.flyFastFactor;
       const remaining = this._approach2D(dt, tx, ty, speed);
-      // Jouet flottant à portée : un coup de museau le pousse plus loin.
+      // Floating toy in range: a nudge of the snout pushes it further.
       if (!target.laser && remaining < this.config.kickDistance) {
         this._kickTimer -= dt;
         if (this._kickTimer <= 0) {
@@ -1858,7 +1856,7 @@ export class Critter {
       return;
     }
     this.facing = sign(tx - this.x) || this.facing;
-    // Jouet qui roule (balle, pelote) : un coup de patte de temps en temps ; la peluche ne bouge pas.
+    // Rolling toy (ball, wool ball): a swat of the paw now and then; the plush toy doesn't move.
     if (!target.laser) {
       this._kickTimer -= dt;
       if (this._kickTimer <= 0) {
@@ -1868,7 +1866,7 @@ export class Critter {
     }
   }
 
-  /** Transitions de vie : éclosion, croissance, hibernation. */
+  /** Life transitions: hatching, growth, hibernation. */
   _applyLifeTransitions(transitions) {
     if (transitions.length === 0) return;
     for (const transition of transitions) {
@@ -1890,16 +1888,16 @@ export class Critter {
     this._recomputeConfig();
   }
 
-  /** Œuf et hibernation : immobile, seulement attentif à ce que le support tienne. */
+  /** Egg and hibernation: motionless, only watching that the support holds. */
   _tickResting() {
     if (this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._enterState(State.FALL);
     }
   }
 
-  // --- Tours et cadeaux -----------------------------------------------------------
+  // --- Tricks and gifts -----------------------------------------------------------
 
-  /** Le tour existe pour l'espèce et l'animal est en état de l'exécuter (ni œuf, ni hibernation, ni en chute). */
+  /** The trick exists for the species and the critter is in a state to perform it (not egg, hibernation, or falling). */
   _canPerform(name) {
     if (!this.config.tricks.includes(name) || this._lifeFrozen()) return false;
     const blocked = [State.DRAG, State.FALL, State.EGG, State.HIBERNATE, State.CLIMB, State.CEILING];
@@ -1916,24 +1914,24 @@ export class Critter {
   }
 
   /**
-   * Entraînement (action du joueur) : réussi avec la probabilité de la
-   * maîtrise, qui monte dans tous les cas. Un tour enfin appris est annoncé
-   * (événement `trickLearned`).
-   * @returns {boolean} vrai si l'animal a exécuté le tour
+   * Training (player action): succeeds with the mastery probability, which
+   * rises in every case. A trick finally learned is announced (`trickLearned`
+   * event).
+   * @returns {boolean} true if the critter performed the trick
    */
   trainTrick(name) {
     if (!this._canPerform(name)) return false;
     const { success, learned } = this.tricks.train(name, this.config.random, this.life.trait);
     if (success) this._startTrick(name);
     else {
-      this._pendingEvent = 'noticed'; // il hésite
+      this._pendingEvent = 'noticed'; // it hesitates
       this.stats.add('trickFails');
     }
     if (learned) this._pendingEvent = 'trickLearned';
     return success;
   }
 
-  /** Exécute un tour déjà appris (action du joueur). */
+  /** Performs a trick already learned (player action). */
   performTrick(name) {
     if (!this.tricks.isLearned(name) || !this._canPerform(name)) return false;
     this._startTrick(name);
@@ -1952,7 +1950,7 @@ export class Critter {
     else this._enterState(State.IDLE);
   }
 
-  /** Un adulte très affectueux, sans cadeau récent, peut en ramener un près du curseur. */
+  /** A very affectionate adult, with no recent gift, may bring one back near the cursor. */
   _giftReady(options) {
     return (
       Boolean(options.pointer) &&
@@ -1969,7 +1967,7 @@ export class Critter {
     this.stateTimer = randRange(this.config.giftDuration, this.config.random);
   }
 
-  /** Rejoint le curseur puis y dépose son cadeau (à ramasser par le joueur). */
+  /** Reaches the cursor then drops its gift there (to be picked up by the player). */
   _tickGift(dt, options) {
     const groundless = !this.supports(Locomotion.GROUND);
     if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
@@ -1983,7 +1981,7 @@ export class Critter {
       else this._enterState(State.IDLE);
     };
     if (this.stateTimer <= 0 || !pointer) {
-      end(); // pas arrivé à temps : pas de cadeau, pas de délai consommé
+      end(); // didn't arrive in time: no gift, no time consumed
       return;
     }
 
@@ -2005,7 +2003,7 @@ export class Critter {
     }
   }
 
-  /** Cadeau déposé depuis le dernier appel (le Manager en fait un objet), ou null. */
+  /** Gift dropped since the last call (the Manager turns it into an object), or null. */
   takeGift() {
     const gift = this._pendingGift;
     this._pendingGift = null;
@@ -2020,7 +2018,7 @@ export class Critter {
     this.stateTimer = this.config.remindDuration;
   }
 
-  /** Rappel de pause : rejoint le curseur (marche, vol ou nage) et reste à côté jusqu'à la fin. */
+  /** Break reminder: reaches the cursor (walking, flying, or swimming) and stays by it until the end. */
   _tickRemind(dt, options) {
     const groundless = !this.supports(Locomotion.GROUND);
     if (!groundless && this.currentSurface && !isOnSegment(this.currentSurface, this.x, this.y, 4)) {
@@ -2053,7 +2051,7 @@ export class Critter {
     }
   }
 
-  /** Brossage (action du joueur) : immobile quelques secondes, puis propreté et affection en hausse. */
+  /** Brushing (player action): motionless for a few seconds, then cleanliness and affection rise. */
   brush() {
     const blocked = [
       State.DRAG, State.FALL, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
@@ -2081,7 +2079,7 @@ export class Critter {
     this._enterState(State.IDLE);
   }
 
-  /** Multiplicateur du gain d'énergie en dormant : plus fort sur un lit. */
+  /** Multiplier for the energy gain while sleeping: stronger on a bed. */
   _bedSleepFactor(options) {
     if (this.state !== State.SLEEP || !this.currentSurface || !options?.items) return 1;
     const bed = bedsOn(options.items, this.currentSurface.surfaceId, this.x)[0];
@@ -2096,8 +2094,8 @@ export class Critter {
       return;
     }
 
-    // Recalculé à chaque tick (comme FOLLOW/GREET) : un mur peut devenir
-    // injoignable (fenêtre fermée) ou un autre plus proche apparaître.
+    // Recomputed every tick (like FOLLOW/GREET): a wall may become
+    // unreachable (window closed) or a closer one may appear.
     const wall = findReachableWall(surfaces.walls, this.x, this.y);
 
     if (this.stateTimer <= 0 || !wall) {
@@ -2107,7 +2105,7 @@ export class Critter {
 
     if (Math.abs(wall.x - this.x) < this.config.climbApproachDistance) {
       this.x = wall.x;
-      this.y = clamp(this.y, wall.y1, wall.y2); // no-op ou presque : mur déjà filtré "atteignable" à la sélection
+      this.y = clamp(this.y, wall.y1, wall.y2); // no-op or nearly: wall already filtered "reachable" at selection
       this.currentSurface = wall;
       this._enterState(State.CLIMB);
       return;
@@ -2129,8 +2127,8 @@ export class Critter {
 
     const targetX = options.focusedWindow.x + options.focusedWindow.width / 2;
     if (Math.abs(targetX - this.x) < this.config.seekFocusDistance) {
-      // Arrivé : simple curiosité, pas de nouvelle réaction/son dédiés pour
-      // ce comportement (contrairement à GREET -> 'greeted').
+      // Arrived: simple curiosity, no dedicated new reaction/sound for
+      // this behavior (unlike GREET -> 'greeted').
       this._enterState(State.IDLE);
       return;
     }
@@ -2138,9 +2136,9 @@ export class Critter {
     this._chase(dt, targetX);
   }
 
-  /** Avance vers `targetX` le long de la surface courante (WALK vise un
-   * point fixe une fois pour toutes ; FOLLOW/GREET rappellent ceci chaque
-   * tick avec une cible qui peut avoir bougé). */
+  /** Moves toward `targetX` along the current surface (WALK targets a
+   * fixed point once and for all; FOLLOW/GREET call this every tick
+   * with a target that may have moved). */
   _chase(dt, targetX, speed = this.config.walkSpeed) {
     const dir = sign(targetX - this.x);
     this.facing = dir || this.facing;
@@ -2195,11 +2193,11 @@ export class Critter {
   }
 
   _tickClimb(dt, surfaces) {
-    // Monte le long du mur courant. Si l'espèce sait marcher au plafond,
-    // elle s'arrête et s'accroche dès qu'elle croise, en chemin, une
-    // surface en surplomb (plafond d'un moniteur, dessous d'une fenêtre) ;
-    // sinon elle grimpe jusqu'au sommet du mur et s'y arrête (rien à quoi
-    // se suspendre là-haut).
+    // Climbs up the current wall. If the species can walk on ceilings,
+    // it stops and latches on as soon as it crosses, along the way, an
+    // overhanging surface (a monitor's top, the underside of a window);
+    // otherwise it climbs to the top of the wall and stops there (nothing
+    // to hang from up there).
     const wall = this.currentSurface;
     if (!wall) {
       this._enterState(State.FALL);
@@ -2214,8 +2212,8 @@ export class Critter {
       if (ceiling) {
         this.y = ceiling.y;
         this.currentSurface = ceiling;
-        // On vient de grimper ce mur : repartir vers le bord opposé plutôt
-        // que de continuer vers l'extérieur, où on retomberait aussitôt.
+        // Just climbed this wall: head back toward the opposite edge rather
+        // than continuing outward, where it would immediately fall again.
         this.facing = wall.side === 'left' ? 1 : -1;
         this._enterState(State.CEILING);
         return;
@@ -2223,9 +2221,9 @@ export class Critter {
     }
 
     if (this.y <= wall.y1) {
-      // Rien à agripper au sommet : on reste accroché là, immobile, plutôt
-      // que de "se tenir debout" sur un mur (qui n'a pas de x1/x2 valides
-      // pour la vérification de surface des états IDLE/WALK).
+      // Nothing to grip at the top: stay latched there, motionless, rather
+      // than "standing" on a wall (which has no valid x1/x2 for the
+      // surface check of the IDLE/WALK states).
       this.currentSurface = null;
       this._enterState(State.IDLE);
     }
@@ -2247,7 +2245,7 @@ export class Critter {
     if (this.currentSurface) {
       const clamped = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
       if (clamped !== this.x) {
-        // Bout du surplomb atteint : plus rien à quoi se tenir.
+        // End of the overhang reached: nothing left to hold onto.
         this.x = clamped;
         this._enterState(State.FALL);
       }
@@ -2255,17 +2253,17 @@ export class Critter {
   }
 
   /**
-   * Mécanique partagée par FLY et SWIM : cible 2D recalculée
-   * périodiquement (contrairement à WALK, qui vise un point fixe une fois
-   * pour toutes). "Atterrir" ne demande aucune logique dédiée : une fois
-   * stateTimer écoulé, on repasse en FALL et la détection d'atterrissage
-   * déjà en place (findSurfaceBelow) s'occupe du reste.
-   * @param {boolean} wavy si vrai, ondule perpendiculairement à la
-   * trajectoire directe vers la cible (nage) plutôt que d'y aller tout
-   * droit (vol).
+   * Mechanics shared by FLY and SWIM: 2D target recomputed periodically
+   * (unlike WALK, which targets a fixed point once and for all).
+   * "Landing" needs no dedicated logic: once stateTimer runs out, we go
+   * back to FALL and the landing detection already in place
+   * (findSurfaceBelow) handles the rest.
+   * @param {boolean} wavy if true, undulates perpendicular to the direct
+   * path toward the target (swimming) rather than going straight there
+   * (flying).
    */
-  /** Locomotion de roaming d'une espèce qui ne supporte pas le sol :
-   * SWIM (eau) en priorité, sinon FLY (air), sinon null. */
+  /** Roaming locomotion of a species that doesn't support ground:
+   * SWIM (water) first, otherwise FLY (air), otherwise null. */
   _groundlessRoamState() {
     if (this.supports(Locomotion.GROUND)) return null;
     if (this.supports(Locomotion.WATER)) return State.SWIM;
@@ -2273,41 +2271,41 @@ export class Critter {
     return null;
   }
 
-  /** État de base d'une variante : SWIM_FAST -> SWIM ; FLY_FAST/DIVE -> FLY. */
+  /** Base state of a variant: SWIM_FAST -> SWIM; FLY_FAST/DIVE -> FLY. */
   _roamBase(state) {
     if (state === State.SWIM_FAST) return State.SWIM;
     if (state === State.FLY_FAST || state === State.DIVE) return State.FLY;
     return state;
   }
 
-  /** Session enchaînée d'une espèce sans sol : rapide avec `fastChance`. */
+  /** Chained session of a groundless species: fast with `fastChance`. */
   _roamVariant(base) {
     const fast = this.config.random() < this.config.fastChance;
     if (!fast) return base;
     return base === State.SWIM ? State.SWIM_FAST : State.FLY_FAST;
   }
 
-  /** Démarre une session FLY/SWIM. Pas _enterState() : stateTimer et
-   * _roamTimer doivent être posés dès la première frame, sinon _tickRoam
-   * verrait stateTimer déjà <= 0 et terminerait aussitôt la session. */
+  /** Starts a FLY/SWIM session. No _enterState(): stateTimer and
+   * _roamTimer must be set on the very first frame, otherwise _tickRoam
+   * would see stateTimer already <= 0 and end the session immediately. */
   _startRoam(state) {
     if (this._roamBase(this.state) !== State.SWIM) this._roamHasTarget = false;
     this.state = state;
     const swimming = this._roamBase(state) === State.SWIM;
     const duration = swimming ? this.config.swimDuration : this.config.flyDuration;
     this.stateTimer = randRange(duration, this.config.random);
-    this._roamTimer = 0; // force un premier ciblage dès le premier tick
-    this._flyTarget = null; // cible d'atterrissage, choisie au premier tick de vol
+    this._roamTimer = 0; // force a first targeting on the very first tick
+    this._flyTarget = null; // landing target, chosen on the first tick of flight
     this._flyWaypoint = null;
-    // En vol on n'est plus attaché à la surface de départ : si sa fenêtre se
-    // ferme, tick() ne doit pas nous faire tomber (cf. _resyncCurrentSurface).
+    // While flying we're no longer attached to the starting surface: if its
+    // window closes, tick() must not make us fall (see _resyncCurrentSurface).
     this._flyOriginId = this.currentSurface?.surfaceId;
     this.currentSurface = null;
   }
 
   _tickRoam(dt, options, speed, yRangeFactors, wavy = false) {
-    // Une espèce sans sol ne passe jamais par _tickWaiting : c'est ici
-    // qu'elle remarque la nourriture flottante quand elle a faim.
+    // A groundless species never goes through _tickWaiting: this is where
+    // it notices floating food when it's hungry.
     if (this._groundlessRoamState()) {
       this._foodCheckTimer = (this._foodCheckTimer ?? 0) - dt;
       if (this._foodCheckTimer <= 0) {
@@ -2341,7 +2339,7 @@ export class Critter {
             return;
           }
         }
-        // Il s'ennuie et un jouet flotte (l'anneau) : il va le pousser.
+        // It's bored and a toy is floating (the ring): it will push it.
         if (this.needs.values.stimulation < this.config.floatingPlayBelow && options.items?.length) {
           const toy = toysFor(options.items, { x: this.x, y: this.y, floating: true })[0];
           if (toy && this.config.random() < this.config.floatingPlayChance) {
@@ -2353,8 +2351,8 @@ export class Critter {
     }
 
     if (this.stateTimer <= 0) {
-      // Une espèce sans sol enchaîne une nouvelle session plutôt que de
-      // retomber : elle n'aurait nulle part où se poser.
+      // A groundless species chains into a new session rather than
+      // falling: it would have nowhere to land.
       const base = this._roamBase(this.state);
       if (this._groundlessRoamState() === base) this._startRoam(this._roamVariant(base));
       else this._enterState(State.FALL);
@@ -2371,16 +2369,16 @@ export class Critter {
       const yMin = bounds.y + bounds.height * yMinFactor;
       const yMax = bounds.y + bounds.height * yMaxFactor;
       if (wavy && this._roamHasTarget) {
-        // Nage : nouveau cap proche du précédent (virage limité), pas un
-        // point tiré n'importe où, pour éviter les changements de direction
-        // brusques et fréquents.
+        // Swimming: new heading close to the previous one (limited turn),
+        // not a point drawn anywhere, to avoid sharp and frequent direction
+        // changes.
         const heading = Math.atan2(this._flyTargetY - this.y, this.walkTargetX - this.x);
         const turn = (this.config.swimTurnMax * Math.PI) / 180;
         const angle = heading + randRange([-turn, turn], this.config.random);
         const dist = randRange([0.3, 0.7], this.config.random) * bounds.width;
         let cos = Math.cos(angle);
         let sin = Math.sin(angle);
-        // Trop près d'un bord : on repart dans l'autre sens sur cet axe.
+        // Too close to an edge: head back the other way on that axis.
         if (this.x + cos * dist < bounds.x || this.x + cos * dist > bounds.x + bounds.width) cos = -cos;
         if (this.y + sin * dist < yMin || this.y + sin * dist > yMax) sin = -sin;
         this.walkTargetX = clamp(this.x + cos * dist, bounds.x, bounds.x + bounds.width);
@@ -2404,10 +2402,10 @@ export class Critter {
     let dirY = toY / distance;
 
     if (wavy) {
-      // Onde perpendiculaire à la trajectoire directe, façon nage
-      // ondulante (queue de poisson) plutôt qu'une ligne droite. Amplitude
-      // < 1 : la composante "vers la cible" reste toujours dominante, donc
-      // la cible finit toujours par être atteinte (ou re-tirée avant).
+      // Wave perpendicular to the direct path, fish-tail-like undulating
+      // swimming rather than a straight line. Amplitude < 1: the
+      // "toward the target" component always stays dominant, so the
+      // target is always eventually reached (or redrawn before then).
       this._swimPhase = (this._swimPhase ?? 0) + dt * this.config.swimWaveFrequency;
       const wobble = Math.sin(this._swimPhase) * this.config.swimWaveAmplitude;
       const perpX = -dirY;
@@ -2425,12 +2423,13 @@ export class Critter {
   }
 
   /**
-   * Vol d'une espèce qui sait marcher au sol : on choisit dès le décollage
-   * une surface où se poser (rebord de fenêtre ou sol), on y vole en ligne
-   * droite et on s'y pose, sans jamais retomber en chute libre. La cible ne
-   * change que très rarement (`flyRetargetChance`) ou si sa surface a
-   * disparu ou bougé. Une espèce purement aérienne n'a nulle part où se
-   * poser : elle garde le roaming libre de _tickRoam.
+   * Flight of a species that can also walk on the ground: as soon as it
+   * takes off, a surface to land on is chosen (a window ledge or the
+   * ground), it flies to it in a straight line and lands, never falling
+   * into free fall. The target changes only very rarely
+   * (`flyRetargetChance`) or if its surface has disappeared or moved. A
+   * purely aerial species has nowhere to land: it keeps the free roaming
+   * of _tickRoam.
    */
   _tickFly(dt, surfaces, options) {
     const factor =
@@ -2457,11 +2456,11 @@ export class Critter {
     if (!target) {
       target = this._flyTarget = this._pickFlyTarget(surfaces, options);
       this._flyWaypoint = this._pickCruise(target, options);
-      if (this.state === State.DIVE) this.state = State.FLY; // cible perdue : on reprend un vol normal
+      if (this.state === State.DIVE) this.state = State.FLY; // target lost: back to normal flight
     }
 
-    // Piqué : seulement vers une cible nettement plus basse et raide, et
-    // jamais pendant la montée vers l'altitude de croisière.
+    // Dive: only toward a target that's clearly lower and steep, and
+    // never during the climb to cruising altitude.
     if (this.state !== State.DIVE && !this._flyWaypoint && target.segment) {
       const dy = target.y - this.y;
       const dx = Math.abs(target.x - this.x);
@@ -2494,7 +2493,7 @@ export class Critter {
         this._enterState(State.IDLE);
         this.lastEvent = 'landed';
       } else {
-        this._enterState(State.FALL); // aucune surface connue : le sol du monde
+        this._enterState(State.FALL); // no known surface: the world's floor
       }
       return;
     }
@@ -2503,8 +2502,8 @@ export class Critter {
     this.y += (toY / distance) * step;
   }
 
-  /** Point de croisière optionnel : haut dans l'écran et au-dessus de la
-   * cible, pour que la descente qui suit puisse être un piqué. */
+  /** Optional cruising point: high on the screen and above the target, so
+   * the descent that follows can be a dive. */
   _pickCruise(target, options) {
     if (!target.segment || this.config.random() >= this.config.flyCruiseChance) return null;
     const bounds = options.worldBounds ?? { x: 0, y: 0, width: 1920, height: 1080 };
@@ -2521,8 +2520,8 @@ export class Critter {
     return { x, y };
   }
 
-  /** Surface d'atterrissage (sol ou rebord, autre que celle qu'on quitte si
-   * possible) et point d'arrivée dessus ; à défaut, le bas du monde. */
+  /** Landing surface (ground or ledge, other than the one being left, if
+   * possible) and arrival point on it; failing that, the bottom of the world. */
   _pickFlyTarget(surfaces, options) {
     const landable = (surfaces.segments ?? []).filter(
       (seg) => (seg.type === 'ground' || seg.type === 'shelf') && seg.x2 > seg.x1,
@@ -2549,7 +2548,7 @@ export class Critter {
 
   _tickSwim(dt, options) {
     const factor = this.state === State.SWIM_FAST ? this.config.swimFastFactor : 1;
-    this._tickRoam(dt, options, this.config.swimSpeed * factor, [0, 1], true); // tout l'écran, ondulant
+    this._tickRoam(dt, options, this.config.swimSpeed * factor, [0, 1], true); // whole screen, undulating
   }
 
   _enterState(state) {
@@ -2567,9 +2566,9 @@ export class Critter {
         this.currentSurface = null;
         break;
       case State.CEILING:
-        // stateTimer hérité de l'état précédent (WALK/CLIMB...) serait déjà
-        // épuisé : sans ce reset, _tickCeiling retomberait dès le tick
-        // suivant, avant même d'avoir pu s'accrocher visiblement.
+        // stateTimer inherited from the previous state (WALK/CLIMB...) would
+        // already be exhausted: without this reset, _tickCeiling would fall
+        // again on the very next tick, before even visibly latching on.
         this.stateTimer = randRange(this.config.walkDuration, this.config.random);
         break;
       default:

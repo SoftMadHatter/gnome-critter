@@ -1,5 +1,5 @@
-// Boîte de dialogue GNOME pour renommer une créature : une zone de saisie,
-// Annuler et OK ; Entrée valide, Échap annule.
+// GNOME dialog to rename a creature: an input field, Cancel and OK;
+// Enter confirms, Escape cancels.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -13,7 +13,7 @@ export const RenameDialog = GObject.registerClass(
   class RenameDialog extends ModalDialog.ModalDialog {
     /**
      * @param {string} currentName
-     * @param {(text: string) => void} onDone appelé avec le texte saisi à la validation
+     * @param {(text: string) => void} onDone called with the entered text on confirm
      */
     _init(currentName, onDone) {
       super._init({ styleClass: 'prompt-dialog' });

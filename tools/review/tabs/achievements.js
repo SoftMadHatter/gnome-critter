@@ -1,6 +1,6 @@
-// Onglet « Succès » : tous les succès d'une espèce tels que le jeu les
-// développe, avec filtres, recherche, origine (bibliothèque ou pack) et copie
-// du gabarit source pour en ajouter un nouveau.
+// "Achievements" tab: every achievement of a species the way the game
+// expands them, with filters, search, origin (library or pack), and
+// copying the source template to add a new one.
 
 import { h, select, table, badge, debounce, copyText, percent } from '../dom.js';
 import { DISPLAY_ORDER, isEligible } from '../../../core/achievements.js';

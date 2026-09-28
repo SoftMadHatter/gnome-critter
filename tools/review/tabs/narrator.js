@@ -1,5 +1,5 @@
-// Onglet « Le Comité » : annonces d'un succès (plusieurs tirages), phrases
-// d'ouverture et de conclusion, rafale et trophée, commentaires par longueur.
+// "The Committee" tab: an achievement's announcements (several draws), opening
+// and closing lines, burst and trophy, comments by length.
 
 import { h, select, table } from '../dom.js';
 import {

@@ -1,167 +1,167 @@
-# Progression : compteurs, succès, pièces, journal
+# Progression: counters, achievements, coins, log
 
-## Compteurs et marques
+## Counters and marks
 
-Chaque animal compte ce qu'il fait (`core/stats.js`) : repas, parties, coups de
-balle, brossages, caresses, escalades, vols, nages, siestes, temps de sommeil,
-chutes, voyages à la souris, chatouilles, sursauts, restes laissés, tours
-ratés... (une cinquantaine de compteurs, tous visibles dans « Statistiques »),
-plus des **marques** de ce qu'il a connu : aliments goûtés, jouets essayés,
-accessoires portés, sortes de cadeaux, lits, saisons et fêtes vécues, moments
-insolites (éveillé à 3 h du matin, tombé du plafond...). Le joueur a les siens
-(`core/player.js`) : ouvertures des menus, des réglages et du journal,
-vacances, laser, objets retirés, pièces dépensées... Tout est sauvegardé ; un
-œuf ne compte rien (sauf les caresses qu'on lui fait).
+Every critter counts what it does (`core/stats.js`): meals, play sessions,
+ball hits, brushings, pets, climbs, flights, swims, naps, sleep time, falls,
+mouse-dragged trips, tickles, startles, leftovers left behind, failed
+tricks… (about fifty counters, all visible in "Statistics"), plus **marks**
+of what it has experienced: foods tasted, toys tried, accessories worn,
+kinds of gifts, beds, seasons and holidays lived through, unusual moments
+(awake at 3 am, fell from the ceiling…). The player has their own
+(`core/player.js`): menu, settings, and log openings, vacations, laser,
+objects removed, coins spent… Everything is saved; an egg counts nothing
+(except pets it receives).
 
-## Succès
+## Achievements
 
-Environ 200 à 260 succès par espèce, développés à partir de **gabarits**
-(`core/achievements.js`) : une bibliothèque commune (`core/achievementLibrary.js`)
-et la section `achievements` du pack. Ils se rangent en rubriques : Soins, Jeu,
-Exploration, Vie, Collection, Saisons, **Bêtises** (les succès « troll » de
-l'animal) et **Toi** (les succès du joueur, partagés entre ses animaux). Plus de
-40 % sont des bêtises : inutiles, moqueuses, aux récompenses farfelues.
+About 200 to 260 achievements per species, expanded from **templates**
+(`core/achievements.js`): a shared library (`core/achievementLibrary.js`)
+and the pack's `achievements` section. They're grouped into sections: Care,
+Play, Exploration, Life, Collection, Seasons, **Blunders** (the critter's
+"troll" achievements), and **You** (the player's achievements, shared
+across their critters). Over 40% are blunders: pointless, mocking, with
+outlandish rewards.
 
-### Gabarits
+### Templates
 
-Une **série** donne plusieurs paliers :
+A **series** yields several tiers:
 
 ```jsonc
 {
   "series": "meals", "category": "care", "stat": "meals",
   "tiers": [10, 50, 200, 1000, 5000],
   "names": ["Petit creux", "Bon appétit", "Belle fourchette", "Estomac sur pattes", "Gouffre sans fond"],
-  "description": "Faire {n} repas",   // {n} : le palier (« 1 000 »), {s} : « s » au pluriel
-  "title": "gouffre sans fond"          // titre gagné au dernier palier (facultatif)
+  "description": "Faire {n} repas",   // {n}: the tier ("1 000"), {s}: plural "s"
+  "title": "gouffre sans fond"          // title earned at the last tier (optional)
 }
 ```
 
-- Condition : `stat` (un compteur, ou `daysAlive`, `stageReached`,
-  `tricksLearned`, `achievementsUnlocked`), ou `marks` (nombre de marques d'une
-  famille : `food`, `toy`, `accessory`, `gift`, `bed`, `season`, `holiday`...).
-- `tiers` : des nombres croissants, `"all"` (tout ce que l'espèce peut
-  collectionner : tous les aliments de son régime, tous ses jouets, tous ses
-  tours...), ou `{ "at": 100, "id": "traveler" }` pour garder un ancien
-  identifiant (les sauvegardes restent valides). `unit` : 3600 pour des
-  paliers en heures ; `descriptions` : une description par palier.
-- Pièces par défaut selon le rang du palier : 5, 10, 20, 40, 80, 150 (ou
-  `coins`, un tableau).
+- Condition: `stat` (a counter, or `daysAlive`, `stageReached`,
+  `tricksLearned`, `achievementsUnlocked`), or `marks` (the count of marks
+  in a family: `food`, `toy`, `accessory`, `gift`, `bed`, `season`,
+  `holiday`…).
+- `tiers`: increasing numbers, `"all"` (everything the species can collect:
+  every food in its diet, every one of its toys, every one of its
+  tricks…), or `{ "at": 100, "id": "traveler" }` to keep an old identifier
+  (saves stay valid). `unit`: 3600 for tiers in hours; `descriptions`: one
+  description per tier.
+- Default coins by tier rank: 5, 10, 20, 40, 80, 150 (or `coins`, an
+  array).
 
-Un **succès unique** : `{ "id", "category", "name", "description", "stat" +
-"atLeast" | "marks" + "atLeast" | "mark": "holiday:christmas", "coins" }`.
-L'ancien format `"condition": { "stat", "atLeast" }` reste accepté.
+A **standalone achievement**: `{ "id", "category", "name", "description",
+"stat" + "atLeast" | "marks" + "atLeast" | "mark": "holiday:christmas",
+"coins" }`. The old `"condition": { "stat", "atLeast" }` format is still
+accepted.
 
-Communs aux deux :
+Shared by both:
 
-- `requires` : `trait` (`playful`, `lazy`, `greedy`, `shy`), `stage`, et `can`
-  (`ground`, `wall`, `ceiling`, `air`, `water`, `hunt`, `graze`, `relieve`,
-  `sleep`, `groom`, `tricks`) : un succès impossible pour l'espèce (voler pour
-  un chat, dormir pour un poisson) est écarté d'office.
-- `scope: "player"` : succès du joueur (rubrique « Toi »), sur ses propres
-  compteurs (`menuOpens`, `coinsSpent`, `coins`, `accessoriesOwned`...).
-- Un pack remplace une entrée de la bibliothèque en reprenant son `series`
-  (ou son `id`), ou la retire avec `{ "series": "...", "disabled": true }`.
+- `requires`: `trait` (`playful`, `lazy`, `greedy`, `shy`), `stage`, and
+  `can` (`ground`, `wall`, `ceiling`, `air`, `water`, `hunt`, `graze`,
+  `relieve`, `sleep`, `groom`, `tricks`): an achievement impossible for the
+  species (flying for a cat, sleeping for a fish) is dropped outright.
+- `scope: "player"`: a player achievement ("You" section), on their own
+  counters (`menuOpens`, `coinsSpent`, `coins`, `accessoriesOwned`…).
+- A pack overrides a library entry by reusing its `series` (or its `id`),
+  or removes it with `{ "series": "...", "disabled": true }`.
 
-### Bêtises (succès « troll ») et le Comité
+### Blunders ("troll" achievements) and the Committee
 
-`"troll": true` : le succès est **caché** jusqu'à sa découverte (la rubrique
-n'en donne que le nombre), et porte un `quip`, le commentaire du Comité. Sa
-`reward` est farfelue : `{ "coins": 0 }` (rien), une somme absurde
-(`{ "coins": 3, "text": "3,14 pièces, arrondies à 3" }`), des frais de dossier
-(`{ "coins": -1 }`, jamais sous zéro), une **boîte** (`{ "box": "bronze" }`,
-`silver`, `gold`, `platinum`, `legendary` : ouverte d'office, le plus souvent
-vide ou presque, parfois un vrai lot), un accessoire ridicule
-(`{ "accessory": "cone" }`) ou un simple texte (`{ "text": "une plume" }`).
-Exemples : caresser un œuf 10 fois, 500 chutes, ouvrir le menu 10 000 fois,
-remplir une gamelle déjà pleine, être éveillé à 3 h du matin.
+`"troll": true`: the achievement is **hidden** until discovered (the
+section only shows its count), and carries a `quip`, the Committee's
+comment. Its `reward` is outlandish: `{ "coins": 0 }` (nothing), an absurd
+amount (`{ "coins": 3, "text": "3.14 coins, rounded to 3" }`), a filing fee
+(`{ "coins": -1 }`, never below zero), a **loot box** (`{ "box": "bronze"
+}`, `silver`, `gold`, `platinum`, `legendary`: opened automatically, most
+often empty or nearly so, sometimes a real prize), a ridiculous accessory
+(`{ "accessory": "cone" }`), or plain text (`{ "text": "a feather" }`).
+Examples: petting an egg 10 times, 500 falls, opening the menu 10,000
+times, filling a bowl that's already full, being awake at 3 am.
 
-**Le Comité** (`core/narrator.js`) annonce tous les succès, en tutoyant le
-joueur : sobre pour un vrai succès, sarcastique pour une bêtise (spectateurs et
-sponsors imaginaires ; il se moque du joueur, jamais de l'animal). Plus de trois
-succès d'un coup (un animal ancien qui rattrape son retard) donnent une seule
-notification et une seule ligne de journal.
+**The Committee** (`core/narrator.js`) announces every achievement,
+addressing the player informally: sober for a real achievement, sarcastic
+for a blunder (imaginary spectators and sponsors; it mocks the player,
+never the critter). More than three achievements at once (an old critter
+catching up) give a single notification and a single log line.
 
-### Récompenses
+### Rewards
 
-- **Pièces** : selon le palier, ou la valeur du succès.
-- **Titres** : chaque série terminée (et quelques bêtises) donne un titre
-  invariable (« as de la sieste », « pilote d'essai en chute libre »). Il se
-  choisit dans la rangée « Titre » du menu de l'animal, s'affiche sous son nom
-  au survol et dans les en-têtes des menus (« Minou, as de la sieste — Adulte… »).
-- **Trophées** : médaille (25 succès), couronne de laurier (50), auréole (100),
-  au total des succès du joueur (animaux et joueur confondus, il ne redescend
-  jamais). Offerts d'office, jamais en boutique.
-- **Accessoires ridicules** : cône de la honte, chaussette, chapeau en papier
-  alu, gagnés par certaines bêtises ou dans les boîtes.
+- **Coins**: based on the tier, or the achievement's value.
+- **Titles**: every completed series (and a few blunders) grants an
+  invariable title ("nap ace", "free-fall test pilot"). It's chosen in the
+  critter menu's "Title" row, shows under its name on hover and in menu
+  headers ("Minou, nap ace — Adult…").
+- **Trophies**: medal (25 achievements), laurel wreath (50), halo (100),
+  based on the player's total achievements (critters and player combined,
+  it never goes back down). Given automatically, never in the shop.
+- **Ridiculous accessories**: cone of shame, sock, tinfoil hat, earned
+  from certain blunders or from loot boxes.
 
-`tests/packs.test.js` valide la bibliothèque de chaque pack : aucune entrée
-rejetée, au moins 150 succès dont 40 % de bêtises, chaque rubrique
-représentée, au moins 20 titres, identifiants historiques préservés, aucun
-doublon.
+`tests/packs.test.js` validates each pack's library: no entry rejected, at
+least 150 achievements including 40% blunders, every section represented,
+at least 20 titles, historical identifiers preserved, no duplicates.
 
-## Pièces
+## Coins
 
-Gagnées en s'occupant des animaux : repas +1, jeu +2, brossage +1,
-ronronnement +1 (ces quatre-là espacés de 30 s par animal pour empêcher de les
-enchaîner), éclosion +10, nouveau stade +15, succès (leur valeur). Le solde,
-les achats, le journal, les compteurs et succès du joueur sont sauvegardés à
-part (`saved-player`).
+Earned by caring for critters: meal +1, play +2, brushing +1, purring +1
+(these four spaced 30 s apart per critter to prevent chaining them),
+hatching +10, new stage +15, achievements (their value). The balance,
+purchases, log, and the player's counters and achievements are saved
+separately (`saved-player`).
 
-## Journal
+## Log
 
-Les 100 derniers événements (éclosion, nouveau stade, succès...), dans l'onglet
-« Journal » de la fenêtre de progression.
+The last 100 events (hatching, new stage, achievements…), in the "Log" tab
+of the progression window.
 
-Les annonces du Comité (succès, bêtises, rafales, trophées) sont **notifiées**
-et gardées en entier : le journal en conserve le texte complet, en gras avec un
-point tant qu'elles ne sont pas lues. Le nombre de non lues s'affiche en
-pastille à côté de l'icône du panneau et dans la ligne « Journal » du menu. Un
-clic sur une entrée la marque lue ; « Tout marquer comme lu » vide le compteur
-et « Non lus seulement » filtre la liste. Les autres événements sont des
-entrées simples, déjà lues.
+The Committee's announcements (achievements, blunders, streaks, trophies)
+are **notified** and kept in full: the log keeps their complete text, in
+bold with a dot as long as they're unread. The unread count shows as a
+badge next to the panel icon and in the menu's "Log" row. Clicking an entry
+marks it read; "Mark all as read" clears the counter and "Unread only"
+filters the list. Other events are simple entries, already read.
 
-Les annonces passent aussi par une source de notifications GNOME « Critter »
-(`extension/lib/notifier.js`) : elles restent dans la liste jusqu'à leur
-fermeture. Fermer une notification la marque lue ; cliquer dessus ouvre le
-journal. Si l'API du shell échoue, repli sur `Main.notify` (éphémère).
+Announcements also go through a "Critter" GNOME notification source
+(`extension/lib/notifier.js`): they stay in the list until dismissed.
+Dismissing a notification marks it read; clicking it opens the log. If the
+shell's API fails, it falls back to `Main.notify` (ephemeral).
 
-## Boutique et accessoires
+## Shop and accessories
 
-Menu de l'icône de barre, « Boutique » : chapeau de fête (20 pièces), nœud
-(15), lunettes (30), couronne (80), plus des accessoires **gratuits de
-saison** (bonnet de Noël en décembre, chapeau de sorcière en octobre).
-Trophées et accessoires ridicules ne s'achètent pas (voir Récompenses). Une
-fois acheté, un accessoire se porte via « Accessoires » dans le menu de
-l'animal (clic milieu). Il se pose sur la tête, suit le sens de marche et
-l'échelle du stade, et disparaît dans l'œuf. Le point d'ancrage de la tête
-est réglable par pack : `"anchors": { "head": { "x": 0.78, "y": 0.2 } }`
-(fractions du sprite tourné vers la droite).
+Tray icon menu, "Shop": party hat (20 coins), bow tie (15), glasses (30),
+crown (80), plus **free seasonal** accessories (Santa hat in December,
+witch hat in October). Trophies and ridiculous accessories can't be bought
+(see Rewards). Once bought, an accessory is worn via "Accessories" in the
+critter menu (middle click). It sits on the head, follows the walking
+direction and the stage's scale, and disappears in the egg. The head's
+anchor point is configurable per pack: `"anchors": { "head": { "x": 0.78,
+"y": 0.2 } }` (fractions of the sprite facing right).
 
-Les aliments premium coûtent des pièces à chaque don : poisson 3, viande 2,
-pâtée 2 (x5 pour remplir une gamelle). Croquettes, graines, vers de farine,
-pomme, plancton, flocons, jouets, gamelles et lits restent gratuits.
+Premium foods cost coins on every gift: fish 3, meat 2, wet food 2 (x5 to
+fill a bowl). Kibble, seeds, mealworms, apple, plankton, flakes, toys,
+bowls, and beds stay free.
 
-## Anniversaires
+## Birthdays
 
-À chaque année de vie (365 jours d'âge), l'animal fête son anniversaire :
-+25 pièces, une entrée de journal, et un chapeau de fête pendant vingt-quatre
-heures (s'il ne porte pas déjà un accessoire).
+Every year of life (365 days of age), the critter celebrates its birthday:
++25 coins, a log entry, and a party hat for twenty-four hours (if it isn't
+already wearing an accessory).
 
-## Tours
+## Tricks
 
-Chaque pack déclare les tours de l'espèce (`"tricks": ["sit", "roll"]` ;
-tours connus : `sit` assis, `roll` roulade, `flip` saut périlleux). Dans le
-menu de l'animal, « Tours » > « Entraîner » : un essai réussit avec la
-probabilité de la maîtrise (15 % minimum), qui monte à chaque essai (plus
-vite pour un joueur, plus lentement pour un paresseux). À 100 % le tour est
-appris (+10 pièces, entrée de journal) et « Faire : ... » apparaît. Les tours
-sont sauvegardés avec l'animal. Animations : `trick_sit`, `trick_roll`,
-`trick_flip` (replis sur `idle`, `play`, `swim`, `walk`).
+Each pack declares the species' tricks (`"tricks": ["sit", "roll"]`; known
+tricks: `sit`, `roll`, `flip` (a somersault). In the critter menu, "Tricks"
+> "Train": an attempt succeeds with the mastery probability (15% minimum),
+which rises with every attempt (faster for a playful critter, slower for a
+lazy one). At 100% the trick is learned (+10 coins, a log entry) and "Do:
+…" appears. Tricks are saved with the critter. Animations: `trick_sit`,
+`trick_roll`, `trick_flip` (falling back to `idle`, `play`, `swim`,
+`walk`).
 
-## Cadeaux
+## Gifts
 
-Un adulte (ou senior) dont l'affection dépasse 70 peut, rarement (au plus un
-toutes les 20 minutes, la première après 20 minutes d'activité), venir
-déposer un cadeau près de ton curseur : pièce (5 pièces), fleur (3) ou plume
-(8, rare). Un clic le ramasse et crédite les pièces ; oublié, il disparaît
-au bout de 30 minutes. Sans pénalité.
+An adult (or senior) critter with affection above 70 can, rarely (at most
+once every 20 minutes, the first after 20 minutes of activity), come drop a
+gift near your cursor: a coin (5 coins), a flower (3), or a feather (8,
+rare). A click picks it up and credits the coins; if forgotten, it
+disappears after 30 minutes. No penalty.

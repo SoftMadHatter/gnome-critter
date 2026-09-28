@@ -27,7 +27,7 @@ test('BreakTracker : un rappel après l\'intervalle, une seule fois, puis délai
 test('BreakTracker : une vraie pause remet à zéro, une courte inactivité non', () => {
   const t = new BreakTracker({ interval: 100, resetIdle: 30, cooldown: 0 });
   for (let i = 0; i < 90; i++) t.advance(1, 0);
-  t.advance(1, 10); // courte inactivité : l'activité continue de compter
+  t.advance(1, 10); // short inactivity: activity keeps counting
   assert.ok(t.activeSeconds > 0);
   t.advance(1, 60); // vraie pause
   assert.equal(t.activeSeconds, 0);

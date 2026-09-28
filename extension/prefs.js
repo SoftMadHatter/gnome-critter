@@ -9,9 +9,9 @@ import { _, N_, setTranslator, sessionLanguage, language } from './core/i18n.js'
 import { localizePack } from './core/packTranslations.js';
 
 /**
- * Liste les packs installés : chaque sous-dossier de `packs/` qui contient
- * un pack.json lisible. Inline ici plutôt que via lib/packLoader.js, qui
- * importe St/Cogl, indisponibles dans le processus GTK des préférences.
+ * Lists the installed packs: every `packs/` subfolder that has a readable
+ * pack.json. Inlined here rather than via lib/packLoader.js, which imports
+ * St/Cogl, unavailable in the preferences' GTK process.
  * @returns {{id: string, label: string}[]}
  */
 function listPacks(extensionPath) {
@@ -32,7 +32,7 @@ function listPacks(extensionPath) {
       const meta = JSON.parse(new TextDecoder('utf-8').decode(contents));
       packs.push({ id, label: localizePack(meta, language()).displayName ?? id });
     } catch {
-      // Dossier sans pack.json valide : pas un pack, on l'ignore.
+      // Folder with no valid pack.json: not a pack, skip it.
     }
   }
 
@@ -41,7 +41,7 @@ function listPacks(extensionPath) {
 
 export default class CritterPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
-    // Textes dans la langue de la session (catalogue locale/<langue>/LC_MESSAGES/gnome-critter.mo).
+    // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo catalog).
     this.initTranslations?.();
     setTranslator({
       gettext: (text) => this.gettext(text),
@@ -50,8 +50,8 @@ export default class CritterPreferences extends ExtensionPreferences {
     });
     const settings = this.getSettings();
 
-    // Tous les réglages s'appliquent immédiatement, sans recharger l'extension
-    // (changer d'animal ou de nombre recrée le gestionnaire à chaud).
+    // Every setting applies immediately, without reloading the extension
+    // (changing the critter or the count recreates the manager live).
     const generalPage = new Adw.PreferencesPage({ title: _('Général'), icon_name: 'preferences-system-symbolic' });
     const group = new Adw.PreferencesGroup({ title: _('Animaux'), description: _('Les changements sont appliqués tout de suite.') });
     generalPage.add(group);
@@ -67,8 +67,8 @@ export default class CritterPreferences extends ExtensionPreferences {
       title: _('Animal'),
       model: Gtk.StringList.new(packs.map((p) => p.label)),
     });
-    // Pack actif introuvable : aucune sélection, et le réglage n'est pas
-    // écrasé tant que l'utilisateur ne choisit pas explicitement.
+    // Active pack not found: no selection, and the setting isn't
+    // overwritten until the user explicitly picks one.
     const current = packs.findIndex((p) => p.id === settings.get_string('pack-id'));
     packRow.selected = current >= 0 ? current : Gtk.INVALID_LIST_POSITION;
     packRow.connect('notify::selected', () => {

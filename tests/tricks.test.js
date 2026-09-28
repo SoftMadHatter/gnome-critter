@@ -144,7 +144,7 @@ function giftCritter(config = {}) {
 test('un animal très affectueux va offrir un cadeau près du curseur, une seule fois par délai', () => {
   const { c, surfaces } = giftCritter({ giftCooldown: 1200 });
   const pointer = { x: 600, y: 300 };
-  c._clock = 5000; // au-delà du délai de départ
+  c._clock = 5000; // past the initial delay
   let snap = c.tick(1 / 30, surfaces, { worldBounds: monitor, pointer });
   assert.equal(snap.state, State.GIFT);
 

@@ -1,9 +1,9 @@
-// Autonomie : à quel point l'animal couvre lui-même ses besoins (chasse,
-// grignotage), de 0 (dépend de toi) à 1. Module pur.
+// Autonomy: how much the animal covers its own needs (hunting, foraging),
+// from 0 (depends on you) to 1. Pure module.
 
 export const AUTONOMY_MODES = Object.freeze(['auto', 'off', 'partial', 'full']);
 
-/** À autonomie 1, la vitesse de baisse des besoins est réduite de cette part (jamais nulle). */
+/** At autonomy 1, the needs' decay rate is reduced by this share (never zero). */
 export const RELIEF = 0.8;
 
 const STAGE_BASE = { egg: 0, baby: 0, young: 0.4, adult: 0.7, senior: 0.7 };
@@ -11,11 +11,11 @@ const TRICK_BONUS = 0.1;
 const TRICK_BONUS_CAP = 0.3;
 
 /**
- * @param {string} mode `auto` (suit la croissance et les tours appris), `off`,
- *   `partial` (0,5) ou `full` (1)
+ * @param {string} mode `auto` (follows growth and tricks learned), `off`,
+ *   `partial` (0.5) or `full` (1)
  * @param {{stage: string, hibernating: boolean}} life
- * @param {number} learnedTricks nombre de tours appris
- * @returns {number} niveau de 0 à 1 (toujours 0 pour un œuf ou un hibernant)
+ * @param {number} learnedTricks number of tricks learned
+ * @returns {number} level from 0 to 1 (always 0 for an egg or a hibernating animal)
  */
 export function autonomyLevel(mode, life, learnedTricks = 0) {
   if (life.hibernating || life.stage === 'egg') return 0;

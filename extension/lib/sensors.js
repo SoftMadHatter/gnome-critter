@@ -1,7 +1,7 @@
-// Lit l'état du bureau via les API GNOME Shell (Meta/global) et le traduit
-// dans les structures simples attendues par `core/surfaceMap.js`. C'est la
-// seule frontière entre GJS et le cœur pur : si demain on change de
-// toolkit, seul ce fichier (et critterActor.js/manager.js) change.
+// Reads the desktop's state via the GNOME Shell APIs (Meta/global) and
+// translates it into the plain structures expected by `core/surfaceMap.js`.
+// This is the only boundary between GJS and the pure core: if the toolkit
+// ever changes, only this file (and critterActor.js/manager.js) changes.
 
 import Meta from 'gi://Meta';
 
@@ -17,10 +17,10 @@ export function getMonitors() {
 }
 
 /**
- * Fenêtres « normales » de l'espace de travail actif, avec leur frame rect
- * (décorations comprises : c'est bien le haut visible qui sert de rebord).
- * On ignore les fenêtres minimisées (rien à quoi s'accrocher) et les
- * fenêtres spéciales (popups, docks...).
+ * "Normal" windows of the active workspace, with their frame rect
+ * (decorations included: it's the visible top that acts as a ledge). Minimized
+ * windows are ignored (nothing to latch onto), as are special windows
+ * (popups, docks...).
  *
  * @returns {{id:number,x:number,y:number,width:number,height:number,focused:boolean}[]}
  */
@@ -54,8 +54,8 @@ export function getPointer() {
 }
 
 /**
- * Rectangle englobant tous les moniteurs (utilisé comme filet de sécurité
- * et comme bornes pour le vol).
+ * Bounding rectangle of every monitor (used as a safety net and as
+ * bounds for flight).
  * @param {{x:number,y:number,width:number,height:number}[]} monitors
  */
 export function computeWorldBounds(monitors) {

@@ -1,6 +1,6 @@
-// Onglet « Créatures » : fiche du pack, lecteur d'animation (stade, vitesse,
-// taille, lissage, retournement, couleurs, accessoire) et planche de toutes
-// les animations d'un stade.
+// "Creatures" tab: the pack's sheet, an animation player (stage, speed,
+// size, smoothing, flipping, colors, accessory), and a board of every
+// animation for a stage.
 
 import { h, select, table, field, debounce } from '../dom.js';
 import { SpritePlayer, stageScales } from '../sprites.js';
@@ -106,7 +106,7 @@ export function render(root, { pack, state, setState }) {
       : [h('div', { class: 'grid' }, animations.map(card)), h('h3', {}, 'Réactions'), h('div', { class: 'grid' }, reactions.map(card))];
     contact.replaceChildren(h('h3', {}, `Animations — ${stageLabel(options.stage)}`), ...sheets);
   };
-  const renderContactSoon = debounce(() => renderContact(), 250); // la planche recolore toutes les feuilles
+  const renderContactSoon = debounce(() => renderContact(), 250); // the board recolors every sheet
   const control = (label, element) => field(label, element);
   const number = (key, min, max, step) =>
     h('input', {

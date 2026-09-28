@@ -1,16 +1,16 @@
-// Orchestre la simulation : possède les instances Critter (cœur pur) et
-// leurs CritterActor (rendu), fait tourner la boucle de tick, et traduit
-// l'état du bureau (sensors.js) en `surfaces` à chaque frame.
+// Orchestrates the simulation: owns the Critter instances (pure core) and
+// their CritterActor (rendering), runs the tick loop, and translates the
+// desktop's state (sensors.js) into `surfaces` every frame.
 
 import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-// NB : ces imports ciblent la mise en page du paquet ASSEMBLÉ par
-// scripts/build.sh (où core/ est copié directement à la racine de
-// l'extension), pas la mise en page du dépôt source (où core/ est un
-// dossier frère de extension/). L'extension ne s'exécute jamais depuis
-// l'arborescence source telle quelle : on développe toujours via
-// `scripts/build.sh --link`, qui reconstruit dist/<uuid>/ à chaque appel.
+// NB: these imports target the layout of the package ASSEMBLED by
+// scripts/build.sh (where core/ is copied directly to the extension's
+// root), not the source repo's layout (where core/ is a folder next to
+// extension/). The extension never runs from the source tree as-is:
+// development always goes through `scripts/build.sh --link`, which
+// rebuilds dist/<uuid>/ on every call.
 import { Critter, Locomotion, behaviorOverrides } from '../core/critter.js';
 import { serializeCritters, parseSavedState } from '../core/persistence.js';
 import { needsOverrides } from '../core/needs.js';
@@ -48,11 +48,11 @@ import { Notifier } from './notifier.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
-const RESUME_GAP_S = 3; // un écart aussi long entre deux frames (horloge murale) signe une veille
-const SETTLE_S = 2.5; // après une veille ou un changement d'écrans : on laisse le bureau se stabiliser
-const TICK_INTERVAL_MS = 33; // ~30 fps ; suffisant pour un sprite pixel-art, léger en CPU
-const BURST_SIZE = 3; // au-delà, une rafale de succès n'a qu'une notification
-const OVERFED_SATIETY = 95; // nourrir un animal aussi rassasié est une bêtise
+const RESUME_GAP_S = 3; // a gap this long between two frames (wall clock) signals sleep
+const SETTLE_S = 2.5; // after sleep or a screen change: let the desktop settle
+const TICK_INTERVAL_MS = 33; // ~30 fps; enough for a pixel-art sprite, light on the CPU
+const BURST_SIZE = 3; // beyond that, an achievement burst gets only one notification
+const OVERFED_SATIETY = 95; // feeding a critter this full is a blunder
 
 export class Manager {
   /**
@@ -78,16 +78,16 @@ export class Manager {
     this._settingsIds = [];
     /** @type {{item: object, actor: ItemActor}[]} */
     this._items = [];
-    this._itemImages = { get: () => null }; // remplacé au chargement des sprites
+    this._itemImages = { get: () => null }; // replaced once sprites are loaded
     this._lastSavedItems = null;
     this._eggSheet = null;
     this._preySpawner = new PreySpawner();
     this._plantTimer = 0;
     this._player = new Player();
-    /** Succès des animaux et du joueur, développés depuis la bibliothèque et le pack. */
+    /** Critter and player achievements, expanded from the library and the pack. */
     this._achievements = [];
     this._playerAchievements = [];
-    this._vacationSince = null; // début des vacances en cours (ms), pour « Vacances express »
+    this._vacationSince = null; // start of the current vacation (ms), for "Express vacation"
     this._lastSavedPlayer = null;
     this._sensors = null;
     this._idleTracker = new IdleTracker();
@@ -95,10 +95,10 @@ export class Manager {
     this._worldTimer = 0;
     this._night = false;
     this._nightHour = -1;
-    /** Animal chargé du rappel de pause, et fin de la fenêtre de rappel (µs). */
+    /** Critter chosen for the break reminder, and the end of the reminder window (µs). */
     this._reminder = null;
     this._reminderUntilUs = 0;
-    this._laser = false; // mode pointeur laser, en mémoire seulement (éteint à chaque activation)
+    this._laser = false; // laser pointer mode, in memory only (off on every activation)
     this._laserDot = null;
     /** @type {{critter: Critter, actor: CritterActor}[]} */
     this._critters = [];
@@ -106,20 +106,20 @@ export class Manager {
     this._saveTimeoutId = null;
     this._lastSavedState = null;
     this._lastTickUs = null;
-    /** Fin de la stabilisation après veille / changement d'écrans (0 : aucune en cours). */
+    /** End of settling after sleep / a screen change (0: none in progress). */
     this._settleUntilUs = 0;
     this._lastRealUs = 0;
     this._pendingReground = false;
     this._monitorsChangedId = 0;
-    /** @type {Set<number>|null} null tant que le premier tick n'a pas eu
-     * lieu, pour ne jamais réagir aux fenêtres déjà ouvertes au démarrage. */
+    /** @type {Set<number>|null} null until the very first tick has
+     * happened, so as to never react to windows already open at startup. */
     this._knownWindowIds = null;
-    /** @type {number|undefined} id de la fenêtre focalisée au tick précédent
-     * (undefined tant que le premier tick n'a pas eu lieu, cf. plus haut). */
+    /** @type {number|undefined} id of the focused window on the previous
+     * tick (undefined until the very first tick has happened, see above). */
     this._lastFocusedWindowId = undefined;
-    /** Fenêtre qui vient de prendre le focus, exposée aux critters tant que
-     * `_focusedWindowExpiryUs` n'est pas dépassé (opportunité passagère,
-     * pas une cible permanente comme le pointeur pour FOLLOW). */
+    /** Window that just took focus, exposed to critters as long as
+     * `_focusedWindowExpiryUs` isn't past (a fleeting opportunity, not a
+     * permanent target like the pointer is for FOLLOW). */
     this._focusedWindow = null;
     this._focusedWindowExpiryUs = 0;
   }
@@ -131,18 +131,18 @@ export class Manager {
     const behavior = behaviorOverrides(this.pack.behavior);
     if (behavior.ignored.length > 0) {
       console.warn(
-        `Critter: pack "${this.pack.meta.id}", clés "behavior" ignorées : ${behavior.ignored.join(', ')}`,
+        `Critter: pack "${this.pack.meta.id}", "behavior" keys ignored: ${behavior.ignored.join(', ')}`,
       );
     }
 
     const needs = needsOverrides(this.pack.needs);
     if (needs.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", clés "needs" ignorées : ${needs.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", "needs" keys ignored: ${needs.ignored.join(', ')}`);
     }
     this._accessoryImages = loadAccessoryImages(GLib.build_filenamev([this._extensionPath, 'assets', 'accessories']));
     const anchors = anchorsOverrides(this.pack.meta.anchors);
     if (anchors.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", clés "anchors" ignorées : ${anchors.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", "anchors" keys ignored: ${anchors.ignored.join(', ')}`);
     }
     this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
     const laser = this._itemImages.get('laser');
@@ -150,26 +150,26 @@ export class Manager {
     try {
       this._eggSheet = loadVariantSheet(GLib.build_filenamev([this._extensionPath, 'assets', 'life', 'egg.png']));
     } catch (e) {
-      console.warn(`Critter : sprite d'œuf indisponible (${e.message})`);
+      console.warn(`Critter: egg sprite unavailable (${e.message})`);
     }
     const stages = stagesOverrides(this.pack.meta.stages);
     if (stages.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", clés "stages" ignorées : ${stages.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", "stages" keys ignored: ${stages.ignored.join(', ')}`);
     }
     const translations = translationsOverrides(this.pack.meta.translations);
     if (translations.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", traductions ignorées : ${translations.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", translations ignored: ${translations.ignored.join(', ')}`);
     }
     const namesList = namesOverrides(this.pack.meta.names).list;
     const achievements = buildAchievements(this.pack.meta.achievements, speciesProfile(this.pack.meta));
     if (achievements.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", succès ignorés : ${achievements.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", achievements ignored: ${achievements.ignored.join(', ')}`);
     }
     this._achievements = achievements.critter;
     this._playerAchievements = achievements.player;
     const tricks = tricksOverrides(this.pack.meta.tricks);
     if (tricks.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", tours ignorés : ${tricks.ignored.join(', ')}`);
+      console.warn(`Critter: pack "${this.pack.meta.id}", tricks ignored: ${tricks.ignored.join(', ')}`);
     }
     this._player = Player.parse(this.settings.get_string('saved-player'));
     const growthEnabled = this.settings.get_boolean('growth-enabled');
@@ -183,17 +183,18 @@ export class Manager {
 
     for (let i = 0; i < count; i++) {
       const startX = bounds.x + bounds.width * (0.3 + 0.1 * i);
-      // critter.y est la position des pieds (voir CritterActor.syncPosition,
-      // qui place le sprite en critter.y - height) : partir de bounds.y pile
-      // rendrait le sprite entier hors écran au-dessus du moniteur pendant
-      // la chute initiale. On décale d'une hauteur de sprite pour qu'il soit
-      // visible dès la première frame, tout en haut de l'écran.
+      // critter.y is the feet's position (see CritterActor.syncPosition,
+      // which places the sprite at critter.y - height): starting exactly
+      // at bounds.y would put the whole sprite off-screen above the
+      // monitor during the initial fall. It's offset by one sprite height
+      // so it's visible from the very first frame, at the very top of the
+      // screen.
       const startY = bounds.y + this.pack.spriteSize.height;
 
       const critter = new Critter(
         {
-          // En premier : les `speeds` et locomotions du pack, posés ensuite,
-          // gardent la priorité sur d'éventuelles clés équivalentes.
+          // First: the pack's `speeds` and locomotions, set afterward,
+          // keep priority over any equivalent keys.
           ...behavior.config,
           needsRates: needs.rates,
           needsDiet: needs.diet,
@@ -216,13 +217,13 @@ export class Manager {
         { x: startX, y: startY },
       );
 
-      // Un animal neuf naît en œuf (si la croissance est active) ; une
-      // sauvegarde d'avant la croissance en fait un adulte au caractère tiré.
+      // A new critter is born as an egg (if growth is active); a save
+      // from before growth existed turns it into an adult with a random trait.
       critter.setLife(
         Life.create(Math.random, { growth: growthEnabled && !saved[i], hueRange, scales: stages.scales }),
       );
       if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
-      // Nom : celui de la sauvegarde, sinon tiré dans la liste de l'espèce parmi les noms libres.
+      // Name: the saved one, otherwise drawn from the species' list among the free ones.
       if (!critter.name) {
         const taken = this._critters.map((e) => e.critter.name).filter(Boolean);
         critter.setName(pickName(Math.random, namesList, taken));
@@ -231,10 +232,10 @@ export class Manager {
 
       const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner(), this._eggSheet);
       actor.attachAccessories(this._accessoryImages, anchors.anchors);
-      // GNOME 50 (layout.js) : addChrome() inclut automatiquement l'acteur
-      // dans la région d'input selon sa taille/position/visibilité ; le
-      // paramètre affectsInputRegion n'existe plus (Params.parse rejette
-      // toute clé inconnue). Seuls trackFullscreen/affectsStruts restent.
+      // GNOME 50 (layout.js): addChrome() automatically includes the actor
+      // in the input region based on its size/position/visibility; the
+      // affectsInputRegion parameter no longer exists (Params.parse
+      // rejects any unknown key). Only trackFullscreen/affectsStruts remain.
       Main.layoutManager.addChrome(actor.actor);
 
       this._critters.push({ critter, actor });
@@ -266,16 +267,16 @@ export class Manager {
     }
   }
 
-  /** Événement du monde (notification, frappe, retour du joueur) transmis aux animaux. */
+  /** World event (notification, typing, player's return) passed on to the critters. */
   _broadcast(kind, settingKey = null) {
     if (settingKey && !this.settings.get_boolean(settingKey)) return;
     for (const { critter } of this._critters) critter.interact(kind);
   }
 
   /**
-   * Rythme du monde, une fois par seconde : absence et retour du joueur,
-   * heure (nuit), suivi de la pause. Rien n'est lu au-delà du temps
-   * d'inactivité et de l'heure locale.
+   * World rhythm, once per second: player's absence and return, time of
+   * day (night), break tracking. Nothing is read beyond the idle time and
+   * the local hour.
    */
   _worldTick(dt, nowUs) {
     this._worldTimer += dt;
@@ -305,7 +306,7 @@ export class Manager {
     this._evaluatePlayer(nowUs);
   }
 
-  /** Succès du joueur (gestes dans les menus, bureau encombré...), une fois par seconde. */
+  /** Player achievements (menu gestures, cluttered desktop...), once per second. */
   _evaluatePlayer(nowUs) {
     const count = (type) => this._items.filter(({ item }) => item.type === type && !item.removed).length;
     if (count('bed') >= 10) this._player.stats.mark('desk', 'beds');
@@ -318,7 +319,7 @@ export class Manager {
     this._announce(defs, { who: null, key: 'player', nowSeconds: nowUs / 1_000_000 });
   }
 
-  /** Vacances : comptées au départ ; un retour en moins d'une minute est une bêtise. */
+  /** Vacation: counted at the start; a return in under a minute is a blunder. */
   _onVacationChanged() {
     if (this.settings.get_boolean('vacation-mode')) {
       this._player.stats.add('vacations');
@@ -329,13 +330,13 @@ export class Manager {
     }
   }
 
-  /** Geste du joueur compté pour ses succès (ouverture d'un menu...), avec la bêtise de 3 h du matin. */
+  /** Player gesture counted toward their achievements (opening a menu...), with the 3 am blunder. */
   _noteMenuOpen(key) {
     this._player.stats.add(key);
     if (new Date().getHours() === 3) this._player.stats.mark('moment', 'night-menu');
   }
 
-  /** Débite `price` pièces ; sans assez de pièces, prévient et refuse. */
+  /** Debits `price` coins; without enough coins, warns and refuses. */
   _pay(price) {
     if (price <= 0) return true;
     if (this._player.spend(price)) {
@@ -358,29 +359,29 @@ export class Manager {
     Main.notify('Critter', fmt(_('{accessory} acheté (-{price} pièces).'), { accessory: label, price: def.price }));
   }
 
-  /** Nom d'un animal dans les messages : l'espèce, numérotée s'il y en a plusieurs. */
+  /** A critter's name in messages: the species, numbered if there are several. */
   _nameOf(index) {
     return this._critters[index]?.critter.name ?? this.pack.meta.displayName ?? this.pack.meta.id;
   }
 
-  /** Bouton « Nourrir » : l'aliment gratuit que l'espèce préfère (à défaut le moins cher), qui tombe près d'elle. */
+  /** "Feed" button: the free food the species prefers (otherwise the cheapest), dropped near it. */
   quickFeed(critter) {
     const kinds = Object.entries(critter.config.needsDiet)
-      .filter(([kind]) => FOODS[kind]) // les plantes du régime ne se posent pas comme un aliment
+      .filter(([kind]) => FOODS[kind]) // diet plants aren't placed like a food
       .sort((a, b) => b[1] - a[1])
       .map(([kind]) => kind);
     const kind = kinds.find((k) => !(FOOD_PRICES[k] > 0)) ?? kinds.sort((a, b) => (FOOD_PRICES[a] ?? 0) - (FOOD_PRICES[b] ?? 0))[0];
     if (kind) this._feed(kind, critter);
   }
 
-  /** Pose un aliment (payé s'il est premium) près de l'animal ; nourrir un animal repu est compté. */
+  /** Places a food (paid for if premium) near the critter; feeding a full critter is counted. */
   _feed(kind, critter) {
     if (!this._pay(FOOD_PRICES[kind] ?? 0)) return;
     if (critter && critter.needs.values.satiety >= OVERFED_SATIETY) critter.noteAction('overfeed');
     this._dropNear('food', kind, critter);
   }
 
-  /** Fenêtre de détail : succès par catégorie (ceux de l'animal, puis les tiens), statistiques, journal. */
+  /** Detail window: achievements by category (the critter's, then your own), statistics, log. */
   openProgress(critter, tab) {
     this._player.stats.add(tab === 'journal' ? 'journalOpens' : 'progressOpens');
     const facts = critter.progressFacts();
@@ -402,12 +403,12 @@ export class Manager {
     }).open();
   }
 
-  /** Ouvre la boîte de dialogue de renommage d'une créature. */
+  /** Opens the dialog to rename a creature. */
   openRename(critter) {
     new RenameDialog(critter.name ?? '', (text) => this.rename(critter, text)).open();
   }
 
-  /** Renomme (nettoyé, unique parmi les animaux affichés) et l'inscrit au journal. */
+  /** Renames (cleaned up, unique among the displayed critters) and logs it. */
   rename(critter, text) {
     const clean = sanitizeName(text);
     if (clean === null || clean === critter.name) return;
@@ -417,19 +418,19 @@ export class Manager {
     this._player.log(fmt(_('{previous} est rebaptisé(e) {name}.'), { previous: previous ?? _('Une créature'), name: critter.name }), Date.now());
   }
 
-  /** Succès obtenus / possibles pour un animal (espèce et caractère compatibles). */
+  /** Achievements earned / possible for a critter (matching species and trait). */
   achievementSummary(critter) {
     return achievementCount(this._achievements, { trait: critter.life.trait, unlocked: critter.unlocked });
   }
 
-  /** Texte du titre porté par un animal, ou null. */
+  /** Text of the title worn by a critter, or null. */
   titleOf(critter) {
     return this._achievements.find((def) => def.id === critter.title)?.title ?? null;
   }
 
   /**
-   * Récompenses, journal et annonces du Comité pour des succès tout juste
-   * obtenus (par un animal, ou par le joueur quand `who` est null).
+   * Rewards, log entries, and Committee announcements for achievements
+   * just earned (by a critter, or by the player when `who` is null).
    */
   _announce(defs, { who, key, nowSeconds }) {
     let coins = 0;
@@ -459,7 +460,7 @@ export class Manager {
     }
   }
 
-  /** Inscrit une annonce au journal (non lue, texte complet) et la notifie dans la liste de GNOME. */
+  /** Logs an announcement (unread, full text) and notifies it in GNOME's list. */
   _announceEntry(line, { title, body }) {
     const entry = this._player.log(line, Date.now(), { body, unread: true });
     this._notifier?.notify(entry.id, title, body);
@@ -477,12 +478,12 @@ export class Manager {
     this._player.markAllRead();
   }
 
-  /** Applique la récompense d'un succès et décrit ce qui s'est passé (pour l'annonce). */
+  /** Applies an achievement's reward and describes what happened (for the announcement). */
   _grant(def, key, nowSeconds) {
     const reward = def.reward ?? {};
     const outcome = { coins: 0 };
     if (reward.coins > 0) outcome.coins = this._player.award(`achievement:${key}:${def.id}`, reward.coins, nowSeconds);
-    else if (reward.coins < 0) outcome.paid = this._player.spend(-reward.coins); // frais de dossier, si on peut payer
+    else if (reward.coins < 0) outcome.paid = this._player.spend(-reward.coins); // filing fee, if it can be paid
     if (reward.box) {
       outcome.box = openBox(reward.box, Math.random, { owned: this._player.owned });
       if (outcome.box.coins > 0) outcome.coins += this._player.award(`box:${key}:${def.id}`, outcome.box.coins, nowSeconds);
@@ -496,8 +497,8 @@ export class Manager {
   }
 
   /**
-   * Progression d'un animal après son tick : pièces des événements, journal,
-   * succès (pièces, entrée de journal, notification).
+   * A critter's progression after its tick: coins from events, log,
+   * achievements (coins, log entry, notification).
    */
   _processProgress(index, critter, snapshot, nowUs) {
     const name = this._nameOf(index);
@@ -518,20 +519,20 @@ export class Manager {
     if (defs.length > 0) this._announce(defs, { who: name, key: `${index}`, nowSeconds });
   }
 
-  /** Espèces de proies chassées par l'animal affiché (section `needs.prey` du pack). */
+  /** Prey species hunted by the displayed critter (the pack's `needs.prey` section). */
   _preyKinds() {
     return Object.keys(this._critters[0]?.critter.config.needsPrey ?? {});
   }
 
-  /** Plantes que l'espèce grignote (son régime, restreint aux plantes connues). */
+  /** Plants the species nibbles (its diet, restricted to known plants). */
   _plantKinds() {
     return Object.keys(this._critters[0]?.critter.config.needsDiet ?? {}).filter((kind) => PLANTS[kind]);
   }
 
   /**
-   * Proies et plantes d'un monde autonome : une proie apparaît de temps en
-   * temps (si le réglage est actif et qu'un animal est assez autonome), et
-   * deux plantes sont maintenues. Les objets tombent depuis une surface.
+   * Prey and plants of an autonomous world: a prey spawns every so often
+   * (if the setting is on and a critter is autonomous enough), and two
+   * plants are kept maintained. Objects fall from a surface.
    */
   _autonomyTick(dt, surfaces, worldBounds) {
     const maxAutonomy = this._critters.reduce((m, { critter }) => Math.max(m, critter.autonomy), 0);
@@ -559,7 +560,7 @@ export class Manager {
     }
   }
 
-  /** Contexte du monde vu par un animal : nuit, absence, rappel de pause (le sien seulement). */
+  /** World context as seen by a critter: night, away, break reminder (its own only). */
   _ambientFor(critter) {
     return {
       night: this.settings.get_boolean('day-night') && this._night,
@@ -568,13 +569,13 @@ export class Manager {
     };
   }
 
-  /** Difficulté choisie, ou 0 en mode vacances (tout figé). */
+  /** Chosen difficulty, or 0 in vacation mode (everything frozen). */
   _needsRateScale() {
     if (this.settings.get_boolean('vacation-mode')) return 0;
     return DIFFICULTY_SCALE[this.settings.get_string('difficulty')] ?? 1;
   }
 
-  /** Vitesse de croissance : réglage choisi, 0 en vacances ou croissance désactivée. */
+  /** Growth speed: chosen setting, 0 during vacation or with growth disabled. */
   _lifeAgeScale() {
     if (this.settings.get_boolean('vacation-mode') || !this.settings.get_boolean('growth-enabled')) return 0;
     return this.settings.get_double('growth-speed');
@@ -617,9 +618,9 @@ export class Manager {
     }
   }
 
-  // --- Objets du bureau ---------------------------------------------------
+  // --- Desktop objects ---------------------------------------------------
 
-  /** Actions offertes aux menus (contextuel de l'animal et icône de barre). */
+  /** Actions offered to the menus (a critter's context menu and the tray icon). */
   _menuOwner() {
     return {
       rename: (critter) => this.openRename(critter),
@@ -668,7 +669,7 @@ export class Manager {
     };
   }
 
-  /** Aliments que connaissent les animaux affichés (sans les plantes, posées à part), le plus apprécié d'abord. */
+  /** Foods known by the displayed critters (excluding plants, placed separately), most liked first. */
   _foods() {
     const diet = {};
     for (const { critter } of this._critters) {
@@ -679,7 +680,7 @@ export class Manager {
     return Object.entries(diet).sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
   }
 
-  /** Jouets adaptés à l'espèce affichée : flottants pour une espèce sans sol, posés sinon. */
+  /** Toys suited to the displayed species: floating ones for a groundless species, placed ones otherwise. */
   _toyKinds() {
     const critter = this._critters[0]?.critter;
     const groundless = critter ? !critter.supports(Locomotion.GROUND) : false;
@@ -693,10 +694,10 @@ export class Manager {
     return item;
   }
 
-  /** Lâche un objet juste à côté (au-dessus) de l'animal, il retombe ; `model` : modèle ou variante. */
+  /** Drops an object right next to (above) the critter, it falls back down; `model`: model or variant. */
   _dropNear(type, kind, critter, model = null) {
     const bounds = computeWorldBounds(getMonitors());
-    // Sans animal précis (menu global) : tombe en haut de l'écran, à l'abscisse du curseur.
+    // Without a specific critter (global menu): falls from the top of the screen, at the cursor's x position.
     const anchor = critter ?? { x: getPointer().x, y: bounds.y + 110, facing: 0 };
     const x = Math.min(Math.max(anchor.x + anchor.facing * 48, bounds.x + 16), bounds.x + bounds.width - 16);
     const y = Math.max(bounds.y + 20, anchor.y - 90);
@@ -718,8 +719,8 @@ export class Manager {
     for (const { item } of this._items) item.removed = true;
   }
 
-  /** « Ranger les jouets » : retire les jouets seulement (pas la gamelle, le lit ni la nourriture). */
-  /** « Nettoyer les traces » : retire toutes les traces et remet les litières à zéro (sans pièces). */
+  /** "Tidy up toys": removes toys only (not the bowl, bed, or food). */
+  /** "Clean up messes": removes every mess and resets litter boxes to zero (no coins). */
   cleanAll() {
     for (const { item } of this._items) {
       if (item.type === 'mess') item.removed = true;
@@ -747,7 +748,7 @@ export class Manager {
         this._player.stats.add('giftsCollected');
         this._player.log(fmt(ngettext('Cadeau ramassé : +{coins} pièce.', 'Cadeau ramassé : +{coins} pièces.', coins), { coins }), Date.now());
       } else if (item.collected && item.type === 'mess') {
-        this._player.award('clean', 1, 0); // service rendu : une pièce par trace nettoyée
+        this._player.award('clean', 1, 0); // a good deed: one coin per mess cleaned up
         this._player.stats.add('messesCleaned');
         if (item.age < 3) this._player.stats.mark('moment', 'fast-clean');
       }
@@ -840,9 +841,9 @@ export class Manager {
   }
 
   /**
-   * Veille ou changement d'écrans : GNOME reconfigure moniteurs et fenêtres pendant un instant. On
-   * gèle les objets et les animaux (rien ne tombe sur une surface transitoire : barre du haut,
-   * fenêtre), puis on remet tout au sol une fois la géométrie stable.
+   * Sleep or a screen change: GNOME reconfigures monitors and windows for a moment. Objects and
+   * critters are frozen (nothing falls onto a transient surface: top bar, window), then
+   * everything is put back on the ground once the geometry is stable.
    */
   _beginSettling() {
     this._settleUntilUs = GLib.get_monotonic_time() + SETTLE_S * 1_000_000;
@@ -856,10 +857,10 @@ export class Manager {
 
   _tick() {
     const nowUs = GLib.get_monotonic_time();
-    const dt = Math.min((nowUs - this._lastTickUs) / 1_000_000, 0.25); // clamp anti-rattrapage après une pause
+    const dt = Math.min((nowUs - this._lastTickUs) / 1_000_000, 0.25); // clamp against catch-up after a pause
     this._lastTickUs = nowUs;
 
-    // CLOCK_MONOTONIC (get_monotonic_time) s'arrête pendant la veille : seule l'horloge murale la voit.
+    // CLOCK_MONOTONIC (get_monotonic_time) stops during sleep: only the wall clock sees it.
     const realUs = GLib.get_real_time();
     if ((realUs - this._lastRealUs) / 1_000_000 > RESUME_GAP_S) this._beginSettling();
     this._lastRealUs = realUs;
@@ -875,10 +876,10 @@ export class Manager {
     const worldBounds = computeWorldBounds(monitors);
     const pointer = getPointer();
 
-    // Une fenêtre qui apparaît entre deux ticks (pas de nouveau capteur :
-    // getWindows() est déjà appelé chaque frame) fait sursauter les
-    // critters. this._knownWindowIds reste null au tout premier tick pour
-    // ne pas réagir aux fenêtres déjà là au démarrage de l'extension.
+    // A window appearing between two ticks (no new sensor needed:
+    // getWindows() is already called every frame) startles the critters.
+    // this._knownWindowIds stays null on the very first tick so as not to
+    // react to windows already there when the extension starts.
     const currentWindowIds = new Set(windows.map((w) => w.id));
     if (this._knownWindowIds) {
       const hasNewWindow = [...currentWindowIds].some((id) => !this._knownWindowIds.has(id));
@@ -888,30 +889,30 @@ export class Manager {
     }
     this._knownWindowIds = currentWindowIds;
 
-    // Fenêtre de fraîcheur limitée après un changement de focus (contraste
-    // avec le pointeur pour FOLLOW, toujours une cible valide) : passé ce
-    // délai sans qu'un critter idle l'ait choisie, l'opportunité expire
-    // silencieusement plutôt que de rester une cible permanente.
+    // Limited freshness window after a focus change (contrasting with the
+    // pointer for FOLLOW, always a valid target): past this delay without
+    // an idle critter having chosen it, the opportunity expires silently
+    // rather than staying a permanent target.
     const focused = windows.find((w) => w.focused) ?? null;
     if (this._lastFocusedWindowId !== undefined && focused && focused.id !== this._lastFocusedWindowId) {
       this._focusedWindow = focused;
-      this._focusedWindowExpiryUs = nowUs + 5_000_000; // 5s
+      this._focusedWindowExpiryUs = nowUs + 5_000_000; // 5s window
     }
     this._lastFocusedWindowId = focused?.id;
     const focusedWindow =
       this._focusedWindow && nowUs < this._focusedWindowExpiryUs ? this._focusedWindow : undefined;
 
-    // Instantané d'avant ce tick (positions non encore mises à jour) pour
-    // que l'ordre de traitement des critters ne biaise pas qui "voit" qui ;
-    // la référence à l'instance voyage à côté (pas dans le calcul de
-    // ciblage, seulement pour que GREET puisse déclencher une réaction sur
-    // la cible une fois atteinte -- voir Critter._tickGreet).
-    // Un œuf n'est pas un voisin : personne ne va le saluer ni le poursuivre.
+    // Snapshot from before this tick (positions not yet updated) so the
+    // order in which critters are processed doesn't bias who "sees" whom;
+    // the reference to the instance travels alongside (not in the
+    // targeting computation, only so GREET can trigger a reaction on the
+    // target once reached -- see Critter._tickGreet).
+    // An egg isn't a neighbor: nobody will greet it or chase it.
     const others = this._critters
       .filter(({ critter }) => critter.life.stage !== 'egg')
       .map(({ critter }) => ({ x: critter.x, y: critter.y, critter }));
 
-    // Menaces des proies : les animaux (hors œufs) et le curseur.
+    // Prey threats: critters (excluding eggs) and the cursor.
     const threats = [
       ...this._critters
         .filter(({ critter }) => critter.life.stage !== 'egg')

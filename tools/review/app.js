@@ -1,13 +1,13 @@
-// Page de revue (dev) : en-tête (pack, langue, onglets), état dans l'adresse
-// (#tab=...&pack=...&lang=...), rechargement automatique quand le serveur
-// signale un fichier modifié. L'interface de l'outil reste en français ; les
-// textes du jeu suivent la langue choisie.
+// Review page (dev): header (pack, language, tabs), state in the address
+// (#tab=...&pack=...&lang=...), automatic reload when the server signals a
+// changed file. The tool's own interface stays in French; the game's text
+// follows the chosen language.
 
 import { h, select, badge } from './dom.js';
 import { loadData } from './data.js';
 import { checkPack, checkTranslations, checkCatalog } from './checks.js';
 
-/** [id, libellé, module] : chaque module exporte `render(racine, contexte)`. */
+/** [id, label, module]: each module exports `render(root, context)`. */
 const TABS = [
   ['achievements', 'Succès', () => import('./tabs/achievements.js')],
   ['simulate', 'Vue en jeu', () => import('./tabs/simulate.js')],
@@ -19,7 +19,7 @@ const TABS = [
   ['checks', 'Contrôles', () => import('./tabs/checks.js')],
 ];
 
-/** Langues des textes du jeu : [code, libellé]. */
+/** Languages for the game's text: [code, label]. */
 const LANGUAGE_CHOICES = [
   ['fr', 'Français'],
   ['en', 'English'],
@@ -28,7 +28,7 @@ const LANGUAGE_CHOICES = [
 let data = null;
 let state = {};
 let issues = {};
-/** État du flux de rechargement, réaffiché à chaque redessin de l'en-tête. */
+/** State of the reload stream, redisplayed on every header redraw. */
 let live = { text: 'rechargement automatique', off: false };
 
 function readState() {
@@ -40,7 +40,7 @@ function writeState() {
   history.replaceState(null, '', `#${new URLSearchParams(clean)}`);
 }
 
-/** Met à jour l'état ; `silent` : sans redessiner (filtres gérés par l'onglet lui-même). */
+/** Updates the state; `silent`: without redrawing (filters handled by the tab itself). */
 function setState(patch, { silent = false } = {}) {
   state = { ...state, ...patch };
   writeState();
@@ -62,7 +62,7 @@ function renderHeader() {
     h('h1', {}, 'Revue Critter'),
     select(data.ids.map((id) => [id, packLabel(id)]), state.pack, (pack) => setState({ pack }), { title: 'Espèce' }),
     select(LANGUAGE_CHOICES, data.lang, (lang) => {
-      // Le traducteur est global et les succès sont développés au chargement : on recharge.
+      // The translator is global and achievements are expanded at load time: reload.
       state.lang = lang;
       writeState();
       location.reload();
@@ -90,7 +90,7 @@ async function renderTab() {
   const main = document.getElementById('main');
   const [, , load] = TABS.find(([tab]) => tab === state.tab);
   const module = await load();
-  if (id !== renderId) return; // un autre onglet a été demandé entre-temps
+  if (id !== renderId) return; // a different tab was requested in the meantime
   main.replaceChildren();
   module.render(main, { data, pack: data.packs[state.pack], state, setState, issues });
 }
@@ -103,7 +103,7 @@ function listen() {
     el.textContent = text;
     el.classList.toggle('off', off);
   };
-  // `?noreload` : pas de flux ouvert (captures automatiques, navigateur sans interface).
+  // `?noreload`: no stream opened (automated captures, headless browser).
   if (new URLSearchParams(location.search).has('noreload')) {
     status('sans rechargement automatique');
     return;
@@ -127,9 +127,9 @@ async function main() {
   }
   if (!data.packs[state.pack]) state.pack = data.ids.includes('cat') ? 'cat' : data.ids[0];
   if (!TABS.some(([id]) => id === state.tab)) state.tab = TABS[0][0];
-  state.lang = data.lang === 'fr' ? '' : data.lang; // le français, langue source, reste implicite dans l'adresse
+  state.lang = data.lang === 'fr' ? '' : data.lang; // French, the source language, stays implicit in the address
   writeState();
-  // Textes source relus en français ; hors du français, contrôles de la traduction en plus.
+  // Source text reviewed in French; outside of French, translation checks are added.
   issues = Object.fromEntries(data.ids.map((id) => {
     const pack = data.packs[id];
     return [id, [...checkPack(pack.french ?? pack), ...(pack.french ? checkTranslations(pack) : [])]];

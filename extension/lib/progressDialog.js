@@ -1,8 +1,8 @@
-// Fenêtre de détail de la progression : succès, statistiques et journal, avec
-// défilement. Les succès sont rangés par rubrique dépliable : une série montre
-// son dernier palier et le suivant avec sa progression ; les bêtises (succès
-// « troll ») restent cachées tant qu'elles ne sont pas découvertes, seul leur
-// nombre apparaît.
+// Detailed progression window: achievements, statistics, and log, with
+// scrolling. Achievements are grouped into expandable sections: a series
+// shows its last tier and the next one with its progress; blunders
+// ("troll" achievements) stay hidden until discovered, only their count
+// shows.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -16,7 +16,7 @@ import { _, N_, ngettext, fmt } from '../core/i18n.js';
 
 const TAB_KEYS = ['achievements', 'stats', 'journal'];
 const BAR_WIDTH = 160;
-/** Rubriques de succès cachés : un compte « découverts sur N ». */
+/** Sections of hidden achievements: a "discovered out of N" count. */
 const HIDDEN_CATEGORIES = new Set(['mischief']);
 const TAB_LABELS = { achievements: N_('Succès'), stats: N_('Statistiques'), journal: N_('Journal') };
 
@@ -88,7 +88,7 @@ export const ProgressDialog = GObject.registerClass(
       for (const category of achievements.categories) this._category(category);
     }
 
-    /** Rubrique repliée : un bouton avec le compte, qui déplie ses lignes. */
+    /** A collapsed section: a button with the count, which expands its rows. */
     _category(category) {
       const name = categoryLabel(category.id);
       const count = HIDDEN_CATEGORIES.has(category.id)
@@ -169,7 +169,7 @@ export const ProgressDialog = GObject.registerClass(
       for (const entry of entries) this._journalRow(entry);
     }
 
-    /** Une entrée : non lue en gras avec un point, texte complet dessous ; un clic la marque lue. */
+    /** An entry: unread in bold with a dot, full text underneath; a click marks it read. */
     _journalRow(entry) {
       const box = new St.BoxLayout({ vertical: true, style: 'padding-bottom: 4px;' });
       const head = `${formatJournalDate(entry.t)}   ${entry.text}`;
@@ -189,7 +189,7 @@ export const ProgressDialog = GObject.registerClass(
   },
 );
 
-/** Barre de progression horizontale (fraction de 0 à 1). */
+/** Horizontal progress bar (fraction from 0 to 1). */
 function progressBar(fraction) {
   const bar = new St.Widget({
     width: BAR_WIDTH,

@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
-"""Génère les sprites d'interface de l'extension, avec le rendu fin de
-finedraw.py (formes lissées, ombrage en dégradé, contour doux, détails fins) :
+"""Generates the extension's interface sprites, with finedraw.py's
+fine-drawing rendering (smoothed shapes, gradient shading, soft outline,
+fine details):
 
-- extension/assets/items/ : objets du bureau, dessinés au double de leur taille
-  d'affichage ; le bas de l'image est le point de pose. Aliments et bouchées
-  restantes (`food_<aliment>_<n>`), gamelles par modèle, aliment et niveau
-  (`bowl_<modèle>_empty`, `bowl_<modèle>_<aliment>_<1-3>`,
-  `bowl_<modèle>_moldy_<1-3>`), lits (`bed_<modèle>`), jouets et variantes
-  (`toy_<jouet>_<variante>`), cadeaux, litière, traces, proies (deux frames de
-  marche), plantes (une image par portion restante), point laser. Même
-  catalogue que core/itemLooks.js (vérifié par tests/itemLooks.test.js) ; les
-  PNG qui n'y figurent plus sont supprimés.
-- extension/assets/accessories/ : accessoires posés sur la tête (grille 16,
-  dessinés à 32 px) ; le bas de l'image est le point d'ancrage.
-- extension/assets/bubbles/ : icônes des bulles de pensée (grille 12, affichées
-  à 24 px, dessinées à 48).
-- extension/assets/life/egg.png : l'œuf commun (4 frames : posé, deux
-  oscillations, fissuré), pour les packs sans œuf propre.
+- extension/assets/items/: desktop objects, drawn at double their display
+  size; the bottom of the image is the resting point. Foods and remaining
+  bites (`food_<food>_<n>`), bowls by model, food, and level
+  (`bowl_<model>_empty`, `bowl_<model>_<food>_<1-3>`,
+  `bowl_<model>_moldy_<1-3>`), beds (`bed_<model>`), toys and variants
+  (`toy_<toy>_<variant>`), gifts, litter box, messes, prey (two walking
+  frames), plants (one image per remaining portion), laser dot. Same
+  catalog as core/itemLooks.js (checked by tests/itemLooks.test.js); PNGs
+  no longer in it are deleted.
+- extension/assets/accessories/: accessories placed on the head (16 grid,
+  drawn at 32 px); the bottom of the image is the anchor point.
+- extension/assets/bubbles/: thought bubble icons (12 grid, displayed at
+  24 px, drawn at 48).
+- extension/assets/life/egg.png: the shared egg (4 frames: resting, two
+  wobbles, cracked), for packs without their own egg.
 
-Usage : python3 scripts/gen_ui_sprites.py
+Usage: python3 scripts/gen_ui_sprites.py
 """
 
 import math
@@ -57,12 +58,12 @@ def mix(color, target, amount):
 
 
 def tones(base):
-    """(base, ombre, reflet) d'une couleur, pour les formes ombrées."""
+    """(base, shadow, highlight) of a color, for shaded shapes."""
     return base, mix(base, (0, 0, 0), 0.32), mix(base, (255, 255, 255), 0.45)
 
 
 def edge(base):
-    """Couleur de contour : la teinte, très assombrie."""
+    """Outline color: the hue, heavily darkened."""
     return mix(base, (0, 0, 0), 0.62)
 
 
@@ -72,7 +73,7 @@ WHITE = c(255, 255, 255)
 
 
 def cblob(d, x0, y0, x1, y1, color):
-    """Ellipse ombrée en coordonnées continues."""
+    """Shaded ellipse in continuous coordinates."""
     d.blob((x0, y0, x1 - 1, y1 - 1), *tones(color))
 
 
@@ -86,7 +87,7 @@ def ellipse_points(cx, cy, rx, ry, t0=0.0, t1=2 * math.pi, n=24):
     return [(cx + rx * math.cos(t0 + (t1 - t0) * i / n), cy + ry * math.sin(t0 + (t1 - t0) * i / n)) for i in range(n + 1)]
 
 
-# --- aliments ---------------------------------------------------------------------
+# --- foods ---------------------------------------------------------------------
 
 
 def pellet(d, x, y, color, w=2.7, h=2.1):
@@ -97,7 +98,7 @@ def pellet(d, x, y, color, w=2.7, h=2.1):
 
 
 def heap(rows, cx=8.0, bottom=13.5, dx=2.6, dy=1.7):
-    """Positions d'un tas : `rows` éléments par rangée, du bas vers le haut."""
+    """Positions of a pile: `rows` items per row, from bottom to top."""
     pts = []
     for r, count in enumerate(rows):
         x0 = cx - (count - 1) * dx / 2
@@ -109,7 +110,7 @@ KIBBLE = [c(160, 100, 55), c(138, 84, 44), c(176, 116, 62)]
 
 
 def seed(d, x, y, angle):
-    """Graine de tournesol : amande sombre rayée de clair."""
+    """Sunflower seed: a dark almond shape striped with a light line."""
     body = rotated(ellipse_points(x, y, 1.5, 0.8, n=16), x, y, angle)
     d.poly(body, c(62, 58, 66))
     d.stroke(rotated([(x - 0.9, y), (x + 0.9, y)], x, y, angle), 0.32, c(226, 220, 204))
@@ -120,7 +121,7 @@ def millet(d, x, y):
 
 
 def worm(d, x, y, length, phase, flip=False):
-    """Ver de farine : un corps annelé qui ondule, tête plus sombre."""
+    """Mealworm: a ringed, undulating body, darker head."""
     sign = -1 if flip else 1
     pts = [(x + sign * i * length / 8, y + 0.55 * math.sin(phase + i * 0.9)) for i in range(9)]
     d.stroke(pts, 1.55, c(168, 120, 62))
@@ -132,7 +133,7 @@ def worm(d, x, y, length, phase, flip=False):
 
 
 def apple_wedge(d, cx, cy, angle=0.0, r=2.8):
-    """Quartier de pomme couché sur sa peau : chair crème, liseré rouge, pépins."""
+    """Apple wedge lying on its skin: cream flesh, red rim, seeds."""
     skin = rotated(ellipse_points(cx, cy, r, r * 0.78, 0, math.pi, 16), cx, cy, angle)
     flesh = rotated(ellipse_points(cx, cy - 0.05, r - 0.45, r * 0.78 - 0.5, 0, math.pi, 16), cx, cy, angle)
     d.poly(skin, c(212, 52, 52))
@@ -193,7 +194,7 @@ def food(kind, n):
             px, py = x0 + (x1 - x0) * dx, y0 + (y1 - y0) * dy
             d.oval(px - 0.3, py - 0.25, px + 0.3, py + 0.25, c(120, 62, 48))
         if not whole:
-            d.oval(10.8, 13.1, 13.6, 14.2, c(170, 110, 88))  # un reste étalé
+            d.oval(10.8, 13.1, 13.6, 14.2, c(170, 110, 88))  # a spread-out remnant
         return d.finish(c(70, 70, 96))
     if kind == "kibble":
         rows = {3: [4, 3, 2], 2: [3, 2], 1: [2, 1]}[n]
@@ -248,12 +249,12 @@ HEAPS = {
     "pate": c(160, 94, 74), "mealworms": c(200, 160, 96), "apple": c(238, 224, 180), "moldy": c(138, 128, 92),
 }
 
-# Ouverture de la gamelle (continue) : centre, demi-axes.
+# The bowl's opening (continuous): center, semi-axes.
 OPEN_CX, OPEN_CY, OPEN_RX, OPEN_RY = 12.0, 5.5, 9.0, 1.5
 
 
 def surface_y(x, level):
-    """Hauteur du dessus de la nourriture à l'abscisse x, selon le niveau."""
+    """Height of the food's top at x-coordinate x, based on the level."""
     top = {1: 5.9, 2: 4.3, 3: 2.2}[level]
     base = OPEN_CY + 0.4
     t = max(0.0, 1 - ((x - OPEN_CX) / (OPEN_RX - 1.5)) ** 2)
@@ -281,7 +282,7 @@ def bowl_particle(d, food, x, y, i):
     elif food == "apple":
         d.rounded((x - 0.9, y - 0.8, x + 0.3, y + 0.3), 0.3, c(250, 240, 206))
         d.stroke([(x - 0.9, y + 0.55), (x + 0.9, y + 0.55)], 0.35, c(212, 52, 52))
-    else:  # moisi : taches duveteuses
+    else:  # moldy: fuzzy patches
         d.oval(x - 1.1, y - 0.7, x + 1.1, y + 0.8, c(190, 226, 172))
         d.oval(x - 0.4, y - 0.4, x + 0.3, y + 0.2, c(240, 248, 236))
 
@@ -296,13 +297,13 @@ def bowl_contents(d, food, level):
         cblob(layer, 3.4, 4.1, 20.6, 7.0, color)
         cblob(layer, 4.2, top - 0.2, 19.8, 7.0, color)
     if food == "pate":
-        layer.oval(8, top + 0.3, 11.5, top + 1.1, mix(color, (255, 255, 255), 0.5))  # brillant
+        layer.oval(8, top + 0.3, 11.5, top + 1.1, mix(color, (255, 255, 255), 0.5))  # gloss
     xs = {1: [8, 10.5, 13, 15.5], 2: [5.8, 8.2, 10.6, 13, 15.4, 17.8], 3: [5.6, 7.9, 10.2, 12.5, 14.8, 17.1, 8.9, 11.3, 13.7]}[level]
     for i, x in enumerate(xs):
         second_row = level == 3 and i >= 6
         y = surface_y(x, level) + (0.3 if not second_row else -0.6) + (0.9 if level == 3 and not second_row else 0)
         bowl_particle(layer, food, x, y, i)
-    # Découpe : l'intérieur de l'ouverture et tout ce qui dépasse au-dessus du bord.
+    # Clipping: the inside of the opening and anything sticking out above the rim.
     clip = ellipse_points(OPEN_CX, OPEN_CY, OPEN_RX, OPEN_RY, 0, math.pi, 20) + [(OPEN_CX - OPEN_RX, -1), (OPEN_CX + OPEN_RX, -1)]
     d.composite(layer, clip=("poly", clip))
 
@@ -361,7 +362,7 @@ def bed(model):
                     d.stroke([(x, y - 0.55), (x + 1.0, y + 0.55)], 0.45, weave)
         d.shaded("rounded", ((0, 3, 31, 5), 1.2), *tones(c(226, 186, 122)))
         return d.finish(c(96, 60, 24))
-    # couffin : bord rembourré, coussin clair au creux
+    # cradle: padded rim, light cushion in the hollow
     d.shaded("rounded", ((1, 3, 30, 11), 4), *tones(c(92, 142, 206)))
     d.shaded("ellipse", (5, 3, 26, 8), *tones(c(236, 238, 246)))
     for x, y in ((3.5, 8.6), (8, 9.8), (13, 10.2), (18.5, 10.2), (23.5, 9.8), (28, 8.6)):
@@ -369,7 +370,7 @@ def bed(model):
     return d.finish(c(38, 66, 116))
 
 
-# --- jouets -----------------------------------------------------------------------
+# --- toys -----------------------------------------------------------------------
 
 BALL_COLORS = {"red": c(230, 80, 70), "blue": c(70, 130, 230), "yellow": c(245, 200, 50), "green": c(80, 190, 90)}
 YARN_COLORS = {"pink": c(240, 130, 180), "blue": c(110, 160, 235), "yellow": c(245, 210, 90)}
@@ -390,7 +391,7 @@ def ball(color):
 def yarn(color):
     base, dark, light = tones(YARN_COLORS[color])
     d = Canvas(12, 12, 2)
-    d.stroke([(7.5, 10.6), (9.6, 11.5), (11.3, 11.0), (11.4, 9.8)], 0.5, dark)  # brin qui dépasse
+    d.stroke([(7.5, 10.6), (9.6, 11.5), (11.3, 11.0), (11.4, 9.8)], 0.5, dark)  # loose strand
     d.blob((0.5, 0.5, 10, 10), base, dark, light)
     strands = Canvas(12, 12, 2)
     cx, cy = 5.75, 5.75
@@ -483,7 +484,7 @@ def ring(color):
 TOY_DRAW = {"ball": ball, "yarn": yarn, "plush": plush, "ring": ring}
 
 
-# --- cadeaux, litière, traces, laser ------------------------------------------------
+# --- gifts, litter box, messes, laser ------------------------------------------------
 
 
 def coin():
@@ -638,7 +639,7 @@ def plant(kind, n):
         d.stroke([(8, 12.6), (8, 7.6)], 0.7, c(70, 110, 50))
         leaves = [(8, 4.4, 0), (4.8, 7.4, -55), (11.2, 7.4, 55)][:n]
         for x, y, a in leaves:
-            # Feuille en amande, pointue aux deux bouts, tournée autour de sa base.
+            # Almond-shaped leaf, pointed at both ends, rotated around its base.
             lens = rotated([(x + 1.7 * math.copysign(abs(math.sin(t)) ** 1.4, math.sin(t)), y - 2.8 * math.cos(t))
                             for t in [2 * math.pi * i / 24 for i in range(24)]], x, y + 2.2, a)
             d.shaded("poly", lens, *tones(c(80, 180, 80)))
@@ -720,11 +721,11 @@ def witch():
     return d.finish(c(22, 12, 36))
 
 
-# Trophées (offerts au 25e, 50e et 100e succès) et farces (récompenses du Système).
+# Trophies (given at the 25th, 50th, and 100th achievement) and jokes (Committee rewards).
 
 
 def medal():
-    """Cocarde de concours épinglée sur la tête : rubans qui pendent, rosette bleue, cœur doré."""
+    """Contest rosette pinned on the head: hanging ribbons, blue rosette, gold heart."""
     d = Canvas(16, 16, 2)
     blue = c(60, 110, 210)
     d.poly([(6.6, 8.5), (4.4, 15.6), (6.2, 14.6), (7.6, 15.8), (8.4, 9)], mix(blue, (0, 0, 0), 0.15))
@@ -741,7 +742,7 @@ def medal():
 
 
 def laurel():
-    """Couronne de laurier posée de profil : deux rangs de feuilles autour d'un bandeau."""
+    """Laurel wreath seen in profile: two rows of leaves around a headband."""
     d = Canvas(16, 16, 2)
     back, front = c(70, 130, 60), c(110, 176, 84)
     for layer, color, t0, t1 in ((0, back, math.pi, 2 * math.pi), (1, front, 0, math.pi)):
@@ -750,12 +751,12 @@ def laurel():
             x, y = 8 + 6.4 * math.cos(t), 11.6 + 2.6 * math.sin(t)
             leaf = rotated(ellipse_points(x, y - 1.2, 0.9, 1.8, n=12), x, y, math.degrees(t) + 90)
             d.shaded("poly", leaf, *tones(color))
-    d.stroke([(3.2, 13.4), (8, 14.6), (12.8, 13.4)], 0.5, c(220, 170, 40))  # bandeau doré
+    d.stroke([(3.2, 13.4), (8, 14.6), (12.8, 13.4)], 0.5, c(220, 170, 40))  # golden headband
     return d.finish(c(30, 64, 26))
 
 
 def halo():
-    """Auréole dorée qui flotte au-dessus de la tête, avec un léger halo."""
+    """Golden halo floating above the head, with a soft glow."""
     d = Canvas(16, 16, 2)
     d.oval(0.6, 10, 15.4, 15.6, c(255, 236, 140, 70))
     d.ellipse((2, 11, 13, 14), outline=c(230, 180, 40), width=1.3)
@@ -764,21 +765,21 @@ def halo():
 
 
 def cone():
-    """Cône de la honte (collerette de vétérinaire), vu de profil, ouvert vers l'avant."""
+    """Cone of shame (a vet's collar), seen in profile, open toward the front."""
     d = Canvas(16, 16, 2)
     d.poly([(4, 6), (13.6, 1), (13.6, 15), (4, 10)], c(210, 232, 250, 150))
     d.stroke([(4, 6), (13.6, 1)], 0.5, c(120, 160, 200))
     d.stroke([(4, 10), (13.6, 15)], 0.5, c(120, 160, 200))
     d.stroke([(13.6, 1), (13.6, 15)], 0.9, c(150, 190, 225))
     d.stroke([(4, 6), (4, 10)], 0.7, c(120, 160, 200))
-    for x in (6.6, 9.2, 11.8):  # plis du plastique
+    for x in (6.6, 9.2, 11.8):  # plastic folds
         h = 2 + (x - 4) * 0.52
         d.stroke([(x, 8 - h), (x, 8 + h)], 0.25, c(240, 248, 255, 200))
     return d.finish(None)
 
 
 def sock():
-    """Chaussette rayée posée sur la tête, la pointe qui retombe."""
+    """Striped sock worn on the head, the toe flopping over."""
     d = Canvas(16, 16, 2)
     red, white = c(220, 70, 70), c(246, 244, 240)
     body = [(1.4, 8.2), (11.2, 8.2), (13.2, 9.4), (14.2, 12.4), (13.4, 15.4), (10.4, 15.4), (10.2, 12.6), (1.4, 12.6)]
@@ -788,14 +789,14 @@ def sock():
         stripes.rectangle((x, 7, x + 1, 13), fill=white)
     stripes.rectangle((10, 13.4, 15, 14.2), fill=white)
     d.composite(stripes, clip=("poly", body))
-    d.shaded("rounded", ((0.6, 7.4, 3.4, 13.4), 0.8), *tones(white))  # revers côtelé
+    d.shaded("rounded", ((0.6, 7.4, 3.4, 13.4), 0.8), *tones(white))  # ribbed cuff
     for y in (8.6, 10.2, 11.8):
         d.stroke([(1.0, y), (3.0, y)], 0.25, c(200, 196, 190))
     return d.finish(c(110, 30, 30))
 
 
 def foilhat():
-    """Chapeau pointu en papier aluminium, froissé et brillant."""
+    """Pointed tinfoil hat, crinkled and shiny."""
     d = Canvas(16, 16, 2)
     d.shaded("poly", [(8.2, 0.8), (2.6, 14.6), (13.6, 14.6)], *tones(c(190, 196, 206)))
     for a, b, col in (((8.2, 1.5), (5.4, 9.5), c(236, 240, 246)), ((7.4, 5), (11.6, 12), c(150, 156, 170)),
@@ -812,7 +813,7 @@ ACCESSORY_SPRITES = {
 }
 
 
-# --- bulles de pensée ------------------------------------------------------------------
+# --- thought bubbles ------------------------------------------------------------------
 
 BUBBLE_EDGE = c(70, 70, 90)
 
@@ -964,7 +965,7 @@ def write_dir(directory, sprites):
     directory.mkdir(parents=True, exist_ok=True)
     for name, draw in sprites.items():
         draw().save(directory / f"{name}.png")
-    print(f"écrit {len(sprites)} sprites dans {directory.relative_to(ASSETS_DIR.parent.parent)}")
+    print(f"wrote {len(sprites)} sprites in {directory.relative_to(ASSETS_DIR.parent.parent)}")
 
 
 def main():
@@ -972,12 +973,12 @@ def main():
     write_dir(ITEMS_DIR, catalog)
     for stale in sorted(p for p in ITEMS_DIR.glob("*.png") if p.stem not in catalog):
         stale.unlink()
-        print(f"  supprimé (hors catalogue) : {stale.name}")
+        print(f"  removed (not in catalog): {stale.name}")
     write_dir(ACCESSORIES_DIR, ACCESSORY_SPRITES)
     write_dir(BUBBLES_DIR, ICONS)
     LIFE_DIR.mkdir(parents=True, exist_ok=True)
     egg_sheet().save(LIFE_DIR / "egg.png")
-    print("écrit extension/assets/life/egg.png")
+    print("wrote extension/assets/life/egg.png")
 
 
 if __name__ == "__main__":

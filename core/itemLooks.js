@@ -1,9 +1,8 @@
-// Apparence des objets du bureau : taille d'affichage et nom du sprite selon
-// le type, le modèle et l'état (bouchées restantes, niveau de la gamelle,
-// moisissure...). Module pur : l'extension affiche
-// `extension/assets/items/<nom>.png`, dessiné par scripts/gen_ui_sprites.py au
-// double de la taille d'affichage, et les tests vérifient que chaque nom du
-// catalogue existe.
+// Appearance of desktop items: display size and sprite name based on type,
+// model and state (bites left, bowl level, mold...). Pure module: the
+// extension displays `extension/assets/items/<name>.png`, drawn by
+// scripts/gen_ui_sprites.py at double the display size, and the tests
+// check that every name in the catalogue exists.
 
 import {
   FOODS, PLANTS, GIFTS, TOYS, BED_MODELS, BOWL_MODELS, PLANT_MAX_PORTIONS,
@@ -11,7 +10,7 @@ import {
 } from './items.js';
 import { PREY } from './prey.js';
 
-/** Les PNG sont dessinés à cette échelle de leur taille d'affichage (nets en HiDPI). */
+/** PNGs are drawn at this multiple of their display size (crisp on HiDPI). */
 export const SPRITE_SCALE = 2;
 
 const SIZES = {
@@ -23,7 +22,7 @@ const LASER_SIZE = [8, 8];
 
 const asSize = ([width, height]) => ({ width, height });
 
-/** Taille d'affichage (px logiques) d'un objet ; le bas du sprite est son point de pose. */
+/** Display size (logical px) of an item; the bottom of the sprite is its anchor point. */
 export function spriteSize(item) {
   if (item.type === 'toy') return asSize(TOY_SIZES[item.kind] ?? SIZES.food);
   if (item.type === 'prey') return asSize(PREY_SIZES[item.kind] ?? SIZES.food);
@@ -31,9 +30,9 @@ export function spriteSize(item) {
 }
 
 /**
- * Nom du sprite d'un objet dans son état actuel.
+ * Sprite name of an item in its current state.
  * @param {object} item
- * @param {number} [frame] frame de marche d'une proie (0 ou 1)
+ * @param {number} [frame] a prey's walk frame (0 or 1)
  */
 export function spriteName(item, frame = 0) {
   switch (item.type) {
@@ -57,11 +56,11 @@ export function spriteName(item, frame = 0) {
     case 'prey':
       return `${item.kind}_${frame}`;
     default:
-      return item.kind; // cadeaux
+      return item.kind; // gifts
   }
 }
 
-/** Catalogue complet des sprites d'objets : nom -> taille d'affichage. */
+/** Full catalogue of item sprites: name -> display size. */
 export function spriteCatalog() {
   const catalog = {};
   const add = (name, size) => {
@@ -93,6 +92,6 @@ export function spriteCatalog() {
   add('litter_dirty', SIZES.litter);
   add('mess', SIZES.mess);
   add('mess_old', SIZES.mess);
-  add('laser', LASER_SIZE); // point du pointeur laser (pas un objet, même dossier)
+  add('laser', LASER_SIZE); // laser pointer dot (not an item, same folder)
   return catalog;
 }

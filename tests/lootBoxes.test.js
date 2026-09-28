@@ -5,7 +5,7 @@ import { openBox, BOX_TABLES, BOX_LABELS } from '../core/lootBoxes.js';
 import { ACCESSORIES } from '../core/accessories.js';
 import { BOX_TIERS } from '../core/achievements.js';
 
-/** Hasard déterministe balayant tout l'intervalle [0, 1[. */
+/** Deterministic randomness sweeping the whole [0, 1[ interval. */
 function sweep(n) {
   let i = 0;
   return () => ((i++ * 0.6180339887) % 1);

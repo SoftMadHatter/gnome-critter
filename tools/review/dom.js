@@ -1,8 +1,8 @@
-// Petits outils DOM de la page de revue (sans dépendance).
+// Small DOM helpers for the review page (no dependencies).
 
 /**
- * Crée un élément : `h('td', { class: 'num', onclick: fn }, enfants...)`.
- * Les enfants null, undefined ou false sont ignorés ; le texte est échappé.
+ * Creates an element: `h('td', { class: 'num', onclick: fn }, children...)`.
+ * Children that are null, undefined, or false are ignored; text is escaped.
  */
 export function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
@@ -21,13 +21,13 @@ export function h(tag, props = {}, ...children) {
   return el;
 }
 
-/** Remplace le contenu d'un élément ; comme pour h(), les tableaux sont aplatis et null, undefined, false ignorés. */
+/** Replaces an element's content; like h(), arrays are flattened and null, undefined, false ignored. */
 export function fill(el, ...children) {
   el.replaceChildren(...children.flat(Infinity).filter((child) => child !== null && child !== undefined && child !== false));
   return el;
 }
 
-/** Liste déroulante : `options` = [[valeur, libellé], ...]. */
+/** Dropdown list: `options` = [[value, label], ...]. */
 export function select(options, value, onChange, props = {}) {
   return h(
     'select',
@@ -36,17 +36,17 @@ export function select(options, value, onChange, props = {}) {
   );
 }
 
-/** Champ numérique compact. */
+/** Compact numeric field. */
 export function numberInput(value, onChange, props = {}) {
   return h('input', { type: 'number', value: String(value), min: '0', ...props, oninput: (e) => onChange(Number(e.target.value) || 0) });
 }
 
-/** Libellé + contrôle sur une ligne. */
+/** Label + control on one row. */
 export function field(label, control) {
   return h('label', { class: 'field' }, h('span', {}, label), control);
 }
 
-/** Tableau simple : colonnes [titre, (ligne) => contenu, classe?]. */
+/** Simple table: columns [title, (row) => content, class?]. */
 export function table(columns, rows, { empty = 'Rien à afficher.' } = {}) {
   if (rows.length === 0) return h('p', { class: 'muted' }, empty);
   return h(
@@ -69,14 +69,14 @@ export function debounce(fn, ms = 150) {
   };
 }
 
-/** Message éphémère en bas de page. */
+/** Ephemeral message at the bottom of the page. */
 export function toast(text) {
   const el = h('div', { class: 'toast' }, text);
   document.body.append(el);
   setTimeout(() => el.remove(), 1800);
 }
 
-/** Copie un texte dans le presse-papiers (repli sur une zone de texte si l'API manque). */
+/** Copies text to the clipboard (falls back to a text area if the API is missing). */
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -90,7 +90,7 @@ export async function copyText(text) {
   toast('Copié dans le presse-papiers.');
 }
 
-/** Pourcentage lisible : 0,427 -> « 42,7 % ». */
+/** Readable percentage: 0.427 -> "42,7 %" (French formatting, comma decimal). */
 export function percent(ratio) {
   return `${(ratio * 100).toFixed(1).replace('.', ',')} %`;
 }

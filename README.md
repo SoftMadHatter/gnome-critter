@@ -72,9 +72,6 @@ describing its behaviour); see [`docs/pack-format.md`](docs/pack-format.md).
   built on standard GNOME gettext tooling. See
   [`docs/i18n.md`](docs/i18n.md).
 
-The roadmap and full history of how this was built, step by step, are in
-[`docs/roadmap.md`](docs/roadmap.md) (in French).
-
 ## Try it (GNOME 48+, Wayland)
 
 Prerequisites:

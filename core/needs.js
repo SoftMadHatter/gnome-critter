@@ -1,23 +1,23 @@
-// Besoins d'un animal : jauges de 0 à 100 (100 = satisfait) qui évoluent
-// avec le temps réel. Module pur, sans dépendance GNOME : le Critter en
-// possède une instance et l'avance dans tick().
+// An animal's needs: gauges from 0 to 100 (100 = satisfied) that evolve
+// with real time. Pure module, no GNOME dependency: the Critter holds an
+// instance of it and advances it in tick().
 
 import { FOODS, PLANTS } from './items.js';
 import { PREY } from './prey.js';
 import { RELIEF } from './autonomy.js';
 
-/** Jauges stockées (la santé est traitée à part, les cinq premières forment l'humeur). */
+/** Stored gauges (health is handled separately, the first five make up mood). */
 export const NEED_GAUGES = ['satiety', 'energy', 'cleanliness', 'stimulation', 'affection', 'relief'];
 export const ALL_GAUGES = [...NEED_GAUGES, 'health'];
 
-/** Décroissance par heure en difficulté normale. */
+/** Decay per hour on normal difficulty. */
 export const DEFAULT_DECAY_PER_HOUR = {
   satiety: 5,
   energy: 6,
   cleanliness: 4,
   stimulation: 10,
   affection: 4,
-  relief: 8, // soulagement : baisse aussi quand l'animal mange (voir feed)
+  relief: 8, // relief: also drops when the animal eats (see feed)
 };
 
 export const INITIAL_LEVEL = 80;
@@ -32,13 +32,13 @@ const HEALTH_GAIN_ABOVE = 50;
 const URGENT_BELOW = 30;
 const URGENT_HEALTH_BELOW = 40;
 
-const RELIEF_COST_OF_EATING = 0.2; // part du gain de satiété retirée au soulagement
+const RELIEF_COST_OF_EATING = 0.2; // share of the satiety gain taken from relief
 const RELIEF_RESTORED = 85;
 
 const CATCH_UP_CAP_SECONDS = 8 * 3600;
 const CATCH_UP_FACTOR = 0.5;
 
-/** Effets ponctuels d'un événement sur les jauges. */
+/** One-off effects of an event on the gauges. */
 export const EVENT_EFFECTS = Object.freeze({
   washed: { cleanliness: 30 },
   petted: { affection: 8, stimulation: 2 },
@@ -48,15 +48,15 @@ export const EVENT_EFFECTS = Object.freeze({
   greeted: { stimulation: 5, affection: 4 },
   played: { stimulation: 25, affection: 6 },
   brushed: { cleanliness: 25, affection: 6 },
-  purring: { affection: 12, stimulation: 2 }, // série de caresses : remplace `petted` (8 + bonus 4)
+  purring: { affection: 12, stimulation: 2 }, // pet streak: replaces `petted` (8 + 4 bonus)
 });
 
 const clamp100 = (v) => Math.min(100, Math.max(0, v));
 
 /**
- * Multiplicateur de poids pour une jauge : 1 au-dessus de 60, monte
- * linéairement jusqu'à `boost` à 0, et descend à `satisfied` (< 1) au-dessus
- * de 90 pour ne pas répéter une activité dont l'animal n'a pas besoin.
+ * Weight multiplier for a gauge: 1 above 60, rises linearly up to `boost`
+ * at 0, and drops to `satisfied` (< 1) above 90 so the animal doesn't
+ * repeat an activity it doesn't need.
  */
 export function needMultiplier(value, { boost = 4, satisfied = 0.3 } = {}) {
   if (value >= 90) return satisfied;
@@ -65,10 +65,10 @@ export function needMultiplier(value, { boost = 4, satisfied = 0.3 } = {}) {
 }
 
 /**
- * Filtre la section `needs` d'un pack.json : les débits `decayPerHour`
- * (nombres >= 0, jauges connues), le régime `diet` (aliments et plantes connus
- * -> gain de satiété > 0) et les proies `prey` (espèces connues -> gain)
- * passent, le reste est signalé.
+ * Filters the `needs` section of a pack.json: the `decayPerHour` rates
+ * (numbers >= 0, known gauges), the `diet` (known foods and plants -> a
+ * satiety gain > 0) and `prey` (known species -> a gain) pass through, the
+ * rest is reported.
  * @param {object} [raw]
  * @returns {{rates: Record<string, number>, diet: Record<string, number>, prey: Record<string, number>, ignored: string[]}}
  */
@@ -110,19 +110,19 @@ export function needsOverrides(raw = {}) {
 export class Needs {
   /**
    * @param {{rates?: Record<string, number>, rateScale?: number}} [options]
-   *   rates : débits par heure qui remplacent les défauts ;
-   *   rateScale : difficulté * (vacances ? 0 : 1).
+   *   rates: hourly rates that override the defaults;
+   *   rateScale: difficulty * (vacation mode ? 0 : 1).
    */
   constructor({ rates = {}, rateScale = 1 } = {}) {
     this.rates = { ...DEFAULT_DECAY_PER_HOUR, ...rates };
     this.rateScale = rateScale;
-    this.autonomyFactor = 1; // 1 - RELIEF * autonomie : ralentit la baisse des jauges
+    this.autonomyFactor = 1; // 1 - RELIEF * autonomy: slows the gauges' decay
     this.values = {};
     for (const g of NEED_GAUGES) this.values[g] = INITIAL_LEVEL;
     this.values.health = 100;
   }
 
-  /** Autonomie (0-1) : plus l'animal se débrouille, plus ses besoins baissent lentement. */
+  /** Autonomy (0-1): the more the animal fends for itself, the more slowly its needs drop. */
   setAutonomy(level) {
     this.autonomyFactor = 1 - RELIEF * Math.min(1, Math.max(0, level));
   }
@@ -132,9 +132,9 @@ export class Needs {
   }
 
   /**
-   * @param {number} dt secondes
+   * @param {number} dt seconds
    * @param {{sleeping?: boolean, active?: boolean, sleepFactor?: number}} [activity]
-   *   sleepFactor : multiplicateur du gain d'énergie en dormant (lit)
+   *   sleepFactor: energy-gain multiplier while sleeping (bed)
    */
   advance(dt, { sleeping = false, active = false, sleepFactor = 1 } = {}) {
     if (this.rateScale <= 0 || dt <= 0) return;
@@ -163,13 +163,13 @@ export class Needs {
     }
   }
 
-  /** Repas : satiété en plus (bornée) ; manger fait aussi baisser le soulagement. */
+  /** Meal: extra satiety (clamped); eating also lowers relief. */
   feed(amount) {
     this.boost('satiety', amount);
     this.boost('relief', -amount * RELIEF_COST_OF_EATING);
   }
 
-  /** L'animal s'est soulagé : la jauge remonte. */
+  /** The animal relieved itself: the gauge goes back up. */
   relieve() {
     this.boost('relief', RELIEF_RESTORED);
   }
@@ -179,14 +179,14 @@ export class Needs {
     this.values[gauge] = clamp100(this.values[gauge] + delta);
   }
 
-  /** Sortie d'hibernation : les jauges remontent à un niveau moyen. */
+  /** Waking from hibernation: gauges rise back to a middling level. */
   revive() {
     for (const g of NEED_GAUGES) this.values[g] = Math.max(this.values[g], 50);
     this.values.affection = Math.max(this.values.affection, 60);
     this.values.health = Math.max(this.values.health, 50);
   }
 
-  /** Applique un événement reconnu (voir EVENT_EFFECTS), ignore les autres. */
+  /** Applies a recognized event (see EVENT_EFFECTS), ignores others. */
   apply(event) {
     const effects = EVENT_EFFECTS[event];
     if (!effects) return;
@@ -196,13 +196,13 @@ export class Needs {
   }
 
   /**
-   * Rattrape le temps passé animal éteint : demi-débit, plafonné, sans effet
-   * en mode vacances (rateScale 0).
+   * Catches up on time spent with the extension off: half rate, capped, no
+   * effect in vacation mode (rateScale 0).
    */
   catchUp(seconds, { cap = CATCH_UP_CAP_SECONDS, factor = CATCH_UP_FACTOR } = {}) {
     if (!(seconds > 0)) return;
     const effective = Math.min(seconds, cap) * factor;
-    // Pas en un seul bloc : la santé dépend de la moyenne, qui évolue.
+    // Not in a single block: health depends on the average, which shifts as we go.
     const steps = 24;
     for (let i = 0; i < steps; i++) this.advance(effective / steps, {});
   }
@@ -211,12 +211,12 @@ export class Needs {
     return NEED_GAUGES.reduce((sum, g) => sum + this.values[g], 0) / NEED_GAUGES.length;
   }
 
-  /** Humeur 0-100 : moyenne des besoins, pondérée par la santé. */
+  /** Mood 0-100: average of the needs, weighted by health. */
   get mood() {
     return this._average() * (0.5 + (0.5 * this.values.health) / 100);
   }
 
-  /** Besoin le plus pressant (`health` prioritaire), ou null. */
+  /** Most pressing need (`health` takes priority), or null. */
   urgent() {
     if (this.values.health < URGENT_HEALTH_BELOW) return 'health';
     let lowest = null;
@@ -238,7 +238,7 @@ export class Needs {
     return out;
   }
 
-  /** Restaure des jauges sauvegardées ; toute valeur absente ou invalide garde sa valeur courante. */
+  /** Restores saved gauges; any missing or invalid value keeps its current one. */
   restore(saved) {
     if (!saved || typeof saved !== 'object') return;
     for (const g of ALL_GAUGES) {

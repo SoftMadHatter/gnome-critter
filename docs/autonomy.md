@@ -1,54 +1,54 @@
-# Autonomie
+# Autonomy
 
-Un animal autonome couvre lui-même une partie de ses besoins : il chasse des
-proies, grignote des plantes et se sert dans une gamelle, et ses besoins
-baissent plus lentement. Le modèle est dans `core/autonomy.js`, `core/prey.js`
-et `core/items.js` (purs et testés).
+An autonomous critter covers part of its own needs: it hunts prey, nibbles
+plants, and helps itself from a bowl, and its needs drop more slowly. The
+model lives in `core/autonomy.js`, `core/prey.js`, and `core/items.js` (pure
+and tested).
 
-## Niveau d'autonomie (0 à 1)
+## Autonomy level (0 to 1)
 
-Réglage « Autonomie » (préférences, page Besoins et vie), appliqué à chaud :
+"Autonomy" setting (preferences, Needs and life page), applied live:
 
-- **Auto** (défaut) : suit la croissance et l'apprentissage. Bébé 0, jeune 0,4,
-  adulte et senior 0,7, plus 0,1 par tour appris (jusqu'à +0,3). Un œuf ou un
-  animal qui hiberne : 0.
-- **Désactivée** (0), **Partielle** (0,5), **Totale** (1) : forcent le niveau.
+- **Auto** (default): follows growth and training. Baby 0, young 0.4, adult
+  and senior 0.7, plus 0.1 per trick learned (up to +0.3). An egg or a
+  hibernating critter: 0.
+- **Disabled** (0), **Partial** (0.5), **Full** (1): force the level.
 
-Effets : les besoins baissent plus lentement (à autonomie 1, à 20 % de leur
-vitesse, jamais nulle) ; la négligence qui mène à l'hibernation ne s'accumule
-plus (« aucun enjeu ») ; le tirage d'activités gagne deux candidats,
-**chasser** et **grignoter**, pondérés par le niveau et par la faim.
+Effects: needs drop more slowly (at autonomy 1, at 20% of their speed, never
+zero); the neglect that leads to hibernation no longer accumulates ("nothing
+at stake"); the activity draw gains two candidates, **hunt** and **nibble**,
+weighted by the level and by hunger.
 
-## Proies
+## Prey
 
-Petites créatures sur le bureau, propres à chaque espèce (section
-`needs.prey` du pack : `{ "mouse": 40 }` donne la proie et le gain de satiété) :
-souris (chat), scarabée (oiseau), puceron (insecte), krill flottant (poisson).
+Small creatures on the desktop, specific to each species (the pack's
+`needs.prey` section: `{ "mouse": 40 }` gives the prey and its satiety gain):
+mouse (cat), beetle (bird), aphid (insect), floating krill (fish).
 
-- Elles **flânent** sur les surfaces (marche, pauses, demi-tour aux bords),
-  **fuient** un animal à moins de 110 px et le curseur à moins de 80 px (plus
-  vite que leur marche), et disparaissent après 10 minutes.
-- **Apparition automatique** (réglage « Proies automatiques ») : toutes les 60
-  à 180 s, au plus 3 à la fois, tant qu'un animal a plus de 0,3 d'autonomie.
-  « Lâcher une proie » dans « Bureau… » en dépose une près du curseur. Elles se
-  déplacent à la souris comme les autres objets.
-- **Chasse** : l'animal autonome affamé poursuit la proie (12 s au plus) ; à
-  14 px il l'attrape, elle se fige, il la mange et gagne le gain de la proie.
-  Une proie qui s'échappe ou disparaît : il abandonne, sans conséquence.
-  Compteur `hunts` (succès « Chasseur de souris », etc.).
+- They **wander** on surfaces (walking, pauses, turning around at edges),
+  **flee** a critter within 110 px and the cursor within 80 px (faster than
+  their walk), and disappear after 10 minutes.
+- **Automatic spawning** (the "Automatic prey" setting): every 60 to 180 s,
+  at most 3 at a time, as long as a critter has more than 0.3 autonomy.
+  "Drop a prey" in "Desktop…" places one near the cursor. They move with the
+  mouse like other objects.
+- **Hunting**: a hungry autonomous critter chases the prey (12 s at most); at
+  14 px it catches it, the prey freezes, the critter eats it and gains the
+  prey's gain. A prey that escapes or disappears: the critter gives up, with
+  no consequence. `hunts` counter ("Mouse Hunter" achievement, etc.).
 
-## Plantes décoratives
+## Decorative plants
 
-Herbe (chat), baies (oiseau), feuille (insecte), algue flottante (poisson) : trois
-portions, une **repousse toutes les 5 minutes**, ne disparaissent jamais. Deux
-sont maintenues automatiquement (réglage « Plantes décoratives »), on peut en
-poser d'autres (« Poser une plante »). Petit gain de satiété défini dans
-`needs.diet`. Compteur `grazes`. Seuls les animaux autonomes les grignotent.
+Grass (cat), berries (bird), leaf (insect), floating algae (fish): three
+portions, one **regrows every 5 minutes**, they never disappear. Two are kept
+automatically (the "Decorative plants" setting), more can be placed
+("Place a plant"). Small satiety gain defined in `needs.diet`. `grazes`
+counter. Only autonomous critters nibble them.
 
-## Gamelle moisie
+## Moldy bowl
 
-Une gamelle dont la nourriture n'est pas renouvelée moisit après **24 h** (tas
-verdâtre et duveteux, au niveau restant) : la manger fait perdre 20 points de santé (et l'animal a un aspect
-malade) ; **6 h plus tard**, le contenu disparaît (la gamelle reste). La remplir
-remet le compteur à zéro. Un animal autonome (niveau 0,5 et plus) évite la
-nourriture moisie ; un animal qui dépend de toi la mange.
+A bowl whose food isn't refreshed goes moldy after **24 h** (a greenish,
+fuzzy pile, at the remaining level): eating it costs 20 health points (and
+the critter looks sick); **6 h later**, the contents disappear (the bowl
+remains). Refilling it resets the counter. An autonomous critter (level 0.5
+and above) avoids moldy food; a critter that depends on you eats it anyway.

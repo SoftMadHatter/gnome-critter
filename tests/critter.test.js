@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { Critter, State, Locomotion, weightedChoice, behaviorOverrides } from '../core/critter.js';
 import { computeSurfaces } from '../core/surfaceMap.js';
 
-/** RNG déterministe pour des tests reproductibles (retourne toujours la même
- * séquence quel que soit l'ordre d'appel dans un test donné). */
+/** Deterministic RNG for reproducible tests (always returns the same
+ * sequence regardless of the call order within a given test). */
 function fixedRandom(...values) {
   let i = 0;
   return () => values[Math.min(i++, values.length - 1)];
@@ -100,8 +100,8 @@ test('un critter posé sur un rebord de fenêtre retombe quand la fenêtre est f
   assert.equal(snapshot.state, State.IDLE);
   assert.equal(snapshot.y, 300);
 
-  // La fenêtre disparaît (fermée) : le rebord mémorisé n'existe plus dans
-  // les surfaces recalculées à ce tick.
+  // The window disappears (closed): the remembered ledge no longer exists
+  // in the surfaces recomputed for this tick.
   surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
 
@@ -120,8 +120,8 @@ test('un critter posé sur un rebord retombe quand la fenêtre est déplacée so
   }
   assert.equal(snapshot.state, State.IDLE);
 
-  // La fenêtre glisse loin sur la droite : le rebord (même id) ne passe
-  // plus sous le critter.
+  // The window slides far to the right: the ledge (same id) no longer
+  // passes under the critter.
   surfaces = computeSurfaces({ monitors: [monitor], windows: [{ ...win, x: 900 }] });
   snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
 
@@ -164,7 +164,7 @@ test("un critter WALL+CEILING lâché contre le bord d'une fenêtre s'accroche e
       random: fixedRandom(0.9),
       supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]),
     },
-    { x: 400, y: 250 }, // déjà au niveau du mur gauche de la fenêtre (x1=400, y in [200,300])
+    { x: 400, y: 250 }, // already at the level of the window's left wall (x1=400, y in [200,300])
   );
 
   const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
@@ -181,8 +181,8 @@ test("un critter WALL+CEILING s'accroche sous le dessous d'une fenêtre (CEILING
       random: fixedRandom(0.9),
       supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL, Locomotion.CEILING]),
     },
-    // Juste sous le bas de la fenêtre (win.y + height = 300) : la chute
-    // franchit ce seuil dès le premier tick et vient s'y accrocher.
+    // Just below the window's bottom (win.y + height = 300): the fall
+    // crosses this threshold on the very first tick and latches on there.
     { x: 400, y: 300 },
   );
 
@@ -196,8 +196,8 @@ test("un critter WALL+CEILING s'accroche sous le dessous d'une fenêtre (CEILING
   assert.equal(snapshot.y, 300);
   assert.equal(critter.currentSurface.type, 'ceiling');
   assert.equal(critter.currentSurface.surfaceId, 'w1');
-  // Repart vers le centre du dessous de fenêtre, pas vers le bord duquel il
-  // vient de grimper (sinon il en retomberait aussitôt).
+  // Heads back toward the center of the window's underside, not the edge it
+  // just climbed (otherwise it would immediately fall off it).
   assert.equal(critter.facing, 1);
 });
 
@@ -542,8 +542,8 @@ test('GREET déclenche aussi "greeted" sur la cible, pas seulement sur l\'initia
   });
   assert.equal(initiatorSnapshot.event, 'greeted', "l'initiateur réagit immédiatement, dans son propre tick");
 
-  // interact() diffère via _pendingEvent : il faut un tick de la CIBLE pour
-  // voir l'événement apparaître dans son propre snapshot.
+  // interact() defers via _pendingEvent: the TARGET needs a tick of its own
+  // for the event to appear in its own snapshot.
   const targetSnapshot = target.tick(1 / 60, surfaces, { worldBounds: monitor });
   assert.equal(targetSnapshot.event, 'greeted', 'la cible réagit aussi, à son tick suivant');
 });
@@ -853,7 +853,7 @@ test("la cible accepte de fuir si fleeWeight l'emporte et le poursuivant est pro
 
 test('la cible ignore la fuite si le poursuivant est loin et un autre candidat domine', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
-  const chaser = new Critter({}, { x: 5000, y: monitor.height }); // très loin
+  const chaser = new Critter({}, { x: 5000, y: monitor.height }); // very far
 
   const target = new Critter(
     {
@@ -882,7 +882,7 @@ test('la cible ignore la fuite si le poursuivant est loin et un autre candidat d
 
 test('FLEE éloigne le critter de _fleeFrom, clampé à la surface', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
-  const chaser = new Critter({}, { x: 10, y: monitor.height }); // à gauche
+  const chaser = new Critter({}, { x: 10, y: monitor.height }); // on the left
 
   const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 300 }, { x: 20, y: monitor.height });
   critter.currentSurface = { type: 'ground', x1: 0, x2: 1000, y: monitor.height };
@@ -924,7 +924,7 @@ test('CHASE suit _chaseTarget (référence live) et, une fois rattrapée, pose g
   assert.equal(chaserSnapshot.state, State.IDLE);
   assert.equal(chaserSnapshot.event, 'greeted');
 
-  // La cible reçoit l'événement à SON prochain tick (interact()/_pendingEvent).
+  // The target receives the event on ITS next tick (interact()/_pendingEvent).
   const targetSnapshot = target.tick(1 / 60, surfaces, { worldBounds: monitor });
   assert.equal(targetSnapshot.event, 'greeted');
 });
@@ -1044,7 +1044,7 @@ test('FLY vole jusqu\'à une surface et s\'y pose, sans jamais passer par FALL',
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
   const critter = new Critter({ random: fixedRandom(0.9), flySpeed: 200 }, { x: 500, y: 100 });
   critter.state = State.FLY;
-  critter.stateTimer = 0.01; // la durée ne compte plus : seule l'arrivée termine le vol
+  critter.stateTimer = 0.01; // duration no longer matters: only arrival ends the flight
 
   const seen = new Set();
   let snapshot;
@@ -1113,8 +1113,8 @@ test('SWIM ondule perpendiculairement à sa trajectoire, contrairement à FLY qu
   swimmer.state = State.SWIM;
   swimmer.stateTimer = 10;
   swimmer.walkTargetX = 900;
-  swimmer._flyTargetY = 500; // même hauteur : sans ondulation, y resterait à 500
-  swimmer._roamTimer = 1000; // pas de reciblage pendant le test
+  swimmer._flyTargetY = 500; // same height: without undulation, y would stay at 500
+  swimmer._roamTimer = 1000; // no retargeting during the test
 
   const swimSnapshot = swimmer.tick(1 / 60, {}, { worldBounds: monitor });
   assert.notEqual(swimSnapshot.y, 500, 'devrait dévier verticalement malgré une cible à la même hauteur');
@@ -1221,8 +1221,8 @@ test("atterrir dans une zone d'eau initialise correctement SWIM (ne retombe pas 
   }
   assert.equal(snapshot.state, State.SWIM);
 
-  // Un tick de plus : ne doit PAS retomber immédiatement en FALL (bug visé
-  // par le correctif : stateTimer/_roamTimer bien initialisés à l'entrée).
+  // One more tick: must NOT immediately fall back to FALL (the bug the fix
+  // targeted: stateTimer/_roamTimer properly initialized on entry).
   const nextSnapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
   assert.equal(nextSnapshot.state, State.SWIM);
 });
@@ -1231,11 +1231,11 @@ test('behaviorOverrides garde les nombres et intervalles connus, écarte le rest
   const { config, ignored } = behaviorOverrides({
     sleepWeight: 15,
     idleDuration: [0.5, 1.5],
-    inconnue: 3, // clé absente de DEFAULT_CONFIG
-    washWeight: 'beaucoup', // mauvais type
-    walkDuration: [1, 2, 3], // intervalle mal formé
-    random: 0.5, // fonction côté cœur : jamais surchargeable depuis un JSON
-    supportedSurfaces: ['air'], // Set côté cœur : idem
+    inconnue: 3, // key absent from DEFAULT_CONFIG
+    washWeight: 'beaucoup', // wrong type
+    walkDuration: [1, 2, 3], // malformed interval
+    random: 0.5, // core-side function: never overridable from JSON
+    supportedSurfaces: ['air'], // core-side Set: same
   });
 
   assert.deepEqual(config, { sleepWeight: 15, idleDuration: [0.5, 1.5] });
@@ -1255,7 +1255,7 @@ test("une espèce aquatique pure enchaîne les nages au lieu de retomber en fin 
     { x: 500, y: 200 },
   );
   critter.state = State.SWIM;
-  critter.stateTimer = 0.01; // expire dès le premier tick
+  critter.stateTimer = 0.01; // expires on the very first tick
 
   const snapshot = critter.tick(1 / 60, {}, { worldBounds: monitor });
 
@@ -1325,7 +1325,7 @@ test("fermer la fenêtre de départ pendant un vol ne fait pas tomber l'animal",
   assert.equal(critter.state, State.FLY);
 });
 
-// --- Allures rapides, piqué et nage moins nerveuse ---------------------------
+// --- Fast gaits, diving, and less jittery swimming ---------------------------
 
 const groundSeg = computeSurfaces({ monitors: [monitor], windows: [] }).segments.find((s) => s.type === 'ground');
 
@@ -1472,7 +1472,7 @@ test('nage : chaque reciblage tourne de 60 degrés au plus et reste dans les bor
   }
 });
 
-// --- Réveil ----------------------------------------------------------------
+// --- Waking up ----------------------------------------------------------------
 
 function sleepingCritter() {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
@@ -1533,7 +1533,7 @@ test('une fenêtre déplacée sous les pieds réveille (chute)', () => {
   assert.notEqual(c.state, State.SLEEP);
 });
 
-// --- Besoins ----------------------------------------------------------------
+// --- Needs ----------------------------------------------------------------
 
 function idleOnGround(config) {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
@@ -1550,7 +1550,7 @@ function idleOnGround(config) {
 test('énergie basse : le sommeil est choisi ; énergie pleine : il devient très improbable', () => {
   const tired = idleOnGround({});
   tired.c.needs.values.energy = 5;
-  tired.c.needs.values.cleanliness = 95; // lavage écarté
+  tired.c.needs.values.cleanliness = 95; // washing ruled out
   assert.equal(tired.c.tick(1 / 60, tired.surfaces, { worldBounds: monitor }).state, State.SLEEP);
 
   const rested = idleOnGround({});
@@ -1624,7 +1624,7 @@ test('serialize/restore emportent les jauges, avec rattrapage hors ligne', () =>
   assert.equal(vacation.needs.values.satiety, 50);
 });
 
-// --- Nourriture, gamelle, lit ------------------------------------------------
+// --- Food, bowl, bed ------------------------------------------------
 
 import { createItem, tickItem, fillBowl } from '../core/items.js';
 
@@ -1826,7 +1826,7 @@ test("un oiseau décolle vers un lit posé sur une autre surface", () => {
   assert.equal(c.tick(1 / 30, surfaces, { worldBounds: monitor, items: [bed] }).state, State.FLY);
 });
 
-// --- Jeu, laser, caresses, brossage -----------------------------------------
+// --- Play, laser, petting, brushing -----------------------------------------
 
 function playerOf(config, items, surfaces) {
   const c = new Critter(
@@ -1980,7 +1980,7 @@ test('on ne brosse pas un animal en vol ou en chute', () => {
   assert.equal(c.state, State.FALL);
 });
 
-// --- Réapparition hors écran ---------------------------------------------------
+// --- Reappearing off-screen ---------------------------------------------------
 
 test('hors de tout moniteur, l\'animal réapparaît en haut du plus proche et retombe', () => {
   const monitors = [{ x: 0, y: 0, width: 1000, height: 500 }];
@@ -2072,7 +2072,7 @@ test('après une veille, une espèce sans sol n\'est pas déplacée', () => {
   assert.equal(fish.y, 200);
 });
 
-// --- Vie : œuf, stades, personnalité, hibernation --------------------------------
+// --- Life: egg, stages, personality, hibernation --------------------------------
 
 import { Life } from '../core/life.js';
 
@@ -2151,7 +2151,7 @@ test('le caractère joue sur les débits de besoins', () => {
 });
 
 test("négligence prolongée : hibernation ; un clic réveille et remonte les jauges", () => {
-  const { c, surfaces } = groundedCritter({ autonomyMode: 'off' }); // un animal autonome ne tombe pas dans la négligence
+  const { c, surfaces } = groundedCritter({ autonomyMode: 'off' }); // an autonomous critter doesn't fall into neglect
   c.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
   c.y = monitor.height;
   c.state = State.IDLE;
@@ -2282,7 +2282,7 @@ test("un œuf en chute n'a aucun événement visible non plus (atterrissage)", (
   assert.ok(events.every((e) => e === null));
 });
 
-// --- Rythme du monde ---------------------------------------------------------------
+// --- World rhythm ---------------------------------------------------------------
 
 function worldCritter(config = {}) {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
@@ -2424,11 +2424,11 @@ test('œuf et hibernation ignorent tout le contexte du monde', () => {
   assert.equal(sleeper.c.state, State.HIBERNATE);
 });
 
-// --- Compteurs et succès ---------------------------------------------------------------
+// --- Counters and achievements ---------------------------------------------------------------
 
 import { buildAchievements, CAPABILITIES } from '../core/achievements.js';
 
-/** Succès écrits pour le test seuls (sans la bibliothèque commune), pour une espèce qui sait tout faire. */
+/** Achievements written for the test alone (without the shared library), for a species that can do everything. */
 function defsOf(entries) {
   const profile = { can: new Set(CAPABILITIES), diet: ['fish', 'meat'], toys: ['ball', 'yarn', 'plush'], tricks: ['sit'] };
   const { critter, ignored } = buildAchievements(entries, profile, []);
@@ -2491,7 +2491,7 @@ test('entrées dans un état : escalade, vol, piqué, course ; plus longue siest
 
   c.state = State.SLEEP;
   c.stateTimer = 1e9;
-  c._trackProgress(0.1, State.IDLE); // entrée dans la sieste
+  c._trackProgress(0.1, State.IDLE); // entering a nap
   assert.equal(c.stats.get('naps'), 1);
   for (let i = 0; i < 10; i++) c.tick(60, surfaces, { worldBounds: monitor });
   assert.ok(c.stats.get('longestSleepSeconds') >= 540);
@@ -2559,7 +2559,7 @@ test('un œuf ne compte ni ne débloque rien', () => {
   assert.deepEqual(c.takeUnlocked(), []);
 });
 
-// --- Autonomie : chasse, grignotage, moisissure ------------------------------------
+// --- Autonomy: hunting, nibbling, mold ------------------------------------
 
 function hunterOf(config = {}) {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
@@ -2581,7 +2581,7 @@ function restingPrey(surfaces, kind, x) {
   const p = createItem('prey', kind, x, 500);
   p.surface = surfaces.segments.find((s) => s.type === 'ground');
   p.wanderTimer = 1e9;
-  p.paused = true; // immobile pour un test déterministe
+  p.paused = true; // motionless for a deterministic test
   return p;
 }
 
@@ -2718,11 +2718,11 @@ test('autonomie : besoins ralentis, et pas d’hibernation', () => {
   assert.equal(c.snapshot().autonomy, 0);
 });
 
-// --- Bouchées et nouveaux jouets ------------------------------------------------
+// --- Bites and new toys ------------------------------------------------
 
 test('un animal presque repu mange une bouchée et laisse un reste entamé', () => {
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
-  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces); // préféré : 2 bouchées de 30
+  const fish = settleItem(createItem('food', 'fish', 250, 50), surfaces); // favorite: 2 bites of 30
   const c = idleWithItems({ needsRateScale: 0 }, [fish], surfaces);
   c.needs.values.satiety = 60;
   const seen = run(c, surfaces, [fish], 30, (snap) => snap.event === 'ate');
@@ -2769,7 +2769,7 @@ test("un poisson qui s'ennuie va pousser l'anneau flottant", () => {
   assert.equal(c.lastEvent, 'played');
 });
 
-// --- Étape 15 : compteurs, marques, titres ------------------------------------------------
+// --- Counters, marks, titles ------------------------------------------------------
 
 test('bêtises : œuf caressé, chatouilles, survols, caresse en plein repas, sommeil dérangé', () => {
   const egg = worldCritter();

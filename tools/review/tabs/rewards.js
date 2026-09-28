@@ -1,5 +1,5 @@
-// Onglet « Récompenses » : boîtes du Comité (lots, probabilités, simulation),
-// budget de pièces de l'espèce, trophées et accessoires ridicules.
+// "Rewards" tab: the Committee's loot boxes (prizes, probabilities,
+// simulation), the species' coin budget, trophies and ridiculous accessories.
 
 import { h, table, badge, percent } from '../dom.js';
 import { BOX_TABLES, boxLabel, openBox } from '../../../core/lootBoxes.js';

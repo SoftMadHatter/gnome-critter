@@ -1,13 +1,13 @@
-// Libellés affichés (compteurs, rubriques de succès, stades, caractères,
-// objets) et mise en forme des durées. Les tables gardent les textes source
-// (français, marqués N_ pour l'extraction) ; les fonctions traduisent au
-// moment de l'affichage, une fois la langue connue (voir core/i18n.js).
-// Module pur : partagé par l'extension, les tests et l'outil de revue.
+// Displayed labels (counters, achievement categories, stages, traits,
+// items) and duration formatting. The tables keep the source texts
+// (French, marked with N_ for extraction); the functions translate at
+// display time, once the language is known (see core/i18n.js). Pure
+// module: shared by the extension, the tests and the review tool.
 
 import { _, N_, fmt } from './i18n.js';
 import { FOOD_PRICES } from './accessories.js';
 
-/** Compteurs et faits d'un animal. */
+/** An animal's counters and facts. */
 export const STAT_LABELS = {
   meals: N_('Repas'),
   mealsFavorite: N_('Repas préférés'),
@@ -64,7 +64,7 @@ export const STAT_LABELS = {
   achievementsUnlocked: N_('Succès obtenus'),
 };
 
-/** Compteurs et faits du joueur (succès « Toi »). */
+/** The player's counters and facts ("You" achievements). */
 export const PLAYER_STAT_LABELS = {
   menuOpens: N_('Ouvertures du menu'),
   contextMenuOpens: N_("Ouvertures du menu d'un animal"),
@@ -85,7 +85,7 @@ export const PLAYER_STAT_LABELS = {
   accessoriesOwned: N_('Accessoires possédés'),
 };
 
-/** Familles de marques (conditions `marks` des succès). */
+/** Mark families (`marks` conditions of achievements). */
 export const MARK_FAMILY_LABELS = {
   food: N_('Aliments goûtés'),
   toy: N_('Jouets essayés'),
@@ -100,7 +100,7 @@ export const MARK_FAMILY_LABELS = {
   shop: N_('Boutique'),
 };
 
-/** Rubriques de la fenêtre de progression. */
+/** Categories of the progress window. */
 export const CATEGORY_LABELS = {
   care: N_('Soins'),
   play: N_('Jeu'),
@@ -154,33 +154,33 @@ export const bowlLabel = (model) => label(BOWL_LABELS, model);
 export const preyLabel = (kind) => label(PREY_LABELS, kind);
 export const plantLabel = (kind) => label(PLANT_LABELS, kind);
 
-/** Libellé d'un aliment avec son prix (aliments premium seulement), pour `portions` portions. */
+/** Label of a food with its price (premium foods only), for `portions` portions. */
 export function foodLabel(kind, portions = 1) {
   const price = (FOOD_PRICES[kind] ?? 0) * portions;
   const name = label(FOOD_LABELS, kind);
   return price > 0 ? fmt(_('{food} ({price} pièces)'), { food: name, price }) : name;
 }
 
-/** Durée compacte : « 12 min », « 45 s ». */
+/** Compact duration: "12 min", "45 s". */
 export function formatSeconds(seconds) {
   return seconds >= 60 ? fmt(_('{n} min'), { n: Math.floor(seconds / 60) }) : fmt(_('{n} s'), { n: seconds });
 }
 
-/** Durée longue : « 3 h 20 min », « 12 min ». */
+/** Long duration: "3 h 20 min", "12 min". */
 export function formatDuration(seconds) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   return hours > 0 ? fmt(_('{h} h {m} min'), { h: hours, m: minutes }) : fmt(_('{n} min'), { n: minutes });
 }
 
-/** Valeur d'un compteur dans l'onglet des statistiques. */
+/** Value of a counter in the statistics tab. */
 export function statValue(key, value) {
   if (key === 'longestSleepSeconds') return formatSeconds(value);
   if (key === 'sleepSeconds') return formatDuration(value);
   return String(value);
 }
 
-/** Date courte du journal : « 12/09 14:30 ». */
+/** Short journal date: "12/09 14:30". */
 export function formatJournalDate(ms) {
   const d = new Date(ms);
   const two = (n) => String(n).padStart(2, '0');
@@ -189,14 +189,14 @@ export function formatJournalDate(ms) {
   });
 }
 
-/** Âge compact : « 12 min », « 5 h », « 3 j ». */
+/** Compact age: "12 min", "5 h", "3 j" (day, in the French text). */
 export function formatAge(seconds) {
   if (seconds < 3600) return fmt(_('{n} min'), { n: Math.floor(seconds / 60) });
   if (seconds < 48 * 3600) return fmt(_('{n} h'), { n: Math.floor(seconds / 3600) });
   return fmt(_('{n} j'), { n: Math.floor(seconds / 86400) });
 }
 
-/** « Adulte, joueur, choyé, 3 j » (+ « hibernation » le cas échéant). */
+/** "Adult, playful, devoted, 3 d" (+ "hibernating" if applicable). */
 export function lifeSummary(life) {
   const parts = [stageLabel(life.stage)];
   if (life.trait) parts.push(traitLabel(life.trait));

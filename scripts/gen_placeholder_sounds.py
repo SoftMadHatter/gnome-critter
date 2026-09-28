@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Génère des bips *placeholder* pour les réactions des packs d'animaux.
+"""Generates *placeholder* beeps for animal packs' reactions.
 
-Pas des sons définitifs : juste de quoi entendre une différence entre
-réactions (et entre espèces) tout de suite. Aucune dépendance externe
-(module stdlib `wave` uniquement, PCM 16 bits écrit directement).
+Not final sounds: just enough to hear a difference between reactions (and
+between species) right away. No external dependency (stdlib `wave` module
+only, 16-bit PCM written directly).
 
-Usage : python3 scripts/gen_placeholder_sounds.py [espèce ...]
-        (toutes les espèces par défaut : critter-demo, cat, bug, fish, bird)
+Usage: python3 scripts/gen_placeholder_sounds.py [species ...]
+       (all species by default: critter-demo, cat, bug, fish, bird)
 """
 
 import math
@@ -18,19 +18,19 @@ from pathlib import Path
 RATE = 44100
 PACKS_DIR = Path(__file__).resolve().parent.parent / "packs"
 
-# Facteur de hauteur appliqué à toutes les fréquences d'une espèce : les
-# mêmes 6 réactions, transposées (1.0 = sons d'origine du pack démo).
+# Pitch factor applied to every frequency of a species: the same 6
+# reactions, transposed (1.0 = the demo pack's original sounds).
 SPECIES_PITCH = {
     "critter-demo": 1.0,
     "cat": 0.85,
-    "bug": 2.2,  # très aigu, petit insecte
-    "fish": 0.55,  # grave, façon bulles
-    "bird": 1.7,  # gazouillis
+    "bug": 2.2,  # very high-pitched, small insect
+    "fish": 0.55,  # low, bubble-like
+    "bird": 1.7,  # chirping
 }
 
 
 def envelope(i, n, attack=0.05, release=0.3):
-    """Fondu d'entrée/sortie linéaire pour éviter les clics au début/fin."""
+    """Linear fade in/out to avoid clicks at the start/end."""
     t = i / n
     if t < attack:
         return t / attack
@@ -54,7 +54,7 @@ def sawtooth(phase):
 
 
 def chirp(freq_start, freq_end, duration, wave_fn=math.sin, amplitude=0.4):
-    """Glissando linéaire freq_start -> freq_end."""
+    """Linear glissando freq_start -> freq_end."""
     n = int(RATE * duration)
     samples = []
     phase = 0.0
@@ -84,17 +84,17 @@ def write_wav(path, samples):
 
 
 SOUNDS = {
-    # Petit chirp montant, agréable : caresse.
+    # Small rising chirp, pleasant: pet.
     "petted.wav": lambda p: chirp(500 * p, 900 * p, 0.15),
-    # Deux petits chirps montants rapprochés : double-clic.
+    # Two small rising chirps close together: double click.
     "tickled.wav": lambda p: concat(chirp(600 * p, 1000 * p, 0.08), chirp(600 * p, 1000 * p, 0.08)),
-    # Buzz grave descendant, dents de scie : agacement.
+    # Descending low sawtooth buzz: annoyance.
     "annoyed.wav": lambda p: chirp(300 * p, 150 * p, 0.25, wave_fn=sawtooth, amplitude=0.3),
-    # Bip court et doux : remarqué.
+    # Short, soft beep: noticed.
     "noticed.wav": lambda p: tone(700 * p, 0.1, amplitude=0.3),
-    # Chirp montant bref et aigu : sursaut (nouvelle fenêtre).
+    # Brief, high rising chirp: startled (new window).
     "startled.wav": lambda p: chirp(700 * p, 1400 * p, 0.1, amplitude=0.45),
-    # Deux notes amicales, la seconde plus haute : salutation entre critters.
+    # Two friendly notes, the second one higher: greeting between critters.
     "greeted.wav": lambda p: concat(tone(600 * p, 0.08, amplitude=0.35), tone(800 * p, 0.1, amplitude=0.35)),
 }
 
@@ -103,7 +103,7 @@ def main():
     requested = sys.argv[1:] or list(SPECIES_PITCH)
     unknown = [s for s in requested if s not in SPECIES_PITCH]
     if unknown:
-        sys.exit(f"espèce(s) inconnue(s) : {', '.join(unknown)} (connues : {', '.join(SPECIES_PITCH)})")
+        sys.exit(f"unknown species: {', '.join(unknown)} (known: {', '.join(SPECIES_PITCH)})")
     for species in requested:
         out_dir = PACKS_DIR / species / "sounds"
         for filename, gen in SOUNDS.items():
