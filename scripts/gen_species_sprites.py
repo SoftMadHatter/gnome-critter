@@ -221,46 +221,75 @@ CAT_PINK = c(235, 140, 160)
 CAT_OUT = c(38, 38, 52)
 
 
-def cat_head(d, x, y, p, tilt=0):
-    blob(d, (x, y, x + 12, y + 12), CAT_BASE, CAT_DARK, CAT_LIGHT)
+def cat_head(d, x, y, p, tilt=0, scale=1.0):
+    """Drawn around its own origin `(x, y)`: at `scale != 1` every offset from
+    that origin shrinks/grows with it, so a caller can grow or shrink just the
+    head by picking where `(x, y)` lands (see `draw_cat`'s stage handling)."""
+    X, Y = lambda dx: x + dx * scale, lambda dy: y + dy * scale  # noqa: E731
+    blob(d, (X(0), Y(0), X(12), Y(12)), CAT_BASE, CAT_DARK, CAT_LIGHT)
     if p.ears == "back":
-        d.polygon([(x + 1, y + 4), (x - 2, y - 1), (x + 6, y + 1)], fill=CAT_DARK)
-        d.polygon([(x + 7, y + 1), (x + 13, y - 1), (x + 12, y + 4)], fill=CAT_DARK)
+        d.polygon([(X(1), Y(4)), (X(-2), Y(-1)), (X(6), Y(1))], fill=CAT_DARK)
+        d.polygon([(X(7), Y(1)), (X(13), Y(-1)), (X(12), Y(4))], fill=CAT_DARK)
     else:
-        d.polygon([(x + 1, y + 4), (x + 1, y - 4), (x + 6, y + 1)], fill=CAT_BASE)
-        d.polygon([(x + 2, y + 3), (x + 2, y - 1), (x + 4, y + 1)], fill=CAT_PINK)
-        d.polygon([(x + 7, y + 1), (x + 12, y - 4), (x + 12, y + 4)], fill=CAT_BASE)
-        d.polygon([(x + 9, y + 1), (x + 11, y - 1), (x + 11, y + 3)], fill=CAT_PINK)
-    eye(d, x + 7, y + 5, p.eyes)
-    d.point((x + 11, y + 8), fill=CAT_PINK)
-    d.line((x + 9, y + 10, x + 11, y + 10), fill=CAT_DARK) if p.mouth else None
-    d.point((x + 11, y + 10), fill=CAT_DARK)
+        d.polygon([(X(1), Y(4)), (X(1), Y(-4)), (X(6), Y(1))], fill=CAT_BASE)
+        d.polygon([(X(2), Y(3)), (X(2), Y(-1)), (X(4), Y(1))], fill=CAT_PINK)
+        d.polygon([(X(7), Y(1)), (X(12), Y(-4)), (X(12), Y(4))], fill=CAT_BASE)
+        d.polygon([(X(9), Y(1)), (X(11), Y(-1)), (X(11), Y(3))], fill=CAT_PINK)
+    eye(d, X(7), Y(5), p.eyes)
+    d.point((X(11), Y(8)), fill=CAT_PINK)
+    d.line((X(9), Y(10), X(11), Y(10)), fill=CAT_DARK) if p.mouth else None
+    d.point((X(11), Y(10)), fill=CAT_DARK)
 
 
-def draw_cat(img, d, p):
+# Ground-level point a life stage's body geometry scales around: a point
+# scaled around itself doesn't move, so anything already at that height
+# (the paws, on the ground) stays put while everything above it shrinks or
+# grows toward it. Shared by every cat pose that isn't `is_uniform_sheet`
+# (sleep/climb/rotated/hibernating poses keep the old whole-frame scaling,
+# which was never the broken one).
+CAT_BODY_PIVOT = (14, 29)
+
+
+def _pivot_pt(pivot, pt, scale):
+    px, py = pivot
+    x, y = pt
+    return (px + (x - px) * scale, py + (y - py) * scale)
+
+
+def draw_cat(img, d, p, body_scale=1.0, head_scale=1.0):
+    """`body_scale`/`head_scale` draw a life stage natively instead of
+    post-scaling a rendered adult frame (see docs on `CAT_BODY_PIVOT`):
+    every body coordinate scales around `CAT_BODY_PIVOT`, and the head is
+    then drawn at `cat_head`'s own `scale`, anchored on the exact point
+    that same pivot transform puts its attachment coordinate at -- so the
+    two always meet, however different the two scales are. At the default
+    1.0/1.0 this is pixel-identical to the un-scaled drawing."""
+    def B(pt):
+        return _pivot_pt(CAT_BODY_PIVOT, pt, body_scale)
+
     b = p.bob
     sq = p.squash
     # queue
     tip = 9 + b - p.tail * 2
-    d.line((5, 19 + b, 2, 15 + b, 3, tip), fill=CAT_DARK, width=2)
+    d.line((*B((5, 19 + b)), *B((2, 15 + b)), *B((3, tip))), fill=CAT_DARK, width=2)
     # pattes
     legs = leg_offsets(p.phase or 0, 6, p.stride, p.lift) if p.phase is not None else None
     for k, x in enumerate((7, 11, 18, 22)):
         if p.kind == "jump":
-            d.line((x, 24 + b, x + (-2 if k % 2 == 0 else 2), 28 + b), fill=CAT_DARK, width=2)
+            d.line((*B((x, 24 + b)), *B((x + (-2 if k % 2 == 0 else 2), 28 + b))), fill=CAT_DARK, width=2)
         elif legs is None:
-            d.line((x, 24 + b, x, 29), fill=CAT_DARK, width=2)
+            d.line((*B((x, 24 + b)), *B((x, 29))), fill=CAT_DARK, width=2)
         else:
             dx, up = legs[k]
-            d.line((x, 24 + b, x + dx, 29 - up), fill=CAT_DARK, width=2)
+            d.line((*B((x, 24 + b)), *B((x + dx, 29 - up))), fill=CAT_DARK, width=2)
     # corps
-    blob(d, (4, 13 + b + sq, 24, 27 + b), CAT_BASE, CAT_DARK, CAT_LIGHT)
+    blob(d, (*B((4, 13 + b + sq)), *B((24, 27 + b))), CAT_BASE, CAT_DARK, CAT_LIGHT)
     for x in (9, 13, 17):
-        d.line((x, 14 + b + sq, x + 1, 17 + b + sq), fill=CAT_DARK)
-    cat_head(d, 18, 6 + b + p.head, p)
+        d.line((*B((x, 14 + b + sq)), *B((x + 1, 17 + b + sq))), fill=CAT_DARK)
+    cat_head(d, *B((18, 6 + b + p.head)), p, scale=head_scale)
     if p.carry:
-        carry_item(d, 29, 14 + b + p.head)
-    mark(d, p.mark, 26, 0)
+        carry_item(d, *B((29, 14 + b + p.head)))
+    mark(d, p.mark, *B((26, 0)))
 
 
 def draw_cat_sleep(img, d, p):
@@ -275,15 +304,20 @@ def draw_cat_sleep(img, d, p):
     mark(d, p.mark, 24, 2)
 
 
-def draw_cat_wash(img, d, p):
-    """Sitting, licking a raised paw."""
-    blob(d, (6, 12, 21, 30), CAT_BASE, CAT_DARK, CAT_LIGHT)
-    d.line((5, 27, 1, 22, 2, 17), fill=CAT_DARK, width=2)
-    cat_head(d, 15, 3, pose(eyes="closed"))
+def draw_cat_wash(img, d, p, body_scale=1.0, head_scale=1.0):
+    """Sitting, licking a raised paw. `wash` isn't one of the states
+    `is_uniform_sheet` exempts from per-stage scaling, so it needs the same
+    native treatment as `draw_cat` (see `CAT_BODY_PIVOT`)."""
+    def B(pt):
+        return _pivot_pt(CAT_BODY_PIVOT, pt, body_scale)
+
+    blob(d, (*B((6, 12)), *B((21, 30))), CAT_BASE, CAT_DARK, CAT_LIGHT)
+    d.line((*B((5, 27)), *B((1, 22)), *B((2, 17))), fill=CAT_DARK, width=2)
+    cat_head(d, *B((15, 3)), pose(eyes="closed"), scale=head_scale)
     lift = p.lift
-    d.line((17, 19, 24, 12 + lift), fill=CAT_DARK, width=3)  # raised paw
+    d.line((*B((17, 19)), *B((24, 12 + lift))), fill=CAT_DARK, width=3)  # raised paw
     if p.mouth:
-        d.point((27, 13 + lift), fill=CAT_PINK)
+        d.point(B((27, 13 + lift)), fill=CAT_PINK)
 
 
 def draw_cat_climb(img, d, p):
@@ -327,33 +361,52 @@ BUG_LIGHT = c(150, 220, 130)
 BUG_LEG = c(40, 46, 36)
 
 
-def bug_legs(d, b, p, up=False):
+# Same idea as CAT_BODY_PIVOT: ground-level point the insect's body scales
+# around for a life stage (see `draw_bug`'s stage handling). Needed because
+# `stage_draw`'s caterpillar override only replaces the `baby` stage --
+# `young` still draws the adult beetle shape, natively scaled.
+BUG_BODY_PIVOT = (15, 29)
+
+
+def bug_legs(d, b, p, up=False, body_scale=1.0):
+    def B(pt):
+        return _pivot_pt(BUG_BODY_PIVOT, pt, body_scale)
+
     legs = leg_offsets(p.phase or 0, 6, 2, 2, offsets=(0, 0.5, 0)) if p.phase is not None else [(0, 0)] * 3
     for k, x in enumerate((9, 14, 19)):
         dx, lift = legs[k]
         if up:
-            d.line((x, 15 + b, x + dx - 1, 10 + b), fill=BUG_LEG)
+            d.line((*B((x, 15 + b)), *B((x + dx - 1, 10 + b))), fill=BUG_LEG)
         else:
-            d.line((x, 24 + b, x + dx - 1, 29 - lift), fill=BUG_LEG)
+            d.line((*B((x, 24 + b)), *B((x + dx - 1, 29 - lift))), fill=BUG_LEG)
 
 
-def draw_bug(img, d, p):
+def draw_bug(img, d, p, body_scale=1.0, head_scale=1.0):
+    """`body_scale`/`head_scale`: see `draw_cat`. The head anchor here is
+    the head box's bottom-right corner `(30, 25 + b)`, the one fixed point
+    in the original drawing that doesn't move with `p.head` -- so scaling
+    around it reproduces the un-scaled drawing exactly at 1.0/1.0."""
+    def B(pt):
+        return _pivot_pt(BUG_BODY_PIVOT, pt, body_scale)
+
     b = p.bob
     up = p.kind == "back"
-    bug_legs(d, b, p, up=up)
-    blob(d, (5, 13 + b + p.squash, 25, 27 + b), BUG_BASE, BUG_DARK, BUG_LIGHT)
-    d.line((15, 14 + b, 15, 25 + b), fill=BUG_DARK)  # wing-case split
-    d.point((11, 20 + b), fill=BUG_DARK)
-    d.point((19, 22 + b), fill=BUG_DARK)
+    bug_legs(d, b, p, up=up, body_scale=body_scale)
+    blob(d, (*B((5, 13 + b + p.squash)), *B((25, 27 + b))), BUG_BASE, BUG_DARK, BUG_LIGHT)
+    d.line((*B((15, 14 + b)), *B((15, 25 + b))), fill=BUG_DARK)  # wing-case split
+    d.point(B((11, 20 + b)), fill=BUG_DARK)
+    d.point(B((19, 22 + b)), fill=BUG_DARK)
     h = p.head
-    blob(d, (22, 16 + b + h, 30, 25 + b), c(84, 96, 74), c(58, 68, 52), c(120, 136, 104))
-    eye(d, 26, 19 + b + h, "open" if p.eyes == "blink" else p.eyes)
+    ax, ay = B((30, 25 + b))
+    HX, HY = lambda dx: ax + dx * head_scale, lambda dy: ay + dy * head_scale  # noqa: E731
+    blob(d, (HX(-8), HY(h - 9), HX(0), HY(0)), c(84, 96, 74), c(58, 68, 52), c(120, 136, 104))
+    eye(d, HX(-4), HY(h - 6), "open" if p.eyes == "blink" else p.eyes)
     if p.carry:
-        carry_item(d, 28, 22 + b + h)
+        carry_item(d, HX(-2), HY(h - 3))
     aw = -1 if p.tail < 0 else p.tail
-    d.line((27, 16 + b, 29, 11 + b - aw), fill=BUG_LEG)
-    d.line((25, 16 + b, 26, 11 + b + aw), fill=BUG_LEG)
-    mark(d, p.mark, 5, 1)
+    d.line((HX(-3), HY(-9), HX(-1), HY(-14 - aw)), fill=BUG_LEG)
+    d.line((HX(-5), HY(-9), HX(-4), HY(-14 + aw)), fill=BUG_LEG)
+    mark(d, p.mark, *B((5, 1)))
 
 
 def draw_bug_climb(img, d, p):
@@ -508,49 +561,67 @@ BIRD_BELLY = c(232, 232, 248)
 BIRD_BEAK = c(250, 176, 40)
 
 
-def bird_wing(d, b, wing):
+# Same idea as CAT_BODY_PIVOT (see `draw_cat`): ground-level point the
+# bird's body -- including the wings, which is what made the earlier
+# raster-mask attempt bleed onto them -- scales around for a life stage.
+BIRD_BODY_PIVOT = (14, 30)
+
+
+def bird_wing(d, b, wing, body_scale=1.0):
+    def B(pt):
+        return _pivot_pt(BIRD_BODY_PIVOT, pt, body_scale)
+
     if wing == "folded":
-        blob(d, (6, 15 + b, 17, 24 + b), BIRD_DARK, BIRD_DARK, BIRD_BASE)
+        blob(d, (*B((6, 15 + b)), *B((17, 24 + b))), BIRD_DARK, BIRD_DARK, BIRD_BASE)
     elif wing == "up":
-        d.polygon([(7, 15 + b), (17, 15 + b), (5, 1 + b), (3, 8 + b)], fill=BIRD_DARK)
-        d.line((6, 4 + b, 10, 14 + b), fill=BIRD_BASE)
+        d.polygon([B((7, 15 + b)), B((17, 15 + b)), B((5, 1 + b)), B((3, 8 + b))], fill=BIRD_DARK)
+        d.line((*B((6, 4 + b)), *B((10, 14 + b))), fill=BIRD_BASE)
     elif wing == "mid":
-        d.polygon([(6, 16 + b), (17, 16 + b), (0, 12 + b), (0, 16 + b)], fill=BIRD_DARK)
-        d.line((2, 14 + b, 12, 16 + b), fill=BIRD_BASE)
+        d.polygon([B((6, 16 + b)), B((17, 16 + b)), B((0, 12 + b)), B((0, 16 + b))], fill=BIRD_DARK)
+        d.line((*B((2, 14 + b)), *B((12, 16 + b))), fill=BIRD_BASE)
     elif wing == "down":
-        d.polygon([(7, 18 + b), (17, 18 + b), (4, 30), (2, 24)], fill=BIRD_DARK)
-        d.line((5, 24, 10, 19 + b), fill=BIRD_BASE)
+        d.polygon([B((7, 18 + b)), B((17, 18 + b)), B((4, 30)), B((2, 24))], fill=BIRD_DARK)
+        d.line((*B((5, 24)), *B((10, 19 + b))), fill=BIRD_BASE)
 
 
-def draw_bird(img, d, p):
+def draw_bird(img, d, p, body_scale=1.0, head_scale=1.0):
+    """`body_scale`/`head_scale`: see `draw_cat`. `(hx, hy)` is already the
+    head's own anchor point in the original drawing, so scaling around it
+    (once transformed through the body's own pivot) is exactly the
+    `draw_cat`/`cat_head` pattern."""
+    def B(pt):
+        return _pivot_pt(BIRD_BODY_PIVOT, pt, body_scale)
+
     b = p.bob
     flying = p.kind in ("fly", "flee")
-    d.polygon([(6, 18 + b), (0, 15 + b - p.tail), (0, 21 + b - p.tail), (5, 23 + b)], fill=BIRD_DARK)  # queue
+    d.polygon([B((6, 18 + b)), B((0, 15 + b - p.tail)), B((0, 21 + b - p.tail)), B((5, 23 + b))], fill=BIRD_DARK)  # queue
     if not flying and p.kind != "sleep":
         legs = leg_offsets(p.phase or 0, 6, 2, 2, offsets=(0, 0.5)) if p.phase is not None else [(0, 0)] * 2
         for k, x in enumerate((12, 17)):
             dx, up = legs[k]
-            d.line((x, 25 + b, x + dx, 30 - up), fill=BIRD_BEAK)
+            d.line((*B((x, 25 + b)), *B((x + dx, 30 - up))), fill=BIRD_BEAK)
     elif flying:
-        d.line((12, 25 + b, 11, 28 + b), fill=BIRD_BEAK)
-        d.line((16, 25 + b, 17, 28 + b), fill=BIRD_BEAK)
-    blob(d, (5, 13 + b, 23, 27 + b), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
-    d.ellipse((10, 19 + b, 21, 27 + b), fill=BIRD_BELLY)
+        d.line((*B((12, 25 + b)), *B((11, 28 + b))), fill=BIRD_BEAK)
+        d.line((*B((16, 25 + b)), *B((17, 28 + b))), fill=BIRD_BEAK)
+    blob(d, (*B((5, 13 + b)), *B((23, 27 + b))), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
+    d.ellipse((*B((10, 19 + b)), *B((21, 27 + b))), fill=BIRD_BELLY)
     hx, hy = (16, 9 + b + p.head) if p.kind != "preen" else (14, 13 + b)
     if p.kind == "sleep":
         hx, hy = (15, 12 + b)
-    blob(d, (hx, hy - 4, hx + 12, hy + 8), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
+    ax, ay = B((hx, hy))
+    HX, HY = lambda dx: ax + dx * head_scale, lambda dy: ay + dy * head_scale  # noqa: E731
+    blob(d, (HX(0), HY(-4), HX(12), HY(8)), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
     if p.kind == "preen":
-        d.polygon([(hx + 4, hy + 8), (hx + 9, hy + 8), (hx + 6, hy + 12)], fill=BIRD_BEAK)
+        d.polygon([(HX(4), HY(8)), (HX(9), HY(8)), (HX(6), HY(12))], fill=BIRD_BEAK)
     else:
-        d.polygon([(hx + 11, hy), (hx + 15, hy + 2), (hx + 11, hy + 4)], fill=BIRD_BEAK)
-    eye(d, hx + 7, hy, p.eyes)
+        d.polygon([(HX(11), HY(0)), (HX(15), HY(2)), (HX(11), HY(4))], fill=BIRD_BEAK)
+    eye(d, HX(7), HY(0), p.eyes)
     if p.ears == "back" or p.eyes == "wide":  # crest raised
-        d.polygon([(hx + 3, hy - 3), (hx + 1, hy - 8), (hx + 6, hy - 4)], fill=BIRD_DARK)
-    bird_wing(d, b, p.wing)
+        d.polygon([(HX(3), HY(-3)), (HX(1), HY(-8)), (HX(6), HY(-4))], fill=BIRD_DARK)
+    bird_wing(d, b, p.wing, body_scale=body_scale)
     if p.carry:
-        carry_item(d, hx + 13, hy + 3)
-    mark(d, p.mark, 24, 0)
+        carry_item(d, HX(13), HY(3))
+    mark(d, p.mark, *B((24, 0)))
 
 
 def bird_sheets():
@@ -606,12 +677,19 @@ SPECIES = {
     "cat": dict(
         sheets=cat_sheets, out=CAT_OUT,
         draw=lambda img, d, p: {"sleep": draw_cat_sleep, "wash": draw_cat_wash, "climb": draw_cat_climb}.get(p.kind, draw_cat)(img, d, p),
+        # Native per-stage drawing (see draw_cat/draw_cat_wash): everything
+        # `is_uniform_sheet` doesn't already exempt (sleep/climb/rotated/
+        # hibernating poses) goes through here instead of a whole-frame split.
+        draw_stage=lambda img, d, p, bs, hs: (draw_cat_wash if p.kind == "wash" else draw_cat)(img, d, p, bs, hs),
         flip={"ceiling": "walk"},
         states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_sit", "trick_roll", "egg"]),
     ),
     "bug": dict(
         sheets=bug_sheets, out=c(20, 34, 22),
         draw=lambda img, d, p: (draw_bug_climb if p.kind == "climb" else draw_bug)(img, d, p),
+        # Only `baby` gets the caterpillar; `young` still draws the beetle
+        # shape (build_stage checks `stage_draw` first), natively scaled.
+        draw_stage=draw_bug,
         flip={"ceiling": "walk"},
         stage_draw={"baby": lambda img, d, p: (draw_caterpillar_climb if p.kind == "climb" else draw_caterpillar)(img, d, p)},
         states=make_states(GROUND_STATES + ["climb", "seekWall", "ceiling", "trick_roll", "egg"]),
@@ -619,6 +697,8 @@ SPECIES = {
     "fish": dict(
         sheets=fish_sheets, out=c(96, 40, 8),
         draw=draw_fish, flip={},
+        # No separate head shape to scale independently (see build_stage):
+        # every stage gets the same whole-frame treatment as sleep/climb.
         states=make_states([
             "idle", "fall", "drag", "swim", "swimFast", "seekFood", "eat", "play", "hunt", "remind", "gift",
             "hibernate", "trick_flip", "egg",
@@ -627,6 +707,7 @@ SPECIES = {
     "bird": dict(
         sheets=bird_sheets, out=c(16, 30, 64),
         draw=draw_bird, flip={},
+        draw_stage=draw_bird,
         states=make_states(GROUND_STATES + ["fly", "flyFast", "dive", "trick_flip", "egg"]),
     ),
 }
@@ -750,29 +831,6 @@ def uniform_stage(frame, factor, bbox):
     return out
 
 
-def morph_stage(frame, split, body, head, bbox):
-    """Splits body/head, scales each to its own factor, rejoins them: different proportions of the same animal."""
-    left, right = frame.crop((0, 0, split, R)), frame.crop((split, 0, R, R))
-    lb0, rb0 = left.getbbox(), right.getbbox()
-    if lb0 is None or rb0 is None or (body == 1 and head == 1):
-        return frame
-    left_s, right_s = _scaled(left, body), _scaled(right, head)
-    lb, rb = left_s.getbbox(), right_s.getbbox()
-    feet = bbox[3]
-    canvas = Image.new("RGBA", (R * 2, R * 2), (0, 0, 0, 0))
-    off = R // 2
-    left_y = feet - lb[3]
-    canvas.paste(left_s, (off, left_y + off), left_s)
-    head_bottom = feet - round((feet - rb0[3]) * body)
-    right_x = lb[2] - S - rb[0]
-    canvas.paste(right_s, (right_x + off, head_bottom - rb[3] + off), right_s)
-    bb = canvas.getbbox()
-    shift = (bbox[0] + bbox[2]) // 2 - (bb[0] + bb[2]) // 2
-    out = Image.new("RGBA", (R, R), (0, 0, 0, 0))
-    out.paste(canvas, (shift, -off), canvas)
-    return out
-
-
 def is_uniform_sheet(poses):
     """Rotated, sleeping, or climbing sheets: downscaled as a whole (no body/head split)."""
     return any(p.rot or p.kind in ("sleep", "climb") or p.blanket for p in poses)
@@ -788,23 +846,28 @@ def build_stage(spec, species, poses, sheets, stage):
         return out
     cfg = STAGE_CFG[stage]
     split = HEAD_SPLIT[species]
+    # Only cat/bug/bird have a head shape distinct enough to scale on its
+    # own (see `draw_stage` on each in SPECIES); fish and the exempted
+    # poses (sleep/climb/rotated/hibernating -- see `is_uniform_sheet`)
+    # always get the whole-frame treatment, same as before.
+    can_native = "draw_stage" in spec and cfg["body"] != cfg["head"]
     out = {}
     for name, frames in sheets.items():
         if name in spec["flip"] or name == "egg":
             continue
         uniform = is_uniform_sheet(poses[name])
         frames_out = []
-        for frame in frames:
+        for i, frame in enumerate(frames):
             bbox = frame.getbbox()
             if bbox is None:
                 frames_out.append(frame)
                 continue
-            img = tint_stage(frame, split, cfg)
-            if uniform:
-                img = uniform_stage(img, cfg["uniform"], bbox)
+            if can_native and not uniform:
+                frames_out.append(render_stage(spec, poses[name][i], cfg["body"], cfg["head"], split, cfg))
             else:
-                img = morph_stage(img, split, cfg["body"], cfg["head"], bbox)
-            frames_out.append(img)
+                img = tint_stage(frame, split, cfg)
+                img = uniform_stage(img, cfg["uniform"], bbox)
+                frames_out.append(img)
         out[name] = frames_out
     for name, src in spec["flip"].items():
         out[name] = [ImageOps.flip(f) for f in out[src]]
@@ -814,13 +877,24 @@ def build_stage(spec, species, poses, sheets, stage):
 def render(spec, p):
     img, d = new_canvas()
     spec["draw"](img, d, p)
-    if p.blanket:  # hibernation : une couverture sur le bas du corps
+    if p.blanket:  # hibernation: a blanket over the lower body
         d.rectangle((3, 21, 28, 30), fill=c(100, 130, 200))
         for x in range(4, 28, 4):
             d.line((x, 21, x, 30), fill=c(70, 100, 170))
     if p.rot:
         img.rotate(p.rot, (G / 2, G - 2 if p.pivot is None else p.pivot))
     return img.finish(spec["out"])
+
+
+def render_stage(spec, p, body_scale, head_scale, split, cfg):
+    """Like `render`, but calls the species' scale-aware `draw_stage`
+    instead of `draw` -- used for the life stages whose body and head
+    scale differently (see `build_stage`). Never sees a rotated/blanket
+    pose (those are always `is_uniform_sheet`, handled the old way), so
+    unlike `render` it doesn't need to handle `p.rot`/`p.blanket`."""
+    img, d = new_canvas()
+    spec["draw_stage"](img, d, p, body_scale, head_scale)
+    return tint_stage(img.finish(spec["out"]), split, cfg)
 
 
 def build_sheets(spec, species):
