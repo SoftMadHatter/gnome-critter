@@ -1,60 +1,56 @@
-# Boucle de développement (Wayland)
+# Development loop (Wayland)
 
-## Le problème
+## The problem
 
-Sous X11, on peut recharger GNOME Shell à chaud avec `Alt+F2`, `r`, Entrée.
-**Ce raccourci n'existe pas sous Wayland** : le compositeur Wayland ne peut
-pas se remplacer lui-même en place. La seule façon « officielle » de
-repartir d'un Shell propre est de se déconnecter/reconnecter — beaucoup
-trop lourd pour itérer sur une extension.
+On X11, GNOME Shell can be reloaded live with `Alt+F2`, `r`, Enter. **This
+shortcut doesn't exist on Wayland**: the Wayland compositor can't replace
+itself in place. The only "official" way to start from a clean Shell is to
+log out/log back in — far too heavy to iterate on an extension.
 
-Deux choses à distinguer :
+Two things to distinguish:
 
-- **Activer/désactiver** une extension (`gnome-extensions enable|disable`)
-  ne nécessite jamais de redémarrer le Shell, sur aucune des deux sessions
-  d'affichage. Ça suffit pour tester un changement dans `packs/`
-  (spritesheets, `pack.json`) ou `schemas/`.
-- **Modifier du code JS** (`extension.js`, `lib/*.js`, `prefs.js`) ne
-  suffit pas avec un simple disable/enable : depuis GNOME 45, les
-  extensions sont chargées comme des modules ES natifs, mis en cache par
-  GJS une fois importés. Rien ne force GJS à relire le fichier depuis le
-  disque — il faut un **nouveau processus `gnome-shell`** pour que le
-  nouveau code soit pris en compte.
+- **Enabling/disabling** an extension (`gnome-extensions enable|disable`)
+  never requires restarting the Shell, on either display session. That's
+  enough to test a change in `packs/` (spritesheets, `pack.json`) or
+  `schemas/`.
+- **Changing JS code** (`extension.js`, `lib/*.js`, `prefs.js`) isn't
+  enough with a simple disable/enable: since GNOME 45, extensions are
+  loaded as native ES modules, cached by GJS once imported. Nothing forces
+  GJS to re-read the file from disk — a **new `gnome-shell` process** is
+  needed for the new code to take effect.
 
-## La solution : une session GNOME Shell imbriquée
+## The solution: a nested GNOME Shell session
 
-`gnome-shell --devkit --wayland` lance un Shell complet dans une fenêtre
-plutôt que de prendre le contrôle de l'affichage, sur son propre bus D-Bus
-(via `dbus-run-session`). C'est un Shell jetable :
+`gnome-shell --devkit --wayland` launches a full Shell in a window instead
+of taking control of the display, on its own D-Bus bus (via
+`dbus-run-session`). It's a disposable Shell:
 
-> Historiquement ce mode s'activait avec un flag explicite `--nested`,
-> disparu à partir de GNOME Shell 49/50 (voir `gnome-shell --help`).
-> `--wayland` seul (sans `--devkit`) a été **testé et échoue** sur GNOME 50
-> avec `Failed to take control of the session: GDBus.Error:System.Error.EBUSY:
-> Device or resource busy` : le process enfant, lancé depuis un terminal de
-> la session réelle, appartient à la même session logind que le vrai Shell
-> (`loginctl session-status` le confirme) et tente d'en prendre le contrôle
-> alors que le vrai Shell le détient déjà — un seul contrôleur possible par
-> session logind.
+> Historically this mode was enabled with an explicit `--nested` flag,
+> removed starting with GNOME Shell 49/50 (see `gnome-shell --help`).
+> `--wayland` alone (without `--devkit`) was **tested and fails** on GNOME
+> 50 with `Failed to take control of the session: GDBus.Error:System.Error.EBUSY:
+> Device or resource busy`: the child process, launched from a terminal of
+> the real session, belongs to the same logind session as the real Shell
+> (`loginctl session-status` confirms it) and tries to take control of it
+> while the real Shell already holds it — only one controller is allowed per
+> logind session.
 >
-> `--devkit` (GNOME 48+, « development kit », pensé justement pour tester
-> des extensions sans quitter sa session) évite ce conflit : les logs
-> montrent `Will monitor session 8` au lieu d'une tentative de prise de
-> contrôle. Un avertissement `Failed to launch devkit: ... mutter-devkit ...
-> Aucun fichier ou dossier de ce nom` peut apparaître si le paquet
-> `mutter-devkit` optionnel n'est pas installé — sans conséquence, le Shell
-> imbriqué démarre quand même normalement.
+> `--devkit` (GNOME 48+, "development kit", designed precisely to test
+> extensions without leaving your session) avoids this conflict: the logs
+> show `Will monitor session 8` instead of a control-taking attempt. A
+> `Failed to launch devkit: ... mutter-devkit ... No such file or directory`
+> warning may appear if the optional `mutter-devkit` package isn't
+> installed — harmless, the nested Shell still starts normally.
 
-- il tourne en tant que processus enfant, isolé de la vraie session (bus
-  D-Bus dédié) — un crash ou un `disable`/`enable` dedans n'affecte jamais
-  le vrai Shell ni les autres extensions actives sur le bureau réel ;
-- pour repartir d'un état propre après une modif de code JS, il suffit de
-  fermer la fenêtre (ou `Ctrl+C` dans le terminal qui l'a lancée) et de
-  relancer la commande — quelques secondes, pas de déconnexion ;
-- les réglages GSettings (`enabled-extensions`, réglages de l'extension
-  elle-même comme `pack-id`/`critter-count`) sont stockés dans dconf, qui
-  est partagé entre les deux sessions : pas besoin de tout reconfigurer à
-  chaque lancement.
+- it runs as a child process, isolated from the real session (its own D-Bus
+  bus) — a crash or a `disable`/`enable` inside it never affects the real
+  Shell or other extensions active on the real desktop;
+- to start fresh after a JS code change, just close the window (or `Ctrl+C`
+  in the terminal that launched it) and rerun the command — a few seconds,
+  no logout needed;
+- GSettings settings (`enabled-extensions`, the extension's own settings
+  like `pack-id`/`critter-count`) are stored in dconf, which is shared
+  between both sessions: no need to reconfigure everything on every launch.
 
 ## Usage
 
@@ -62,63 +58,62 @@ plutôt que de prendre le contrôle de l'affichage, sur son propre bus D-Bus
 scripts/dev.sh
 ```
 
-Ce script :
+This script:
 
-1. reconstruit l'extension et met à jour le symlink de dev
-   (`scripts/build.sh --link`, comme `README.md` le documente) ;
-2. lance la session imbriquée sur un bus D-Bus dédié ;
-3. y active automatiquement l'extension (`gnome-extensions enable`, exécuté
-   sur ce même bus) dès que le Shell imbriqué est prêt.
+1. rebuilds the extension and updates the dev symlink (`scripts/build.sh
+   --link`, as documented in `README.md`);
+2. launches the nested session on a dedicated D-Bus bus;
+3. automatically enables the extension there (`gnome-extensions enable`, run
+   on that same bus) as soon as the nested Shell is ready.
 
-Pour itérer :
+To iterate:
 
-- modif de `packs/`, `schemas/`, ou tout ce qui ne touche pas à un fichier
-  `.js` → `gnome-extensions disable gnome-critter@beedi.xyz && gnome-extensions
-  enable gnome-critter@beedi.xyz` **dans le terminal de la session
-  imbriquée** (ou sur le bureau réel si tu testes là) suffit, pas besoin de
-  relancer `dev.sh` ;
-- modif de `extension.js` / `lib/*.js` / `prefs.js` → ferme la fenêtre
-  imbriquée (`Ctrl+C`) et relance `scripts/dev.sh` (ou `scripts/dev.sh
-  --no-build` si tu as déjà rebuild par ailleurs).
+- change to `packs/`, `schemas/`, or anything that doesn't touch a `.js`
+  file → `gnome-extensions disable gnome-critter@beedi.xyz &&
+  gnome-extensions enable gnome-critter@beedi.xyz` **in the nested
+  session's terminal** (or on the real desktop if that's where you're
+  testing) is enough, no need to rerun `dev.sh`;
+- change to `extension.js` / `lib/*.js` / `prefs.js` → close the nested
+  window (`Ctrl+C`) and rerun `scripts/dev.sh` (or `scripts/dev.sh
+  --no-build` if you've already rebuilt elsewhere).
 
-`--no-build` saute l'étape 1 (utile si le lien symlink pointe déjà vers un
-`dist/` à jour).
+`--no-build` skips the rebuild step (useful if the symlink already points to
+an up-to-date `dist/`).
 
-`--lang en` lance la session imbriquée dans une autre langue (`LANGUAGE`),
-sans toucher à la vraie session : menus, notifications, fenêtre de
-progression, préférences et prénoms en anglais. Traductions et outillage :
+`--lang en` launches the nested session in another language (`LANGUAGE`),
+without touching the real session: menus, notifications, progression
+window, preferences, and given names in English. Translations and tooling:
 `docs/i18n.md`.
 
 ## Logs
 
-Dans un terminal séparé, pendant que la session imbriquée tourne :
+In a separate terminal, while the nested session is running:
 
 ```bash
 journalctl -f -o cat /usr/bin/gnome-shell
 ```
 
-Les erreurs JS de l'extension (exceptions dans `enable()`, `loadPack()`,
-etc.) y apparaissent avec leur stack trace.
+The extension's JS errors (exceptions in `enable()`, `loadPack()`, etc.)
+appear there with their stack trace.
 
-## Limites de la session imbriquée
+## Limits of the nested session
 
-- Pas d'accélération GPU complète dans certains environnements (VM,
-  pilotes proprio) → peut être plus lente/saccadée que la vraie session,
-  sans rapport avec un bug de l'extension.
-- Certains portails (captures d'écran, sélection de fichiers) peuvent se
-  comporter différemment ou ne pas être disponibles.
-- Si `dbus-run-session` n'est pas installé : paquet `dbus` (Fedora) ou
+- No full GPU acceleration in some environments (VM, proprietary drivers)
+  → can be slower/choppier than the real session, unrelated to any
+  extension bug.
+- Some portals (screenshots, file selection) may behave differently or be
+  unavailable.
+- If `dbus-run-session` isn't installed: the `dbus` package (Fedora) or
   `dbus-user-session` (Debian/Ubuntu).
 
-Pour valider un comportement dépendant fortement de l'environnement réel
-(plusieurs moniteurs physiques, vrai multi-fenêtrage), retester
-ponctuellement dans la vraie session (déconnexion/reconnexion classique).
+To validate behavior that depends heavily on the real environment (several
+physical monitors, real multi-window setups), retest occasionally in the
+real session (a classic logout/login).
 
-## Sauvegarde de l'état
+## State saving
 
-Les positions des critters sont sauvegardées dans la clé GSettings cachée
-`saved-state` (toutes les 30 s et à la désactivation). Pour l'inspecter ou
-repartir de zéro :
+Critters' positions are saved in the hidden `saved-state` GSettings key
+(every 30 s and on disable). To inspect it or start fresh:
 
 ```bash
 SCHEMAS=dist/gnome-critter@beedi.xyz/schemas
@@ -126,67 +121,69 @@ gsettings --schemadir "$SCHEMAS" get org.gnome.shell.extensions.gnome-critter sa
 gsettings --schemadir "$SCHEMAS" reset org.gnome.shell.extensions.gnome-critter saved-state
 ```
 
-## Réglages à chaud
+## Live settings
 
-Tous les réglages de la fenêtre « Réglages… » (menu de l'icône) s'appliquent sans
-recharger l'extension. Pour les tester : `gsettings --schemadir
+Every setting in the "Settings…" window (icon menu) applies without
+reloading the extension. To test them: `gsettings --schemadir
 dist/gnome-critter@beedi.xyz/schemas set org.gnome.shell.extensions.gnome-critter
-critter-count 3` fait apparaître deux animaux de plus tout de suite.
+critter-count 3` makes two more critters appear right away.
 
-## Outil de revue (succès, titres, récompenses, créatures, objets)
+## Review tool (achievements, titles, rewards, creatures, objects)
 
-Une page locale, en **lecture seule**, pour relire le contenu du jeu tel que le
-moteur le calcule, sans lancer GNOME Shell :
+A local, **read-only** page to review the game's content the way the engine
+computes it, without launching GNOME Shell:
 
 ```bash
-scripts/review.sh --open        # http://127.0.0.1:8765/ ; --port N pour un autre port
+scripts/review.sh --open        # http://127.0.0.1:8765/ ; --port N for another port
 ```
 
-Le mini serveur (`tools/review/server.mjs`, Node, sans dépendance) n'écoute que
-sur 127.0.0.1, ne répond qu'aux lectures (GET) et ne sert que `core/`,
-`packs/`, `po/`, `extension/lib/`, `extension/assets/` et `tools/review/`. La page
-charge directement les modules du cœur (`buildAchievements`,
-`achievementView`, le Comité, les boîtes, `shiftPixels`...) : ce qu'elle
-affiche est exactement ce que calcule le jeu. Quand un fichier change, elle se
-recharge seule en gardant l'onglet et les filtres (dans l'adresse) : on
-corrige dans l'éditeur, on vérifie dans la page. `tools/` n'est pas copié par
-`scripts/build.sh` : rien n'est livré avec l'extension.
+The mini server (`tools/review/server.mjs`, Node, no dependencies) only
+listens on 127.0.0.1, only answers reads (GET), and only serves `core/`,
+`packs/`, `po/`, `extension/lib/`, `extension/assets/`, and `tools/review/`.
+The page loads the core modules directly (`buildAchievements`,
+`achievementView`, the Committee, the loot boxes, `shiftPixels`…): what it
+shows is exactly what the game computes. When a file changes, it reloads
+itself while keeping the tab and filters (in the address): fix it in your
+editor, check it in the page. `tools/` isn't copied by `scripts/build.sh`:
+none of it ships with the extension.
 
-Le choix de langue de l'en-tête (français, anglais ; `&lang=en` dans
-l'adresse) affiche les textes du jeu traduits par `po/<langue>.po` et la
-section `translations` des packs. L'interface de l'outil reste en français
-(voir `docs/i18n.md`).
+The header's language choice (French, English; `&lang=en` in the address)
+shows the game's text as translated by `po/<language>.po` and the pack's
+`translations` section. The tool's own interface stays in French (see
+`docs/i18n.md`).
 
-Onglets :
+Tabs:
 
-- **Succès** : tous les succès d'une espèce, filtrés par caractère, rubrique,
-  type (vrais, bêtises, joueur) ou texte ; condition, récompense, titre,
-  exigences, commentaire du Comité, origine (bibliothèque, pack, remplacé par
-  le pack). « Copier » copie le gabarit source en JSON pour en ajouter un.
-- **Vue en jeu** : on règle compteurs et marques (préréglages : animal neuf,
-  un mois de vie, tout débloqué ; aussi dans l'adresse avec `&preset=all`) ;
-  la fenêtre de progression s'affiche telle que le joueur la voit, avec les
-  annonces du Comité. Le scénario est gardé par pack dans le navigateur.
-- **Titres** : chaque titre, le succès qui le donne, sa condition, les alertes.
-- **Récompenses** : lots et probabilités des boîtes, simulation de 1 000
-  ouvertures, budget de pièces par rubrique, trophées et farces.
-- **Le Comité** : annonces d'un succès (plusieurs tirages), rafales, trophée,
-  phrases d'ouverture et de conclusion, commentaires triés par longueur.
-- **Créatures** : fiche du pack, lecteur d'animation (stade, vitesse, taille,
-  lissage, retournement, couleurs, accessoire sur la tête), planche de toutes
-  les animations d'un stade.
-- **Objets** : tous les sprites du catalogue, à la taille d'affichage et au
-  double.
-- **Contrôles** : erreurs de structure (les règles de `tests/packs.test.js`)
-  et textes à relire (typographie, doublons, longueurs, titres genrés,
-  descriptions de paliers identiques) ; leur nombre s'affiche sur l'onglet.
-  Hors du français s'ajoutent :
-  - les contrôles du catalogue : traductions manquantes, espaces réservés,
-    textes identiques au français ;
-  - ceux de la section `translations` de chaque pack.
+- **Achievements**: every achievement of a species, filterable by
+  temperament, section, type (real, blunders, playful) or text; condition,
+  reward, title, requirements, the Committee's comment, origin (library,
+  pack, overridden by the pack). "Copy" copies the source template as JSON
+  to add a new one.
+- **In-game view**: set counters and markers (presets: new critter, one
+  month of life, everything unlocked; also in the address with
+  `&preset=all`); the progression window displays exactly as the player
+  sees it, with the Committee's announcements. The scenario is kept per
+  pack in the browser.
+- **Titles**: every title, the achievement that grants it, its condition,
+  the warnings.
+- **Rewards**: loot box contents and odds, a simulation of 1,000 openings,
+  coin budget per section, trophies and jokes.
+- **The Committee**: announcements for an achievement (several draws),
+  streaks, trophy, opening and closing lines, comments sorted by length.
+- **Creatures**: the pack's sheet, an animation player (stage, speed, size,
+  smoothing, flipping, colors, accessory on the head), a sheet of every
+  animation for a stage.
+- **Objects**: every sprite in the catalog, at display size and double.
+- **Checks**: structural errors (the rules from `tests/packs.test.js`) and
+  text to review (typography, duplicates, lengths, gendered titles,
+  identical tier descriptions); their count shows on the tab. Outside of
+  French, these are added:
+  - catalog checks: missing translations, placeholders, text identical to
+    the French;
+  - checks on each pack's `translations` section.
 
-Limites : aucune écriture (les corrections se font dans l'éditeur) ; ce n'est
-pas le rendu réel de GNOME Shell (menus, notifications, HiDPI, filtres de
-Clutter) : les sprites sont rejoués dans un canevas du navigateur. Pour une
-capture sans interface (`chromium --headless`), ajouter `?noreload` à
-l'adresse : sans cela, le flux de rechargement garde la page ouverte.
+Limits: no writing (fixes are made in the editor); it's not GNOME Shell's
+actual rendering (menus, notifications, HiDPI, Clutter filters): sprites
+are replayed in a browser canvas. For a headless capture (`chromium
+--headless`), add `?noreload` to the address: without it, the reload stream
+keeps the page open.

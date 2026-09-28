@@ -1,15 +1,15 @@
-// Objets posés sur le bureau : nourriture, gamelle, lit. Module pur, sans
-// GNOME : le Manager les possède et les avance à chaque tick, les critters
-// les lisent (et les consomment) via `options.items`.
+// Items placed on the desktop: food, bowl, bed. Pure module, no GNOME: the
+// Manager owns them and advances them every tick, critters read (and
+// consume) them via `options.items`.
 
 import { PREY, PREY_TTL, movePreyOnSurface, movePreyFloating } from './prey.js';
 import {
   findSurfaceBelow, findSegmentById, isOnSegment, isInsideAnyMonitor, respawnPoint, groundPoint,
 } from './surfaceMap.js';
 
-/** Aliments connus : durée de vie en secondes, nombre de bouchées (un reste
- * entamé peut attendre sur le bureau), et `floats` pour la nourriture sans
- * gravité (plancton et flocons du poisson). */
+/** Known foods: lifetime in seconds, number of bites (a started-but-not-
+ * finished leftover can wait on the desktop), and `floats` for gravity-free
+ * food (plankton and flakes for the fish). */
 export const FOODS = Object.freeze({
   meat: { ttl: 900, bites: 2 },
   fish: { ttl: 900, bites: 2 },
@@ -22,24 +22,24 @@ export const FOODS = Object.freeze({
   flakes: { ttl: 600, bites: 2, floats: true },
 });
 
-/** Aliment qui peut aller dans une gamelle (pas la nourriture flottante). */
+/** Food that can go in a bowl (not floating food). */
 export function isBowlFood(kind) {
   return Boolean(FOODS[kind]) && !FOODS[kind].floats;
 }
 
-/** Plantes décoratives à grignoter : elles repoussent, ne disparaissent jamais (l'algue flotte). */
+/** Decorative plants to graze on: they regrow, they never disappear (algae floats). */
 export const PLANTS = Object.freeze({ grass: {}, berries: {}, leaf: {}, algae: { floats: true } });
 export const PLANT_MAX_PORTIONS = 3;
 const PLANT_REGROW_SECONDS = 300;
 
-/** Nourriture de gamelle : moisie après 24 h, disparaît 6 h plus tard. */
+/** Bowl food: moldy after 24 h, disappears 6 h later. */
 export const BOWL_MOLD_SECONDS = 24 * 3600;
 export const BOWL_VANISH_SECONDS = 6 * 3600;
 
 /**
- * Jouets. `rolls` : roule et se frappe (rebond, freinage en 1/s, vitesse de
- * frappe) ; `floats` : flotte sans gravité, poussé par le poisson ; la peluche
- * reste posée. `variants` : couleurs ou modèles, tirés au hasard à la pose.
+ * Toys. `rolls`: rolls and can be kicked (bounce, friction in 1/s, kick
+ * speed); `floats`: floats with no gravity, pushed by the fish; the plush
+ * stays put. `variants`: colours or models, drawn at random when placed.
  */
 export const TOYS = Object.freeze({
   ball: { rolls: true, bounce: 0.45, friction: 2.5, kick: 260, variants: ['red', 'blue', 'yellow', 'green'] },
@@ -48,11 +48,11 @@ export const TOYS = Object.freeze({
   ring: { floats: true, variants: ['orange'] },
 });
 
-/** Modèles de lit et de gamelle, choisis à la pose (le premier par défaut). */
+/** Bed and bowl models, chosen when placed (the first one by default). */
 export const BED_MODELS = Object.freeze(['cushion', 'basket', 'cradle']);
 export const BOWL_MODELS = Object.freeze(['ceramic', 'steel', 'wood']);
 
-/** Modèles possibles d'un objet (lit, gamelle, variantes d'un jouet) ; vide pour les autres. */
+/** Possible models of an item (bed, bowl, toy variants); empty for others. */
 export function modelsOf(type, kind) {
   if (type === 'bed') return BED_MODELS;
   if (type === 'bowl') return BOWL_MODELS;
@@ -66,21 +66,21 @@ function validModel(type, kind, model) {
   return models.includes(model) ? model : models[0];
 }
 
-/** Variante d'un jouet tirée au hasard (couleur de balle, modèle de peluche). */
+/** A toy's variant drawn at random (ball colour, plush model). */
 export function pickVariant(kind, random = Math.random) {
   const variants = TOYS[kind]?.variants ?? [];
   return variants[Math.min(variants.length - 1, Math.floor(random() * variants.length))] ?? null;
 }
 
-/** Jouet adapté à une espèce : flottant pour une espèce sans sol, posé sinon. */
+/** A toy fit for a species: floating for a groundless species, resting otherwise. */
 export function toyFits(kind, groundless) {
   return Boolean(TOYS[kind]) && Boolean(TOYS[kind].floats) === groundless;
 }
 
-/** Cadeaux ramenés par un animal : pièces gagnées quand le joueur les ramasse. */
+/** Gifts brought back by an animal: coins earned when the player picks them up. */
 export const GIFTS = Object.freeze({ coin: { coins: 5 }, flower: { coins: 3 }, feather: { coins: 8 } });
 
-/** Cadeau tiré au hasard (la plume est rare). */
+/** A gift drawn at random (the feather is rare). */
 export function pickGift(random) {
   const r = random();
   return r < 0.6 ? 'coin' : r < 0.9 ? 'flower' : 'feather';
@@ -88,9 +88,9 @@ export function pickGift(random) {
 
 const GIFT_TTL = 1800;
 
-/** Litière : sale après ce nombre d'usages, propre de nouveau au nettoyage. */
+/** Litter box: dirty after this many uses, clean again once cleaned. */
 export const LITTER_CAPACITY = 3;
-/** Une trace laissée plus longtemps que cela est « vieille » : elle rend malade. */
+/** A mess left longer than this is "old": it makes the animal sick. */
 export const MESS_OLD_SECONDS = 2 * 3600;
 
 export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift', 'plant', 'prey', 'litter', 'mess']);
@@ -100,17 +100,17 @@ export const BOWL_CAPACITY = 5;
 const GRAVITY = 900;
 const TERMINAL_VELOCITY = 800;
 const RESTING_TYPES = new Set(['ground', 'shelf']);
-const BOUNCE_MIN_SPEED = 140; // en dessous, un jouet qui roule se pose au lieu de rebondir
-const DRIFT_FRICTION = 1.2; // 1/s : l'anneau poussé perd cette part de sa vitesse par seconde
+const BOUNCE_MIN_SPEED = 140; // below this, a rolling toy settles instead of bouncing
+const DRIFT_FRICTION = 1.2; // 1/s: a pushed ring loses this share of its speed per second
 const PUSH_SPEED = 150;
-const FLOAT_TOP_MARGIN = 16; // un objet flottant garde le haut de son sprite dans l'écran
+const FLOAT_TOP_MARGIN = 16; // a floating item keeps the top of its sprite on screen
 
 let nextId = 1;
 
 /**
  * @param {'food'|'bowl'|'bed'|'toy'|'gift'|'plant'|'prey'|'litter'|'mess'} type
- * @param {string|null} kind aliment (food ; bowl, null pour une gamelle vide), jouet (toy), null pour un lit
- * @param {string|null} [model] modèle de lit ou de gamelle, variante de jouet (le premier par défaut)
+ * @param {string|null} kind food kind (food; bowl, null for an empty bowl), toy kind (toy), null for a bed
+ * @param {string|null} [model] bed or bowl model, toy variant (the first one by default)
  */
 export function createItem(type, kind, x, y, model = null) {
   const food = type === 'food' ? FOODS[kind] : null;
@@ -125,59 +125,59 @@ export function createItem(type, kind, x, y, model = null) {
     model: validModel(type, kind, model),
     x,
     y,
-    vx: 0, // vitesse horizontale (balle qui roule, objet lancé)
+    vx: 0, // horizontal speed (rolling ball, thrown item)
     vy: 0,
-    surface: null, // segment sur lequel l'objet repose, une fois posé
+    surface: null, // segment the item rests on, once settled
     floating: Boolean(food?.floats || plant?.floats || prey?.floats || toy?.floats),
-    portions: plant ? PLANT_MAX_PORTIONS : food ? food.bites : 0, // bouchées (aliment), portions (gamelle, plante)
-    uses: 0, // litière : nombre d'usages depuis le dernier nettoyage
-    age: 0, // trace : secondes depuis qu'elle a été laissée
-    cleaned: false, // clic du joueur sur une litière : remise à zéro au prochain tick
-    fillAge: 0, // gamelle : secondes depuis le dernier remplissage (moisissure)
-    regrow: 0, // plante : secondes vers la prochaine repousse
-    dir: 1, // proie : sens de marche
-    caught: false, // proie attrapée par un animal : figée
+    portions: plant ? PLANT_MAX_PORTIONS : food ? food.bites : 0, // bites (food), portions (bowl, plant)
+    uses: 0, // litter: number of uses since it was last cleaned
+    age: 0, // mess: seconds since it was left
+    cleaned: false, // the player clicked a litter box: reset next tick
+    fillAge: 0, // bowl: seconds since it was last filled (mold)
+    regrow: 0, // plant: seconds toward the next regrowth
+    dir: 1, // prey: walking direction
+    caught: false, // prey caught by an animal: frozen in place
     ttl: food ? food.ttl : gift ? GIFT_TTL : prey ? PREY_TTL : Infinity,
-    collected: false, // cadeau ramassé par le joueur (le Manager crédite les pièces)
-    consumed: false, // mangée ou expirée : à retirer
-    removed: false, // retirée par le joueur : à retirer
-    grabbed: false, // tenue à la souris : pas de physique
-    claimedBy: null, // critter qui vise cette nourriture
+    collected: false, // gift picked up by the player (the Manager credits the coins)
+    consumed: false, // eaten or expired: to be removed
+    removed: false, // removed by the player: to be removed
+    grabbed: false, // held by the mouse: no physics
+    claimedBy: null, // critter targeting this food
   };
 }
 
 export function fillBowl(bowl, kind, portions = BOWL_CAPACITY) {
   if (bowl.type !== 'bowl' || !isBowlFood(kind)) return;
-  if (bowl.kind !== kind) bowl.portions = 0; // on ne mélange pas deux aliments
+  if (bowl.kind !== kind) bowl.portions = 0; // two foods never mix
   bowl.kind = kind;
-  bowl.fillAge = 0; // nourriture fraîche
+  bowl.fillAge = 0; // fresh food
   bowl.portions = Math.min(BOWL_CAPACITY, bowl.portions + portions);
 }
 
-/** Niveau visible d'une gamelle : 0 vide, 1 (1-2 portions), 2 (3-4), 3 pleine. */
+/** Visible level of a bowl: 0 empty, 1 (1-2 portions), 2 (3-4), 3 full. */
 export function bowlLevel(portions) {
   if (!(portions > 0)) return 0;
   return portions >= BOWL_CAPACITY ? 3 : portions >= 3 ? 2 : 1;
 }
 
-/** Vrai quand le Manager doit retirer l'objet. */
+/** True when the Manager should remove the item. */
 export function isGone(item) {
   return item.removed || ((item.type === 'food' || item.type === 'gift' || item.type === 'prey') && item.consumed);
 }
 
-/** Litière sale : plus personne ne l'utilise. */
+/** Dirty litter box: nobody uses it anymore. */
 export function isDirty(item) {
   return item.type === 'litter' && item.uses >= LITTER_CAPACITY;
 }
 
-/** Trace laissée depuis plus de deux heures. */
+/** A mess left for more than two hours. */
 export function isOldMess(item) {
   return item.type === 'mess' && item.age >= MESS_OLD_SECONDS;
 }
 
 /**
- * Litières propres qu'un animal peut rejoindre, la plus proche d'abord :
- * sur la même surface, ou n'importe laquelle pour une espèce qui vole.
+ * Clean litter boxes an animal can reach, closest first: on the same
+ * surface, or any of them for a flying species.
  */
 export function litterFor(items, { x, surfaceId, canFly }) {
   return items
@@ -186,20 +186,20 @@ export function litterFor(items, { x, surfaceId, canFly }) {
     .sort((a, b) => Math.abs(a.x - x) - Math.abs(b.x - x));
 }
 
-/** Nourriture de gamelle moisie (rend malade). */
+/** Moldy bowl food (makes the animal sick). */
 export function isMoldy(item) {
   return item.type === 'bowl' && item.portions > 0 && item.fillAge >= BOWL_MOLD_SECONDS;
 }
 
 /**
- * Avance un objet d'un pas : chute, atterrissage, resynchronisation sur sa
- * surface (fenêtre déplacée ou fermée : il retombe) et péremption.
+ * Advances an item by one step: falling, landing, resyncing to its
+ * surface (a moved or closed window: it falls again) and expiry.
  * @param {ReturnType<typeof createItem>} item
  * @param {number} dt
  * @param {{segments: object[]}} surfaces
 
  * @param {{y:number, height:number}} [worldBounds]
- * @param {{threats?: object[], random?: () => number}} [ctx] menaces (animaux, curseur) et hasard pour les proies
+ * @param {{threats?: object[], random?: () => number}} [ctx] threats (animals, cursor) and randomness for prey
  */
 export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
   if ((item.type === 'food' || item.type === 'gift' || item.type === 'prey') && Number.isFinite(item.ttl)) {
@@ -216,7 +216,7 @@ export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
   if (item.type === 'bowl' && item.portions > 0) {
     item.fillAge += dt;
     if (item.fillAge >= BOWL_MOLD_SECONDS + BOWL_VANISH_SECONDS) {
-      item.portions = 0; // la nourriture moisie disparaît
+      item.portions = 0; // the moldy food disappears
       item.fillAge = 0;
     }
   }
@@ -250,7 +250,7 @@ export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
       if (item.type === 'prey') movePreyOnSurface(item, dt, fresh, ctx);
       return;
     }
-    item.surface = null; // fenêtre partie, ou bord dépassé : il tombe (avec son élan)
+    item.surface = null; // window gone, or off the edge: it falls (keeping its momentum)
     item.vy = 0;
   }
 
@@ -265,7 +265,7 @@ export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
   if (landing) {
     item.y = landing.y;
     if (rolls && item.vy > BOUNCE_MIN_SPEED) {
-      item.vy = -item.vy * toy.bounce; // rebond : reste en l'air
+      item.vy = -item.vy * toy.bounce; // bounce: stays airborne
       return;
     }
     item.vy = 0;
@@ -275,7 +275,7 @@ export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
   }
   item.y = nextY;
   if (worldBounds && item.y > worldBounds.y + worldBounds.height + 200) {
-    item.y = worldBounds.y + worldBounds.height; // filet de sécurité : jamais hors de l'écran
+    item.y = worldBounds.y + worldBounds.height; // safety net: never off screen
     item.vy = 0;
     item.vx = 0;
   }
@@ -294,7 +294,7 @@ function bounceOffWorldEdges(item, worldBounds) {
   }
 }
 
-/** Objet flottant lancé ou poussé : glisse sur son élan, ralentit, rebondit sur les bords de l'écran. */
+/** A thrown or pushed floating item: coasts on its momentum, slows down, bounces off the screen edges. */
 function driftFloating(item, dt, worldBounds) {
   if (item.vx === 0 && item.vy === 0) return;
   item.x += item.vx * dt;
@@ -321,8 +321,8 @@ function driftFloating(item, dt, worldBounds) {
 }
 
 /**
- * Frappe un jouet qui roule (par un animal) : il décolle et file dans la direction donnée.
- * @returns {boolean} faux pour un objet qui ne se frappe pas (peluche, anneau...)
+ * Kicks a rolling toy (by an animal): it takes off and flies in the given direction.
+ * @returns {boolean} false for an item that can't be kicked (plush, ring...)
  */
 export function kick(item, dirX) {
   const toy = item.type === 'toy' ? TOYS[item.kind] : null;
@@ -333,7 +333,7 @@ export function kick(item, dirX) {
   return true;
 }
 
-/** Pousse un jouet flottant (par le poisson) : il file dans la direction (dx, dy). */
+/** Pushes a floating toy (by the fish): it flies off in the direction (dx, dy). */
 export function push(item, dx, dy) {
   if (item.type !== 'toy' || !TOYS[item.kind]?.floats) return false;
   const length = Math.hypot(dx, dy);
@@ -343,7 +343,7 @@ export function push(item, dx, dy) {
   return true;
 }
 
-/** Un objet hors de tout moniteur (changement de résolution, écran débranché) réapparaît en haut du plus proche. */
+/** An item no longer inside any monitor (resolution change, a monitor unplugged) respawns at the top of the closest one. */
 export function rescueItem(item, monitors) {
   if (item.grabbed || monitors.length === 0 || isInsideAnyMonitor(monitors, item.x, item.y - 1)) return false;
   const point = respawnPoint(monitors, item.x, item.y, 16);
@@ -357,9 +357,9 @@ export function rescueItem(item, monitors) {
 }
 
 /**
- * Après une veille : remet au sol (bas du moniteur le plus proche) tout objet posé ou en chute,
- * pour qu'il ne reste pas coincé sur la barre du haut ou sur une fenêtre. Les objets saisis
- * ou flottants ne bougent pas.
+ * After a suspend: puts back on the ground (bottom of the closest monitor) any item resting or
+ * falling, so it doesn't stay stuck on the top bar or on a window. Grabbed or floating items
+ * don't move.
  */
 export function regroundItem(item, monitors) {
   if (item.grabbed || item.caught || item.floating) return false;
@@ -373,22 +373,22 @@ export function regroundItem(item, monitors) {
   return true;
 }
 
-/** Lance un objet (relâché à la souris avec de l'élan). */
+/** Throws an item (released by the mouse with momentum). */
 export function throwItem(item, vx, vy) {
   item.vx = vx;
   item.vy = vy;
   item.surface = null;
 }
 
-/** Vrai pour un jouet (base de « Ranger les jouets »). */
+/** True for a toy (the basis of "Tidy up toys"). */
 export function isToy(item) {
   return item.type === 'toy';
 }
 
 /**
- * Jouets qu'un animal peut rejoindre, du plus proche au plus loin. Espèce qui
- * marche : jouets posés sur sa surface, ou n'importe laquelle si elle vole ;
- * espèce sans sol (`floating`) : jouets flottants, n'importe où.
+ * Toys an animal can reach, closest first. A walking species: toys on its
+ * surface, or any of them if it flies; a groundless species (`floating`):
+ * floating toys, anywhere.
  */
 export function toysFor(items, { x, y = 0, surfaceId, canFly, floating = false }) {
   if (floating) {
@@ -403,12 +403,12 @@ export function toysFor(items, { x, y = 0, surfaceId, canFly, floating = false }
 }
 
 /**
- * Objets qu'une espèce peut aller manger, du plus proche au plus loin.
+ * Items a species can go eat, closest first.
  * @param {ReturnType<typeof createItem>[]} items
- * @param {Record<string, number>} diet aliment -> gain de satiété
+ * @param {Record<string, number>} diet food -> satiety gain
  * @param {{x:number, surfaceId:*, canFly:boolean, floating:boolean, self?:object}} who
- *   floating : espèce sans sol (ne mange que la nourriture flottante) ;
- *   self : le critter demandeur (ses propres réclamations restent valables).
+ *   floating: a groundless species (only eats floating food);
+ *   self: the requesting critter (its own claims stay valid).
  * @returns {{item: object, gain: number}[]}
  */
 export function edibleFor(items, diet, { x, surfaceId, canFly, floating, self, avoidMold = false }) {
@@ -422,7 +422,7 @@ export function edibleFor(items, diet, { x, surfaceId, canFly, floating, self, a
     if (item.claimedBy && item.claimedBy !== self) continue;
     if (item.floating !== floating) continue;
     if (!floating) {
-      if (!item.surface) continue; // encore en chute
+      if (!item.surface) continue; // still falling
       if (!canFly && item.surface.surfaceId !== surfaceId) continue;
     }
     found.push({ item, gain });
@@ -431,10 +431,10 @@ export function edibleFor(items, diet, { x, surfaceId, canFly, floating, self, a
 }
 
 /**
- * Une bouchée (aliment), une portion (gamelle, plante) ou l'objet entier.
- * @returns {{sick: boolean, fraction: number, finished: boolean}} sick : la
- *   nourriture était moisie ; fraction : part du gain de satiété apportée ;
- *   finished : faux tant qu'il reste des bouchées à l'aliment
+ * A bite (food), a portion (bowl, plant) or the whole item.
+ * @returns {{sick: boolean, fraction: number, finished: boolean}} sick: the
+ *   food was moldy; fraction: share of the satiety gain delivered;
+ *   finished: false while the food still has bites left
  */
 export function consume(item) {
   const sick = isMoldy(item);
@@ -454,7 +454,7 @@ export function consume(item) {
   return { sick, fraction, finished };
 }
 
-/** Lits posés sur `surfaceId`, du plus proche au plus loin. */
+/** Beds placed on `surfaceId`, closest first. */
 export function bedsOn(items, surfaceId, x) {
   return items
     .filter((i) => i.type === 'bed' && !i.removed && i.surface && i.surface.surfaceId === surfaceId)
@@ -463,12 +463,12 @@ export function bedsOn(items, surfaceId, x) {
 
 const SAVE_VERSION = 1;
 
-/** JSON des objets à conserver : durables et nourriture encore fraîche. */
+/** JSON of the items to persist: durable ones and food that's still fresh. */
 export function serializeItems(items) {
   return JSON.stringify({
     version: SAVE_VERSION,
     items: items
-      .filter((i) => !isGone(i) && !i.grabbed && i.type !== 'prey') // les proies sont éphémères
+      .filter((i) => !isGone(i) && !i.grabbed && i.type !== 'prey') // prey is transient
       .map((i) => ({
         type: i.type,
         kind: i.kind,
@@ -485,8 +485,8 @@ export function serializeItems(items) {
 }
 
 /**
- * Relit des objets sauvegardés, sans jamais lever d'exception.
- * @returns {ReturnType<typeof createItem>[]} objets neufs qui retomberont
+ * Reads back saved items, never throwing.
+ * @returns {ReturnType<typeof createItem>[]} fresh items that will fall into place
  */
 export function parseSavedItems(text, { bounds }) {
   let data;
@@ -505,20 +505,20 @@ export function parseSavedItems(text, { bounds }) {
       : raw.type === 'toy' ? TOYS[raw.kind]
       : raw.type === 'plant' ? PLANTS[raw.kind]
       : raw.type === 'bed' || raw.type === 'litter' || raw.type === 'mess' ? true
-      : raw.type === 'bowl' ? raw.kind == null || FOODS[raw.kind] // gamelle posée vide : pas d'aliment
+      : raw.type === 'bowl' ? raw.kind == null || FOODS[raw.kind] // bowl placed empty: no food
       : FOODS[raw.kind];
     if (!validKind) continue;
-    // Modèle absent ou inconnu (ancienne sauvegarde) : modèle par défaut.
+    // Missing or unknown model (older save): default model.
     const item = createItem(raw.type, raw.kind ?? null, 0, 0, raw.model);
     item.x = Math.min(Math.max(raw.x, bounds.x), bounds.x + bounds.width);
     item.y = Math.min(Math.max(raw.y, bounds.y), bounds.y + bounds.height);
     if (item.type === 'bowl') {
-      // Une ancienne gamelle de plancton (aliment flottant) revient vide.
+      // An older bowl of plankton (floating food) comes back empty.
       item.portions = item.kind && Number.isFinite(raw.portions) ? Math.min(Math.max(raw.portions, 0), BOWL_CAPACITY) : 0;
       item.fillAge = Number.isFinite(raw.fillAge) && raw.fillAge >= 0 ? raw.fillAge : 0;
     }
     if (item.type === 'food') {
-      // Bouchées restantes ; une ancienne sauvegarde (0) revient entière.
+      // Bites remaining; an older save (0) comes back whole.
       const bites = FOODS[item.kind].bites;
       item.portions = Number.isFinite(raw.portions) && raw.portions >= 1 ? Math.min(Math.round(raw.portions), bites) : bites;
     }

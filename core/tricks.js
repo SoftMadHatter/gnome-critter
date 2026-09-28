@@ -1,5 +1,5 @@
-// Tours appris par répétition (assis, roulade, saut). Module pur : le Critter
-// possède un carnet de tours ; le joueur entraîne, l'animal progresse.
+// Tricks learned through repetition (sit, roll, flip). Pure module: the
+// Critter holds a trick book; the player trains, the animal progresses.
 
 import { _, N_ } from './i18n.js';
 
@@ -9,17 +9,17 @@ export const TRICKS = Object.freeze({
   flip: { label: N_('Saut périlleux'), duration: 1.6 },
 });
 
-/** Nom affiché d'un tour. */
+/** Displayed name of a trick. */
 export function trickLabel(name) {
   return TRICKS[name] ? _(TRICKS[name].label) : name;
 }
 
-const TRAINING_GAIN = 12; // maîtrise gagnée par essai
+const TRAINING_GAIN = 12; // mastery gained per attempt
 const GAIN_BY_TRAIT = { playful: 1.5, lazy: 0.6 };
-const MIN_CHANCE = 0.15; // même un débutant réussit parfois
+const MIN_CHANCE = 0.15; // even a beginner sometimes succeeds
 
 /**
- * Valide la liste `tricks` d'un pack : noms de tours connus.
+ * Validates a pack's `tricks` list: known trick names.
  * @param {unknown} raw
  * @returns {{list: string[], ignored: string[]}}
  */
@@ -46,7 +46,7 @@ export class TrickBook {
     return this.skills[name] ?? 0;
   }
 
-  /** Un tour est appris quand sa maîtrise atteint 100. */
+  /** A trick is learned once its mastery reaches 100. */
   isLearned(name) {
     return this.skill(name) >= 100;
   }
@@ -56,12 +56,12 @@ export class TrickBook {
   }
 
   /**
-   * Un essai d'entraînement : réussi avec la probabilité de la maîtrise, qui
-   * monte dans tous les cas (plus vite pour un joueur, moins pour un paresseux).
+   * A training attempt: succeeds with a probability equal to mastery, which
+   * rises regardless (faster for a playful animal, slower for a lazy one).
    * @param {string} name
    * @param {() => number} random
    * @param {string|null} trait
-   * @returns {{success: boolean, learned: boolean}} learned : vrai à l'essai qui fait atteindre 100
+   * @returns {{success: boolean, learned: boolean}} learned: true on the attempt that reaches 100
    */
   train(name, random, trait = null) {
     if (!TRICKS[name]) return { success: false, learned: false };

@@ -1,6 +1,6 @@
-// Succès : gabarits (bibliothèque commune de core/achievementLibrary.js et
-// section `achievements` des packs) développés en succès concrets, puis
-// évaluation et modèle d'affichage. Module pur. Format décrit dans
+// Achievements: templates (the common library in core/achievementLibrary.js
+// and a pack's `achievements` section) expanded into concrete achievements,
+// then evaluation and a display model. Pure module. Format described in
 // docs/progression.md.
 
 import {
@@ -15,26 +15,26 @@ import { SEASONS, HOLIDAYS } from './calendar.js';
 import { LIBRARY } from './achievementLibrary.js';
 import { _, language } from './i18n.js';
 
-/** Catégories des vrais succès d'animal, dans l'ordre d'affichage. */
+/** Categories of real animal achievements, in display order. */
 export const CATEGORIES = Object.freeze(['care', 'play', 'exploration', 'life', 'collection', 'seasons']);
-/** Succès « troll » d'un animal (cachés jusqu'à leur découverte). */
+/** An animal's "troll" achievements (hidden until discovered). */
 export const TROLL_CATEGORY = 'mischief';
-/** Succès du joueur (partagés entre animaux). */
+/** Player achievements (shared between animals). */
 export const PLAYER_CATEGORY = 'player';
 export const DISPLAY_ORDER = Object.freeze([...CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY]);
 
-/** Ce qu'une espèce sait faire (voir speciesProfile), pour écarter les succès impossibles. */
+/** What a species can do (see speciesProfile), to rule out impossible achievements. */
 export const CAPABILITIES = Object.freeze([
   'ground', 'wall', 'ceiling', 'air', 'water', 'hunt', 'graze', 'relieve', 'tricks', 'sleep', 'groom',
 ]);
 export const BOX_TIERS = Object.freeze(['bronze', 'silver', 'gold', 'platinum', 'legendary']);
-/** Pièces par défaut selon le rang du palier (1er, 2e...). */
+/** Default coins depending on the tier's rank (1st, 2nd...). */
 export const TIER_COINS = Object.freeze([5, 10, 20, 40, 80, 150]);
 export const DEFAULT_ACHIEVEMENT_COINS = 10;
 
 const LOCOMOTIONS = new Set(['ground', 'wall', 'ceiling', 'air', 'water']);
 
-/** Catégorie déduite de la stat, pour les succès de l'ancien format (sans `category`). */
+/** Category inferred from the stat, for old-format achievements (without `category`). */
 const STAT_CATEGORY = {
   meals: 'care', mealsFavorite: 'care', pets: 'care', purrs: 'care', brushes: 'care', washes: 'care', greets: 'care',
   playSessions: 'play', ballKicks: 'play', tricksPerformed: 'play', follows: 'play', ringPushes: 'play', laserChases: 'play',
@@ -43,11 +43,11 @@ const STAT_CATEGORY = {
   giftsGiven: 'collection', tricksLearned: 'collection', achievementsUnlocked: 'collection',
 };
 
-/** Accessoires « normaux » (ni trophée ni farce) : base de « tous les accessoires ». */
+/** "Normal" accessories (neither trophy nor joke): basis for "all the accessories". */
 const WEARABLE_COUNT = Object.values(ACCESSORIES).filter((def) => !def.trophy && !def.joke).length;
 
 /**
- * Ce que sait faire une espèce, d'après son pack.
+ * What a species can do, based on its pack.
  * @param {object} meta pack.json
  * @returns {{can: Set<string>, diet: string[], toys: string[], tricks: string[]}}
  */
@@ -67,15 +67,15 @@ export function speciesProfile(meta = {}) {
   return { can, diet, tricks, toys: Object.keys(TOYS).filter((kind) => toyFits(kind, groundless)) };
 }
 
-/** « 1000 » -> « 1 000 » (espace fine insécable ; virgule en anglais). */
+/** "1000" -> "1 000" (narrow no-break space; comma in English). */
 export function formatCount(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, language() === 'en' ? ',' : '\u202f');
 }
 
-/** Texte d'un gabarit dans la langue affichée (bibliothèque : catalogue gettext ; packs : section `translations`). */
+/** A template's text in the displayed language (library: gettext catalogue; packs: `translations` section). */
 const tr = (text) => (typeof text === 'string' && text !== '' ? _(text) : text);
 
-/** Récompense avec son texte traduit. */
+/** A reward with its translated text. */
 const translatedReward = (reward) => (reward.text ? { ...reward, text: tr(reward.text) } : reward);
 
 function render(text, n) {
@@ -84,7 +84,7 @@ function render(text, n) {
 
 const isText = (v) => typeof v === 'string' && v.trim() !== '';
 
-/** Valeur de « tous » pour une condition, selon l'espèce (null : « tous » n'a pas de sens ici). */
+/** Value of "all" for a condition, based on the species (null: "all" doesn't make sense here). */
 function allValue(condition, profile) {
   if (condition.stat === 'tricksLearned') return profile.tricks.length;
   switch (condition.marks) {
@@ -109,7 +109,7 @@ function validRequires(raw) {
   return ok ? { trait: requires.trait, stage: requires.stage, can } : null;
 }
 
-/** Condition normalisée `{stat|marks|mark, atLeast}` ou null si invalide pour cette portée. */
+/** Normalized condition `{stat|marks|mark, atLeast}`, or null if invalid for this scope. */
 function validCondition(raw, scope, atLeast) {
   const stats = scope === 'player' ? PLAYER_CONDITION_STATS : CONDITION_STATS;
   const families = scope === 'player' ? PLAYER_MARK_FAMILIES : MARK_FAMILIES;
@@ -122,7 +122,7 @@ function validCondition(raw, scope, atLeast) {
   return null;
 }
 
-/** Récompense d'un succès troll : exactement une nature (pièces, boîte, accessoire) ou un simple texte. */
+/** Reward of a troll achievement: exactly one kind (coins, box, accessory) or a plain text. */
 function validReward(raw) {
   if (raw === undefined) return { coins: 0 };
   if (!raw || typeof raw !== 'object') return null;
@@ -140,7 +140,7 @@ function validCoins(value, fallback) {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-/** Portée, catégorie et marque troll communes aux séries et aux uniques. */
+/** Scope, category and troll flag common to both series and single entries. */
 function placement(entry, condition) {
   const scope = entry.scope === 'player' ? 'player' : entry.scope === undefined || entry.scope === 'critter' ? 'critter' : null;
   if (!scope) return null;
@@ -153,7 +153,7 @@ function placement(entry, condition) {
   return { scope, troll, category };
 }
 
-/** Une entrée unique (nouveau format ou ancien `condition: {stat, atLeast}`) -> succès, ou null. */
+/** A single entry (new format or old `condition: {stat, atLeast}`) -> achievement, or null. */
 function expandSingle(entry) {
   const raw = entry.condition ?? entry;
   const atLeast = raw.mark !== undefined ? 1 : raw.atLeast;
@@ -183,8 +183,8 @@ function expandSingle(entry) {
 }
 
 /**
- * Une série -> ses paliers, ou null si invalide ; [] quand l'espèce n'a rien
- * à collectionner (« tous » vaut 0).
+ * A series -> its tiers, or null if invalid; [] when the species has
+ * nothing to collect ("all" is worth 0).
  */
 function expandSeries(entry, profile) {
   const tiers = entry.tiers;
@@ -209,7 +209,7 @@ function expandSeries(entry, profile) {
   if (entry.coins !== undefined && (!aligned(entry.coins) || !entry.coins.every((c) => validCoins(c, null) !== null))) return null;
   if (entry.title !== undefined && !isText(entry.title)) return null;
 
-  // Paliers : nombres croissants, « all » (tous, selon l'espèce) ou {at, id} pour garder un ancien identifiant.
+  // Tiers: increasing numbers, "all" (species-dependent) or {at, id} to keep an old identifier.
   const cap = tiers.includes('all') ? allValue(probe, profile) : null;
   if (tiers.includes('all') && cap === null) return null;
   const kept = [];
@@ -218,7 +218,7 @@ function expandSeries(entry, profile) {
     const id = typeof tier === 'object' && tier !== null ? tier.id : undefined;
     if (!Number.isFinite(at) || at <= 0 || (id !== undefined && !isText(id))) return null;
     if (kept.length > 0 && at <= kept[kept.length - 1].at) {
-      if (id !== undefined) return null; // un identifiant historique ne doit jamais disparaître
+      if (id !== undefined) return null; // a historical identifier must never disappear
       continue;
     }
     if (cap !== null && at > cap) {
@@ -254,10 +254,10 @@ const entryKey = (entry) => (entry && typeof entry === 'object' ? (entry.series 
 const entryLabel = (entry, index) => (entry?.series ?? entry?.id ?? `#${index}`);
 
 /**
- * Bibliothèque commune + section `achievements` d'un pack -> succès concrets.
- * Une entrée du pack de même `series` (ou même `id`) remplace celle de la
- * bibliothèque ; `disabled: true` la retire. Les succès que l'espèce ne peut
- * jamais obtenir (`requires.can`) sont écartés sans être signalés.
+ * Common library + a pack's `achievements` section -> concrete achievements.
+ * A pack entry with the same `series` (or the same `id`) replaces the one
+ * from the library; `disabled: true` removes it. Achievements the species
+ * can never earn (`requires.can`) are dropped without being reported.
  * @param {unknown} packEntries
  * @param {ReturnType<typeof speciesProfile>} profile
  * @param {object[]} [library]
@@ -272,13 +272,13 @@ export function buildAchievements(packEntries, profile, library = LIBRARY) {
     for (const [index, entry] of (packEntries ?? []).entries()) {
       const key = entryKey(entry);
       if (!key || key === 's:undefined' || key === 'i:undefined' || packKeys.has(key)) {
-        ignored.push(entryLabel(entry, index)); // entrée illisible, ou en double dans le pack
+        ignored.push(entryLabel(entry, index)); // unreadable entry, or a duplicate within the pack
         continue;
       }
       packKeys.add(key);
       if (entry.disabled === true) merged.delete(key);
       else {
-        merged.delete(key); // remplacée : reprend sa place en fin de liste
+        merged.delete(key); // replaced: takes its spot back at the end of the list
         merged.set(key, { ...entry, fromPack: true, packIndex: index });
       }
     }
@@ -306,7 +306,7 @@ export function buildAchievements(packEntries, profile, library = LIBRARY) {
   return { critter, player, ignored };
 }
 
-// --- Évaluation ---------------------------------------------------------------------
+// --- Evaluation ---------------------------------------------------------------------
 
 function countMarks(marks, family) {
   const prefix = `${family}:`;
@@ -315,23 +315,23 @@ function countMarks(marks, family) {
   return n;
 }
 
-/** Valeur actuelle d'une condition (dans l'unité de la stat). */
+/** Current value of a condition (in the stat's unit). */
 export function conditionValue(condition, facts) {
   if (condition.stat !== undefined) return facts.stats?.[condition.stat] ?? 0;
   if (condition.marks !== undefined) return countMarks(facts.marks, condition.marks);
   return facts.marks?.has(condition.mark) ? 1 : 0;
 }
 
-/** Un animal peut-il un jour obtenir ce succès ? (son caractère correspond ; le stade se gagne avec le temps) */
+/** Can an animal ever earn this achievement? (its trait matches; the stage is reached with time) */
 export function isEligible(def, { trait }) {
   return def.requires.trait === undefined || def.requires.trait === trait;
 }
 
 /**
- * Succès à débloquer maintenant.
+ * Achievements to unlock now.
  * @param {object[]} defs
  * @param {{trait?: string|null, stage?: string, facts: {stats: Record<string, number>, marks: Set<string>}}} context
- * @param {Set<string>} unlocked identifiants déjà obtenus
+ * @param {Set<string>} unlocked ids already earned
  */
 export function newlyUnlocked(defs, { trait = null, stage, facts }, unlocked) {
   return defs
@@ -342,21 +342,21 @@ export function newlyUnlocked(defs, { trait = null, stage, facts }, unlocked) {
     .map((def) => def.id);
 }
 
-/** Titres gagnés : `[{id, title}]`, id du succès qui l'a donné. */
+/** Titles earned: `[{id, title}]`, id of the achievement that granted it. */
 export function titlesFor(defs, unlocked) {
   return defs.filter((def) => def.title && unlocked.has(def.id)).map((def) => ({ id: def.id, title: def.title }));
 }
 
-/** Nombre de succès obtenus / possibles pour ce caractère. */
+/** Number of achievements earned / possible for this trait. */
 export function achievementCount(defs, { trait = null, unlocked }) {
   const eligible = defs.filter((def) => isEligible(def, { trait }));
   return { done: eligible.filter((def) => unlocked.has(def.id)).length, total: eligible.length };
 }
 
 /**
- * Modèle d'affichage par catégorie. Une série donne une ligne : son dernier
- * palier obtenu et le suivant, avec la progression ; un succès troll (série ou
- * unique) n'apparaît qu'une fois découvert, sa catégorie en donne le compte.
+ * Display model per category. A series gives one row: its last tier
+ * earned and the next one, with progress; a troll achievement (series or
+ * single) only appears once discovered, its category gives the count.
  * @returns {{done: number, total: number, categories: {id: string, done: number, total: number, entries: object[]}[]}}
  */
 export function achievementView(defs, { trait = null, unlocked, facts }) {
@@ -374,7 +374,7 @@ export function achievementView(defs, { trait = null, unlocked, facts }) {
     const got = tiers.filter((def) => unlocked.has(def.id));
     category.done += got.length;
     category.total += tiers.length;
-    if (tiers[0].troll && got.length === 0) continue; // bêtise pas encore découverte
+    if (tiers[0].troll && got.length === 0) continue; // mischief not discovered yet
     const last = got[got.length - 1] ?? null;
     const next = tiers.find((def) => !unlocked.has(def.id)) ?? null;
     const shown = next ?? last;

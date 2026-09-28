@@ -1,10 +1,10 @@
-// Noms des créatures : nettoyage, listes par espèce, unicité. Module pur.
+// Creature names: sanitizing, per-species lists, uniqueness. Pure module.
 
 import { language } from './i18n.js';
 
 export const MAX_NAME_LENGTH = 24;
 
-/** Prénoms de repli quand le pack n'en fournit pas, par langue (le français par défaut). */
+/** Fallback names when the pack doesn't provide any, by language (French by default). */
 export const GENERIC_NAMES_BY_LANGUAGE = Object.freeze({
   fr: Object.freeze([
     'Pixel', 'Nougat', 'Biscotte', 'Praline', 'Mochi', 'Cannelle', 'Pistache', 'Réglisse',
@@ -16,19 +16,19 @@ export const GENERIC_NAMES_BY_LANGUAGE = Object.freeze({
   ]),
 });
 
-/** Prénoms de repli dans la langue affichée. */
+/** Fallback names in the displayed language. */
 export function genericNames() {
   return GENERIC_NAMES_BY_LANGUAGE[language()] ?? GENERIC_NAMES_BY_LANGUAGE.fr;
 }
 
-/** Prénoms de repli en français (compatibilité). */
+/** Fallback names in French (compatibility). */
 export const GENERIC_NAMES = GENERIC_NAMES_BY_LANGUAGE.fr;
 
 /**
- * Nettoie un nom saisi : caractères de contrôle retirés, espaces repliés,
- * longueur limitée.
+ * Sanitizes an entered name: control characters removed, spaces collapsed,
+ * length capped.
  * @param {unknown} text
- * @returns {string|null} null si rien de valable ne reste
+ * @returns {string|null} null if nothing usable is left
  */
 export function sanitizeName(text) {
   if (typeof text !== 'string') return null;
@@ -43,7 +43,7 @@ export function sanitizeName(text) {
 }
 
 /**
- * Valide la section `names` d'un pack.json : liste de noms.
+ * Validates the `names` section of a pack.json: a list of names.
  * @param {unknown} raw
  * @returns {{list: string[], ignored: string[]}}
  */
@@ -68,8 +68,8 @@ export function namesOverrides(raw) {
 const norm = (name) => name.toLowerCase();
 
 /**
- * Rend un nom unique parmi ceux déjà pris (insensible à la casse) en ajoutant
- * un numéro : « Moka », « Moka 2 », « Moka 3 ».
+ * Makes a name unique among those already taken (case-insensitive) by
+ * appending a number: "Moka", "Moka 2", "Moka 3".
  * @param {string} name
  * @param {string[]} taken
  */
@@ -84,8 +84,8 @@ export function uniqueName(name, taken) {
 }
 
 /**
- * Tire un nom dans la liste de l'espèce (ou la liste générique), en évitant
- * les noms pris ; si tous le sont, en numérote un.
+ * Draws a name from the species' list (or the generic list), avoiding
+ * names already taken; if all are taken, numbers one.
  * @param {() => number} random
  * @param {string[]} pool
  * @param {string[]} taken

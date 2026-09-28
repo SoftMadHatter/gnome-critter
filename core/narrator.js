@@ -1,15 +1,16 @@
-// Le Comité : la voix des notifications de succès, façon animateur de jeu
-// cynique. Sobre pour un vrai succès, déchaîné pour une bêtise ; il tutoie le
-// joueur et se moque de lui, jamais de l'animal. Module pur (hasard injecté).
-// Les textes des succès (nom, commentaire, récompense) arrivent déjà traduits
-// par buildAchievements ; les phrases du Comité sont traduites ici.
+// The Committee: the voice behind achievement notifications, cynical
+// game-show host style. Sober for a real achievement, unhinged for a
+// piece of mischief; it addresses the player informally and mocks them,
+// never the animal. Pure module (randomness injected). Achievement texts
+// (name, comment, reward) arrive already translated by buildAchievements;
+// the Committee's own lines are translated here.
 
 import { boxLabel } from './lootBoxes.js';
 import { formatCount } from './achievements.js';
 import { accessoryLabel } from './accessories.js';
 import { _, N_, ngettext, fmt } from './i18n.js';
 
-/** Nom du narrateur (texte source ; affiché traduit). */
+/** Narrator's name (source text; displayed translated). */
 export const NARRATOR = N_('Le Comité');
 
 export const SOBER_OPENERS = [N_('Nouveau succès !'), N_('Succès débloqué.'), N_('Le Comité prend note.')];
@@ -19,7 +20,7 @@ export const TROLL_OPENERS = [
   N_('Attention, succès en approche.'),
   N_('Le Comité a tout vu.'),
 ];
-/** `null` : pas de conclusion. */
+/** `null`: no closing line. */
 export const TROLL_CLOSERS = [
   N_('Les spectateurs adorent.'),
   N_('Nos sponsors se désolidarisent.'),
@@ -33,13 +34,13 @@ export const TROLL_CLOSERS = [
 const pick = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
 const translated = (text) => (text ? _(text) : null);
 
-/** Nom d'un succès entre guillemets, suivi d'un point sauf s'il finit déjà par une ponctuation forte. */
+/** An achievement's name in quotes, followed by a period unless it already ends in strong punctuation. */
 function quoted(name) {
   const text = fmt(_('« {name} »'), { name });
   return /[?!.…]$/.test(name) ? text : `${text}.`;
 }
 
-/** Sujet de l'annonce : le nom de l'animal et celui du succès, ou le succès seul (succès du joueur). */
+/** Subject of the announcement: the animal's name and the achievement's, or the achievement alone (a player achievement). */
 function subject(who, name) {
   return who ? fmt(_('{name} : {achievement}'), { name: who, achievement: quoted(name) }) : quoted(name);
 }
@@ -51,10 +52,10 @@ export function coinsText(n) {
 const feeText = (reward) => reward.text ?? _('frais de dossier');
 
 /**
- * Texte de la récompense reçue.
- * @param {{coins?: number, box?: string, accessory?: string, text?: string}} reward récompense du succès (textes déjà traduits)
- * @param {{paid?: boolean, box?: {text: string}, accessoryLabel?: string}} [outcome] ce qui s'est passé :
- *   frais de dossier payés ou non, contenu de la boîte, nom de l'accessoire
+ * Text of the reward received.
+ * @param {{coins?: number, box?: string, accessory?: string, text?: string}} reward the achievement's reward (texts already translated)
+ * @param {{paid?: boolean, box?: {text: string}, accessoryLabel?: string}} [outcome] what happened:
+ *   whether the fee was paid, the box's contents, the accessory's name
  */
 export function rewardText(reward, outcome = {}) {
   if (reward.box) return fmt(_('{box}… qui contient : {content}.'), { box: boxLabel(reward.box), content: outcome.box?.text ?? _('rien') });
@@ -72,7 +73,7 @@ export function rewardText(reward, outcome = {}) {
   return _('rien. Absolument rien.');
 }
 
-/** Récompense annoncée d'un succès, telle que la fenêtre de progression la rappelle. */
+/** An achievement's announced reward, as the progress window recalls it. */
 export function rewardLabel(reward) {
   if (reward.box) return boxLabel(reward.box);
   if (reward.accessory) return accessoryLabel(reward.accessory).toLowerCase();
@@ -82,9 +83,9 @@ export function rewardLabel(reward) {
 }
 
 /**
- * Annonce d'un succès.
+ * Announcement of an achievement.
  * @param {{def: object, who?: string|null, outcome?: object, random?: () => number}} params
- *   who : nom de l'animal, ou null pour un succès du joueur
+ *   who: the animal's name, or null for a player achievement
  * @returns {{title: string, body: string}}
  */
 export function announceUnlock({ def, who = null, outcome = {}, random = Math.random }) {
@@ -105,7 +106,7 @@ export function announceUnlock({ def, who = null, outcome = {}, random = Math.ra
 }
 
 /**
- * Rafale de succès (rattrapage d'un animal ancien, gros progrès) : une seule notification.
+ * A burst of achievements (catching up an older animal, a big jump in progress): a single notification.
  * @param {{who?: string|null, defs: object[], coins?: number}} params
  */
 export function announceBurst({ who = null, defs, coins = 0 }) {
@@ -133,7 +134,7 @@ export function announceBurst({ who = null, defs, coins = 0 }) {
   return { title: _(NARRATOR), body: parts.join(' ') };
 }
 
-/** Trophée gagné au nombre total de succès. */
+/** Trophy earned at the total achievement count. */
 export function announceTrophy({ label, count }) {
   return {
     title: _(NARRATOR),

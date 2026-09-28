@@ -1,7 +1,7 @@
-// Variation de couleur d'un sprite (pixel par pixel), pour donner à chaque
-// animal une apparence propre. Module pur : travaille sur des octets RGBA.
+// Colour variation of a sprite (pixel by pixel), to give each animal a
+// look of its own. Pure module: works on RGBA bytes.
 
-/** @returns {[number, number, number]} teinte 0-360, saturation et valeur 0-1 */
+/** @returns {[number, number, number]} hue 0-360, saturation and value 0-1 */
 export function rgbToHsv(r, g, b) {
   const rn = r / 255;
   const gn = g / 255;
@@ -20,7 +20,7 @@ export function rgbToHsv(r, g, b) {
   return [h, max === 0 ? 0 : d / max, max];
 }
 
-/** @returns {[number, number, number]} composantes 0-255 */
+/** @returns {[number, number, number]} components 0-255 */
 export function hsvToRgb(h, s, v) {
   const hh = (((h % 360) + 360) % 360) / 60;
   const c = v * s;
@@ -36,19 +36,19 @@ export function hsvToRgb(h, s, v) {
   return rgb.map((channel) => Math.round((channel + m) * 255));
 }
 
-const BLACK_BELOW = 0.15; // valeur en dessous de laquelle un pixel (contour, oeil) reste intact
-const GRAY_BELOW = 0.15; // saturation en dessous de laquelle un pixel est « gris »
+const BLACK_BELOW = 0.15; // value below which a pixel (outline, eye) stays untouched
+const GRAY_BELOW = 0.15; // saturation below which a pixel is "gray"
 const WHITE_ABOVE = 0.9;
 
 /**
- * @param {Uint8Array|number[]} rgba pixels RGBA (non modifiés)
+ * @param {Uint8Array|number[]} rgba RGBA pixels (not modified)
  * @param {{hue?: number, saturation?: number, colorizeGrays?: boolean, tone?: number, graySaturation?: number}} [options]
- *   hue : décalage de teinte en degrés (pixels colorés) ;
- *   saturation : facteur appliqué à la saturation (variante choyé/négligé) ;
- *   colorizeGrays : donne aux gris (un chat gris) la teinte absolue `tone`,
- *   avec la saturation `graySaturation` ;
- *   noirs et blancs restent toujours intacts.
- * @returns {Uint8Array} nouveaux pixels
+ *   hue: hue shift in degrees (coloured pixels);
+ *   saturation: factor applied to saturation (devoted/neglected variant);
+ *   colorizeGrays: gives grays (a gray cat) the absolute hue `tone`,
+ *   with saturation `graySaturation`;
+ *   blacks and whites are always left untouched.
+ * @returns {Uint8Array} new pixels
  */
 export function shiftPixels(rgba, { hue = 0, saturation = 1, colorizeGrays = false, tone = 0, graySaturation = 0.35 } = {}) {
   const out = Uint8Array.from(rgba);
@@ -74,7 +74,7 @@ export function shiftPixels(rgba, { hue = 0, saturation = 1, colorizeGrays = fal
   return out;
 }
 
-/** Valide la section `appearance` d'un pack.json. */
+/** Validates the `appearance` section of a pack.json. */
 export function appearanceOverrides(raw = {}) {
   const config = { enabled: true, hueRange: [-35, 35], colorizeGrays: false, graySaturation: 0.35 };
   const ignored = [];

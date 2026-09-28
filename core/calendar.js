@@ -1,19 +1,20 @@
-// Calendrier des succès de saison : saison météorologique et fêtes du jour,
-// en heure locale. Module pur (la date est toujours passée en paramètre).
+// Calendar for seasonal achievements: weather season and the day's
+// holidays, in local time. Pure module (the date is always passed as a
+// parameter).
 
 export const SEASONS = Object.freeze(['spring', 'summer', 'autumn', 'winter']);
 export const HOLIDAYS = Object.freeze(['newyear', 'valentine', 'easter', 'halloween', 'christmas']);
 
-/** Saison météorologique (hémisphère nord) : printemps = mars à mai, etc. */
+/** Weather season (northern hemisphere): spring = March to May, etc. */
 export function seasonOf(date) {
-  const month = date.getMonth(); // 0 = janvier
+  const month = date.getMonth(); // 0 = January
   if (month >= 2 && month <= 4) return 'spring';
   if (month >= 5 && month <= 7) return 'summer';
   if (month >= 8 && month <= 10) return 'autumn';
   return 'winter';
 }
 
-/** Dimanche de Pâques (calendrier grégorien, algorithme dit « anonyme ») : { month (1-12), day }. */
+/** Easter Sunday (Gregorian calendar, the "anonymous" algorithm): { month (1-12), day }. */
 export function easterSunday(year) {
   const a = year % 19;
   const b = Math.floor(year / 100);
@@ -32,7 +33,7 @@ export function easterSunday(year) {
   return { month, day };
 }
 
-/** Fêtes du jour : Nouvel An (1er janvier), Saint-Valentin, Pâques (dimanche et lundi), Halloween, Noël (24 et 25 décembre). */
+/** The day's holidays: New Year (January 1), Valentine's Day, Easter (Sunday and Monday), Halloween, Christmas (December 24-25). */
 export function holidaysOn(date) {
   const month = date.getMonth() + 1;
   const day = date.getDate();

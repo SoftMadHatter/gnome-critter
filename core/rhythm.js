@@ -1,9 +1,10 @@
-// Rythme du monde : nuit, absence du joueur, pauses. Module pur, sans GNOME :
-// l'extension lit l'heure et l'inactivité (capteurs), ces classes décident.
+// The world's rhythm: night, the player being away, breaks. Pure module,
+// no GNOME: the extension reads the time and idleness (sensors), these
+// classes decide.
 
 /**
- * Nuit de `start` h à `end` h (heure locale 0-23), fenêtre qui passe minuit
- * comprise (23 h -> 7 h par défaut).
+ * Night from `start` h to `end` h (local time, 0-23), a window that crosses
+ * midnight included (23 h -> 7 h by default).
  */
 export function isNight(hour, { start = 23, end = 7 } = {}) {
   if (start === end) return false;
@@ -11,14 +12,14 @@ export function isNight(hour, { start = 23, end = 7 } = {}) {
 }
 
 /**
- * Temps d'activité continu du joueur : au bout de `interval` secondes sans
- * vraie pause, propose un rappel, une seule fois puis après un délai de grâce.
+ * The player's continuous activity time: after `interval` seconds without a
+ * real break, offers a reminder, once, then again after a grace period.
  */
 export class BreakTracker {
   /**
    * @param {{interval?: number, resetIdle?: number, cooldown?: number, enabled?: boolean}} [options]
-   *   interval : secondes d'activité avant le rappel ; resetIdle : inactivité
-   *   qui compte comme une pause ; cooldown : délai de grâce après un rappel.
+   *   interval: seconds of activity before the reminder; resetIdle: idle time
+   *   that counts as a break; cooldown: grace period after a reminder.
    */
   constructor({ interval = 3600, resetIdle = 300, cooldown = 1800, enabled = true } = {}) {
     this.interval = interval;
@@ -30,14 +31,14 @@ export class BreakTracker {
   }
 
   /**
-   * @param {number} dt secondes écoulées
-   * @param {number} idleSeconds inactivité actuelle du joueur
+   * @param {number} dt elapsed seconds
+   * @param {number} idleSeconds the player's current idle time
    * @returns {'remind'|null}
    */
   advance(dt, idleSeconds) {
     if (!this.enabled || dt <= 0) return null;
     if (idleSeconds >= this.resetIdle) {
-      this.activeSeconds = 0; // une vraie pause
+      this.activeSeconds = 0; // a real break
       this._cooling = 0;
       return null;
     }
@@ -54,16 +55,16 @@ export class BreakTracker {
     return null;
   }
 
-  /** Le joueur a réagi au rappel : le compteur repart de zéro. */
+  /** The player acknowledged the reminder: the counter resets to zero. */
   acknowledge() {
     this.activeSeconds = 0;
     this._cooling = this.cooldown;
   }
 }
 
-/** Détecte l'absence du joueur (inactivité prolongée) et son retour, une fois chacun. */
+/** Detects the player being away (prolonged idleness) and their return, once each. */
 export class IdleTracker {
-  /** @param {{awayAfter?: number}} [options] awayAfter : secondes d'inactivité avant l'absence */
+  /** @param {{awayAfter?: number}} [options] awayAfter: seconds of idleness before "away" */
   constructor({ awayAfter = 600 } = {}) {
     this.awayAfter = awayAfter;
     this.away = false;
@@ -71,7 +72,7 @@ export class IdleTracker {
 
   /**
    * @param {number} idleSeconds
-   * @returns {'away'|'returned'|null} transition survenue
+   * @returns {'away'|'returned'|null} the transition that occurred
    */
   update(idleSeconds) {
     const nowAway = idleSeconds >= this.awayAfter;

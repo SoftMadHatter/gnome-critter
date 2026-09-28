@@ -1,17 +1,17 @@
-// Sauvegarde/restauration de l'état des critters : fonctions pures (le
-// stockage lui-même, une clé GSettings, est dans extension/lib/manager.js).
-// Le format est versionné et porte un objet `extra` par critter, réservé aux
-// futurs besoins (humeur, faim...) sans casser les sauvegardes existantes.
+// Saving/restoring the critters' state: pure functions (storage itself, a
+// GSettings key, is in extension/lib/manager.js). The format is versioned
+// and carries an `extra` object per critter, reserved for future needs
+// (mood, hunger...) without breaking existing saves.
 
 export const SAVE_VERSION = 2;
-// La version 1 (position seule, sans horodatage) reste lisible : pas de
-// rattrapage des besoins, `extra` vide.
+// Version 1 (position only, no timestamp) stays readable: no catch-up on
+// needs, empty `extra`.
 const READABLE_VERSIONS = new Set([1, 2]);
 
 /**
  * @param {string} packId
  * @param {{serialize: () => object}[]} critters
- * @param {number} [nowMs] horloge murale, pour le rattrapage au prochain démarrage
+ * @param {number} [nowMs] wall clock, for catch-up on the next startup
  * @returns {string} JSON
  */
 export function serializeCritters(packId, critters, nowMs = Date.now()) {
@@ -26,11 +26,11 @@ export function serializeCritters(packId, critters, nowMs = Date.now()) {
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
 /**
- * Lit une sauvegarde sans jamais lever d'exception.
+ * Reads a save, never throwing.
  * @param {string} text
  * @param {{packId: string, bounds: {x:number,y:number,width:number,height:number}, nowMs?: number}} context
- * @returns {{x:number, y:number, facing:1|-1, extra:object, elapsedSeconds:number}[]} vide si la
- *   sauvegarde est absente, invalide, d'une autre version ou d'un autre pack
+ * @returns {{x:number, y:number, facing:1|-1, extra:object, elapsedSeconds:number}[]} empty if the
+ *   save is missing, invalid, or from another version or another pack
  */
 export function parseSavedState(text, { packId, bounds, nowMs = Date.now() }) {
   let data;

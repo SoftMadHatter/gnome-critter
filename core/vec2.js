@@ -1,5 +1,5 @@
-// Petites fonctions vecteur 2D. Volontairement minimal (pas de classe, pas de
-// dépendance) pour rester facile à porter ou à supprimer.
+// Small 2D vector helpers. Deliberately minimal (no class, no dependency)
+// to stay easy to port or drop.
 
 export function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));

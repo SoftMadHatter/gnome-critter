@@ -1,12 +1,12 @@
-// Accessoires cosmétiques (chapeaux, nœud, lunettes...) achetés à la boutique,
-// et points d'ancrage de la tête déclarés par les packs. Module pur.
+// Cosmetic accessories (hats, bow, glasses...) bought at the shop, and the
+// head anchor points declared by packs. Pure module.
 
 import { _, N_ } from './i18n.js';
 
 /**
- * `months` : mois (1-12) pendant lesquels l'accessoire est gratuit et disponible ; sans `months`, achat à `price`.
- * `trophy` : jamais en boutique, offert quand le joueur atteint ce nombre de succès.
- * `joke` : jamais en boutique, récompense farfelue de certains succès (et des boîtes du Comité).
+ * `months`: months (1-12) during which the accessory is free and available; without `months`, bought at `price`.
+ * `trophy`: never in the shop, awarded when the player reaches this many achievements.
+ * `joke`: never in the shop, a silly reward from certain achievements (and the Committee's boxes).
  */
 export const ACCESSORIES = Object.freeze({
   partyhat: { label: N_('Chapeau de fête'), price: 20 },
@@ -23,17 +23,17 @@ export const ACCESSORIES = Object.freeze({
   foilhat: { label: N_('Chapeau en papier alu'), joke: true },
 });
 
-/** Nom affiché d'un accessoire. */
+/** Displayed name of an accessory. */
 export function accessoryLabel(id) {
   return ACCESSORIES[id] ? _(ACCESSORIES[id].label) : id;
 }
 
-/** Accessoire hors boutique (trophée ou farce), obtenu autrement qu'en l'achetant. */
+/** An accessory outside the shop (trophy or joke), obtained some other way than buying it. */
 export function isSpecial(id) {
   return Boolean(ACCESSORIES[id]?.trophy || ACCESSORIES[id]?.joke);
 }
 
-/** Trophées atteints avec `count` succès : `[{id, label}]`, du plus petit seuil au plus grand. */
+/** Trophies reached with `count` achievements: `[{id, label}]`, from the lowest threshold to the highest. */
 export function trophiesFor(count) {
   return Object.entries(ACCESSORIES)
     .filter(([, def]) => def.trophy && count >= def.trophy)
@@ -41,7 +41,7 @@ export function trophiesFor(count) {
     .map(([id]) => ({ id, label: accessoryLabel(id) }));
 }
 
-/** Prix en pièces d'un aliment premium (les autres sont gratuits). */
+/** Price in coins of a premium food (the others are free). */
 export const FOOD_PRICES = Object.freeze({ meat: 2, fish: 3, pate: 2 });
 
 export function inSeason(id, date) {
@@ -50,8 +50,8 @@ export function inSeason(id, date) {
 }
 
 /**
- * Accessoires proposés à la boutique à cette date : achetables (avec leur
- * prix) et de saison (gratuits).
+ * Accessories offered at the shop on this date: purchasable (with their
+ * price) and in-season (free).
  * @param {Date} date
  * @param {string[]} owned
  * @returns {{id: string, label: string, price: number, owned: boolean, free: boolean}[]}
@@ -62,7 +62,7 @@ export function shopList(date, owned) {
     .map(([id, def]) => ({ id, label: accessoryLabel(id), price: def.price, free: def.price === 0, owned: owned.includes(id) }));
 }
 
-/** Accessoires qu'un animal peut porter maintenant : achetés, gratuits de saison, trophées et farces obtenus. */
+/** Accessories an animal can currently wear: bought, free in-season, trophies and jokes obtained. */
 export function equippable(date, owned) {
   const special = Object.entries(ACCESSORIES)
     .filter(([id]) => isSpecial(id) && owned.includes(id))
@@ -71,11 +71,10 @@ export function equippable(date, owned) {
 }
 
 /**
- * Placement d'un accessoire sur la tête. `offset` : décalage vers le bas, en
- * fraction de sa taille (les chapeaux reposent sur l'ancrage ; le nœud, la
- * cocarde et les lunettes se placent plus bas, l'auréole flotte au-dessus, le
- * cône de la honte entoure la tête) ; `scale` : taille relative (1 = la
- * moitié de la largeur du sprite).
+ * Placement of an accessory on the head. `offset`: downward shift, as a
+ * fraction of its size (hats rest on the anchor; the bow, medal and
+ * glasses sit lower, the halo floats above, the cone of shame wraps
+ * around the head); `scale`: relative size (1 = half the sprite's width).
  */
 export const ACCESSORY_LAYOUT = Object.freeze({
   glasses: { offset: 0.45 },
@@ -87,12 +86,12 @@ export const ACCESSORY_LAYOUT = Object.freeze({
 });
 
 /**
- * Carré où dessiner un accessoire sur un sprite affiché dans `box` (même
- * calcul pour l'extension et l'outil de revue).
+ * Square where to draw an accessory on a sprite displayed in `box` (same
+ * computation for the extension and the review tool).
  * @param {string} id
- * @param {{x:number, y:number, width:number, height:number}} box rectangle du sprite
- * @param {{x:number, y:number}} head ancrage de la tête (fractions, sprite tourné vers la droite)
- * @param {number} facing 1 (droite) ou -1 (gauche)
+ * @param {{x:number, y:number, width:number, height:number}} box the sprite's rectangle
+ * @param {{x:number, y:number}} head head anchor (fractions, sprite facing right)
+ * @param {number} facing 1 (right) or -1 (left)
  * @returns {{x:number, y:number, size:number}}
  */
 export function accessoryPlacement(id, box, head, facing) {
@@ -106,8 +105,8 @@ export function accessoryPlacement(id, box, head, facing) {
 const DEFAULT_HEAD_ANCHOR = { x: 0.72, y: 0.2 };
 
 /**
- * Valide la section `anchors` d'un pack : point de la tête (fractions de la
- * taille du sprite, sprite tourné vers la droite), où se pose un chapeau.
+ * Validates the `anchors` section of a pack: the head point (fractions of
+ * the sprite's size, sprite facing right), where a hat sits.
  * @returns {{anchors: {head: {x:number, y:number}}, ignored: string[]}}
  */
 export function anchorsOverrides(raw) {

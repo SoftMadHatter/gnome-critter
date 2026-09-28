@@ -1,10 +1,10 @@
-// Traduction. Les textes source sont en français (ce sont les msgid de
-// gettext, domaine « gnome-critter ») ; le traducteur actif est branché par
-// l'extension (gettext de GNOME), par les préférences, ou par les tests et
-// l'outil de revue (catalogue .po lu en JavaScript). Sans traducteur : le
-// français, avec sa règle de pluriel. Module pur. Voir docs/i18n.md.
+// Translation. Source texts are in French (they're the gettext msgids,
+// domain "gnome-critter"); the active translator is plugged in by the
+// extension (GNOME's gettext), by the preferences, or by the tests and the
+// review tool (a .po catalogue read in JavaScript). With no translator:
+// French, with its plural rule. Pure module. See docs/i18n.md.
 
-/** Langues qui ont un catalogue (le français est la langue source). */
+/** Languages with a catalogue (French is the source language). */
 export const LANGUAGES = Object.freeze(['fr', 'en']);
 
 const identity = {
@@ -16,9 +16,9 @@ const identity = {
 let translator = identity;
 
 /**
- * Branche le traducteur actif.
+ * Plugs in the active translator.
  * @param {{gettext?: (msgid: string) => string, ngettext?: (s: string, p: string, n: number) => string, language?: string}} [t]
- *   sans argument : retour au français
+ *   no argument: back to French
  */
 export function setTranslator(t = identity) {
   translator = {
@@ -28,35 +28,35 @@ export function setTranslator(t = identity) {
   };
 }
 
-/** Langue affichée (`fr` ou `en`). */
+/** Displayed language (`fr` or `en`). */
 export function language() {
   return translator.language;
 }
 
-/** Texte traduit. */
+/** Translated text. */
 export function _(msgid) {
   return translator.gettext(msgid);
 }
 
-/** Texte traduit selon le nombre (pluriel de la langue). */
+/** Text translated according to the count (the language's plural form). */
 export function ngettext(singular, plural, n) {
   return translator.ngettext(singular, plural, n);
 }
 
-/** Marqueur d'extraction : le texte est traduit plus tard, au moment de l'afficher (tables de libellés). */
+/** Extraction marker: the text is translated later, at display time (label tables). */
 export function N_(msgid) {
   return msgid;
 }
 
-/** Remplace les espaces réservés nommés : `fmt('{name} a éclos.', { name })`. */
+/** Replaces named placeholders: `fmt('{name} hatched.', { name })`. */
 export function fmt(template, values = {}) {
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in values ? String(values[key]) : match));
 }
 
 /**
- * Langue de la session parmi celles qui ont un catalogue, comme le repli de
- * gettext : la première des langues préférées (ex. `['en_US.UTF-8', 'en_US', 'en', 'C']`)
- * qui a un catalogue, sinon le français (langue source).
+ * Session language among those with a catalogue, mirroring gettext's own
+ * fallback: the first preferred language (e.g. `['en_US.UTF-8', 'en_US', 'en', 'C']`)
+ * that has a catalogue, otherwise French (the source language).
  */
 export function sessionLanguage(names = [], available = LANGUAGES) {
   for (const name of names) {

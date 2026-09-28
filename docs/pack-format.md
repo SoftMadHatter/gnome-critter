@@ -1,17 +1,17 @@
-# Format d'un pack d'animal
+# Animal pack format
 
-Un pack décrit une espèce : ses sprites, ses animations, ce qu'elle sait
-faire (marcher au sol, grimper aux murs, marcher au plafond, nager, voler)
-et quelques paramètres de comportement. Objectif : ajouter un nouvel animal
-sans toucher au code, en ne fournissant qu'un dossier.
+A pack describes a species: its sprites, its animations, what it can do
+(walk on the ground, climb walls, walk on the ceiling, swim, fly), and a few
+behavior parameters. Goal: add a new critter without touching the code, by
+providing only a folder.
 
-## Arborescence d'un pack
+## Layout of a pack
 
 ```
 packs/<species-id>/
   pack.json
   sprites/
-    walk.png       # spritesheet, une ligne de frames par animation
+    walk.png       # spritesheet, one row of frames per animation
     idle.png
     fall.png
     sleep.png
@@ -25,20 +25,20 @@ packs/<species-id>/
   "id": "critter-demo",
   "displayName": "Critter (démo)",
   "version": "0.1.0",
-  "author": "toi",
+  "author": "you",
 
-  // Ce que l'espèce sait utiliser comme surfaces. Valeurs possibles :
-  // "ground" (sol + rebords de fenêtres), "wall", "ceiling", "water", "air".
+  // What surfaces the species can use. Possible values:
+  // "ground" (floor + window ledges), "wall", "ceiling", "water", "air".
   "supportedSurfaces": ["ground"],
 
-  // Taille d'affichage à l'écran, en pixels logiques (avant mise à l'échelle
-  // HiDPI). Libre : l'insecte (packs/bug) utilise 16x16.
+  // Display size on screen, in logical pixels (before HiDPI scaling).
+  // Free choice: the insect (packs/bug) uses 16x16.
   "spriteSize": { "width": 32, "height": 32 },
-  // Optionnel (défaut false) : feuilles plus fines que spriteSize, réduction lissée
-  // au lieu du plus proche voisin.
+  // Optional (default false): sheets finer than spriteSize, smoothed
+  // downscaling instead of nearest-neighbor.
   "smooth": true,
 
-  // Vitesses en px/s, reprises telles quelles par core/critter.js.
+  // Speeds in px/s, used as-is by core/critter.js.
   "speeds": {
     "walk": 40,
     "climb": 30,
@@ -46,22 +46,22 @@ packs/<species-id>/
     "fly": 60
   },
 
-  // Optionnel : surcharge du caractère de l'espèce. Toute clé de
-  // DEFAULT_CONFIG (core/critter.js) de type nombre ou intervalle [min, max]
-  // est acceptée : poids des activités idle (sleepWeight, washWeight,
-  // followWeight, greetWeight, climbSeekWeight, seekFocusWeight, flyWeight,
-  // swimWeight...), durées (idleDuration, sleepDuration, flyDuration...),
-  // ondulation de nage (swimWaveAmplitude, swimWaveFrequency), etc. Les
-  // autres clés sont ignorées avec un avertissement dans le journal de
-  // GNOME Shell. Les vitesses de "speeds" gardent la priorité.
+  // Optional: overrides the species' temperament. Any DEFAULT_CONFIG key
+  // (core/critter.js) of type number or [min, max] range is accepted:
+  // idle activity weights (sleepWeight, washWeight, followWeight,
+  // greetWeight, climbSeekWeight, seekFocusWeight, flyWeight, swimWeight…),
+  // durations (idleDuration, sleepDuration, flyDuration…), swim undulation
+  // (swimWaveAmplitude, swimWaveFrequency), etc. Other keys are ignored
+  // with a warning in the GNOME Shell log. The "speeds" values keep
+  // priority.
   "behavior": {
     "sleepWeight": 15,
     "idleDuration": [1, 3]
   },
 
-  // Une entrée par état du cœur (voir core/critter.js State). "frameDuration"
-  // est en secondes. "loop" indique si l'animation boucle ou se fige sur la
-  // dernière frame (utile pour une transition courte).
+  // One entry per core state (see core/critter.js State). "frameDuration"
+  // is in seconds. "loop" says whether the animation loops or freezes on
+  // the last frame (useful for a short transition).
   "animations": {
     "idle":   { "file": "sprites/idle.png",  "frames": 4, "frameDuration": 0.5, "loop": true },
     "walk":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.12, "loop": true },
@@ -91,23 +91,23 @@ packs/<species-id>/
     "remind":   { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.08, "loop": true },
     "hunt":     { "file": "sprites/walk.png",  "frames": 4, "frameDuration": 0.06, "loop": true }
   },
-  // Un état sans entrée retombe silencieusement sur "idle" (rétrocompatible :
-  // rien à faire pour profiter d'un nouvel état ajouté à core/critter.js),
-  // sauf les allures rapides qui retombent d'abord sur leur allure normale :
-  // "run" et "seekFood" -> "walk", "swimFast" -> "swim", "flyFast" et "dive"
-  // -> "fly", "eat" -> "idle", "play" -> "run" puis "walk", "brushed" ->
-  // "wash" puis "idle", "remind" -> "follow" puis "walk", "hunt" -> "run" puis "walk".
+  // A state with no entry silently falls back to "idle" (backward
+  // compatible: nothing to do to benefit from a new state added to
+  // core/critter.js), except the fast gaits, which fall back to their
+  // normal gait first: "run" and "seekFood" -> "walk", "swimFast" ->
+  // "swim", "flyFast" and "dive" -> "fly", "eat" -> "idle", "play" ->
+  // "run" then "walk", "brushed" -> "wash" then "idle", "remind" ->
+  // "follow" then "walk", "hunt" -> "run" then "walk".
 
-  // Réactions courtes jouées par-dessus l'animation courante, déclenchées par
-  // les événements du cœur (voir Critter#lastEvent : "petted", "tickled",
-  // "annoyed", "noticed", "startled" (nouvelle fenêtre), "greeted" (a
-  // atteint un autre critter en état GREET), "purring" (3e caresse d'une série),
-  // "brushed" (fin du brossage), "played" (fin d'une session de jeu), "ate",
-  // "grabbed", "released",
-  // "landed", "sleep", "wash", ...).
-  // "sound" est optionnel : chemin relatif au pack vers un .wav/.ogg joué
-  // une fois au déclenchement (rien ne se passe si absent ou si l'utilisateur
-  // a désactivé les sons dans les préférences de l'extension).
+  // Short reactions played over the current animation, triggered by core
+  // events (see Critter#lastEvent: "petted", "tickled", "annoyed",
+  // "noticed", "startled" (new window), "greeted" (reached another
+  // critter in the GREET state), "purring" (3rd pet of a streak),
+  // "brushed" (end of brushing), "played" (end of a play session), "ate",
+  // "grabbed", "released", "landed", "sleep", "wash", ...).
+  // "sound" is optional: a path relative to the pack to a .wav/.ogg
+  // played once when triggered (nothing happens if it's absent or the
+  // user has disabled sounds in the extension's preferences).
   "reactions": {
     "petted": {
       "file": "sprites/idle.png",
@@ -119,11 +119,11 @@ packs/<species-id>/
 }
 ```
 
-## Besoins (`needs`)
+## Needs (`needs`)
 
-Section optionnelle pour régler la vitesse à laquelle chaque besoin baisse
-(`decayPerHour`, par jauge : `satiety`, `energy`, `cleanliness`,
-`stimulation`, `affection`). Voir `docs/needs.md`.
+Optional section to set how fast each need drops (`decayPerHour`, per
+gauge: `satiety`, `energy`, `cleanliness`, `stimulation`, `affection`). See
+`docs/needs.md`.
 
 ```jsonc
 "needs": {
@@ -132,49 +132,49 @@ Section optionnelle pour régler la vitesse à laquelle chaque besoin baisse
 }
 ```
 
-`diet` : aliments que l'espèce mange (`meat`, `fish`, `pate`, `kibble`,
-`seeds`, `mealworms`, `apple`, et les flottants `plankton`, `flakes`) et
-plantes qu'elle grignote (`grass`, `berries`, `leaf`, `algae`),
-avec le gain de satiété de chacun ; un aliment absent est ignoré. `prey` : proies
-qu'elle chasse (`mouse`, `beetle`, `aphid`, `krill`) et gain de satiété par
-proie (voir `docs/autonomy.md`).
+`diet`: foods the species eats (`meat`, `fish`, `pate`, `kibble`, `seeds`,
+`mealworms`, `apple`, and the floating `plankton`, `flakes`) and plants it
+nibbles (`grass`, `berries`, `leaf`, `algae`), with each one's satiety
+gain; a missing food is ignored. `prey`: prey it hunts (`mouse`, `beetle`,
+`aphid`, `krill`) and the satiety gain per prey (see `docs/autonomy.md`).
 
-## Apparence et stades (`appearance`, `stages`)
+## Appearance and stages (`appearance`, `stages`)
 
-Sections optionnelles décrites dans `docs/life.md` : plage de teinte et
-colorisation des gris (`appearance`), échelle d'affichage et dossier de
-feuilles par stade (`stages`, ex. `"baby": { "folder": "sprites/baby" }`). Animations facultatives `egg` (4 frames) et `hibernate` ; réactions
-`hatched`, `grew`, `awakened`.
+Optional sections described in `docs/life.md`: hue range and gray
+colorization (`appearance`), display scale and per-stage sheet folder
+(`stages`, e.g. `"baby": { "folder": "sprites/baby" }`). Optional `egg`
+(4 frames) and `hibernate` animations; `hatched`, `grew`, `awakened`
+reactions.
 
 ## Progression (`achievements`, `tricks`, `anchors`)
 
-Sections optionnelles décrites dans `docs/progression.md` : succès de
-l'espèce (gabarits qui complètent, remplacent ou retirent ceux de la
-bibliothèque commune), tours de l'espèce, point d'ancrage de la tête pour
-les accessoires. Animations facultatives `trick_sit`, `trick_roll`,
-`trick_flip` (l'une par tour déclaré) et `gift`.
+Optional sections described in `docs/progression.md`: the species'
+achievements (templates that add to, replace, or remove entries from the
+shared library), the species' tricks, the head anchor point for
+accessories. Optional animations `trick_sit`, `trick_roll`, `trick_flip`
+(one per trick declared) and `gift`.
 
-## Noms (`names`)
+## Names (`names`)
 
-Liste optionnelle de prénoms tirés à la naissance (au moins 8, voir
-`docs/creatures.md`), en français. Sans elle, le jeu prend une liste
-générique dans la langue de la session. Les prénoms des autres langues vont
-dans la section `translations`.
+Optional list of given names drawn at birth (at least 8, see
+`docs/creatures.md`), in French. Without it, the game uses a generic list
+in the session's language. Given names for other languages go in the
+`translations` section.
 
-## Traductions (`translations`)
+## Translations (`translations`)
 
-Section optionnelle : les textes du pack dans d'autres langues. Le français
-de `pack.json` reste la source, et chaque champ absent y retombe. Le jeu
-applique la section de la langue de la session au chargement du pack (voir
-`docs/i18n.md`).
+Optional section: the pack's text in other languages. The French in
+`pack.json` stays the source, and any missing field falls back to it. The
+game applies the section for the session's language when the pack loads
+(see `docs/i18n.md`).
 
 ```jsonc
 "translations": {
-  "en": {                              // code de langue : 2 ou 3 lettres minuscules
+  "en": {                              // language code: 2 or 3 lowercase letters
     "displayName": "Cat",
     "names": ["Whiskers", "Mocha", "Cuddles", "Pixel", "Nougat", "Purrcy", "Tiger", "Luna"],
     "achievements": {
-      // clé : la `series` ou l'`id` d'une entrée de "achievements" du pack
+      // key: the `series` or `id` of an entry in the pack's "achievements"
       "hunts": {
         "names": ["First mouse", "Mouser", "Scourge of mice", "Rodents' nightmare"],
         "description": "Catch {n} mice",
@@ -186,137 +186,138 @@ applique la section de la langue de la session au chargement du pack (voir
 }
 ```
 
-Champs d'un succès :
+Fields of an achievement:
 
-- textes :
-  - `name` ;
-  - `description` ;
-  - `quip` (commentaire du Comité) ;
-  - `title` ;
-- listes :
-  - `names` (un par palier) ;
-  - `descriptions` ;
-  - `quips` ;
-  - `rewardTexts` (textes des récompenses qui ont un `text`, dans l'ordre).
+- text:
+  - `name`;
+  - `description`;
+  - `quip` (the Committee's comment);
+  - `title`;
+- lists:
+  - `names` (one per tier);
+  - `descriptions`;
+  - `quips`;
+  - `rewardTexts` (texts of the rewards that have a `text`, in order).
 
-Règles :
+Rules:
 
-- Une liste doit avoir la longueur de l'originale, sinon elle est ignorée. Un
-  élément `null` garde le texte français.
-- Les espaces réservés du français se retrouvent dans la traduction : `{n}`
-  (le palier), `{s}` (« s » au-delà de 1), que chaque langue place où il lui
-  convient.
-- Seuls les succès **propres au pack** se traduisent ici. Ceux de la
-  bibliothèque commune passent par le catalogue du jeu (`po/`).
-- Une clé mal formée est ignorée, avec un avertissement dans le journal de
-  GNOME Shell. L'onglet Contrôles de l'outil de revue la signale aussi.
-- Pour les packs du dépôt, `tests/i18n.test.js` exige une section `en`
-  complète : nom, prénoms (au moins 8), tous les textes des succès du pack.
+- A list must have the same length as the original, otherwise it's
+  ignored. A `null` element keeps the French text.
+- The French placeholders carry over into the translation: `{n}` (the
+  tier), `{s}` ("s" beyond 1), which each language places wherever it
+  fits.
+- Only achievements **specific to the pack** are translated here. Those
+  from the shared library go through the game's catalog (`po/`).
+- A malformed key is ignored, with a warning in the GNOME Shell log. The
+  review tool's Checks tab flags it too.
+- For packs in the repo, `tests/i18n.test.js` requires a complete `en`
+  section: name, given names (at least 8), every text of the pack's
+  achievements.
 
-## Règle du spritesheet
+## Spritesheet rule
 
-Chaque fichier PNG référencé est une seule ligne de `frames` images carrées
-sans marge entre les frames. La taille d'une case est la hauteur du PNG : elle
-doit être un multiple entier de `spriteSize`. Les packs cat/bug/fish/bird
-dessinent en 64x64 pour un affichage à 32 px (l'insecte à 16 px) : ils
-déclarent `"smooth": true`, et l'extension réduit alors la feuille avec un
-filtre lisse (net en HiDPI). Sans `smooth` (cas de `critter-demo`, en 32x32),
-l'affichage se fait au plus proche voisin, sans flou. C'est le format le plus simple
-à découper côté extension (un `Clutter.Image` par frame, généré une fois au
-chargement du pack puis mis en cache).
+Every referenced PNG file is a single row of `frames` square images with no
+margin between frames. A cell's size is the PNG's height: it must be an
+integer multiple of `spriteSize`. The cat/bug/fish/bird packs draw at 64x64
+for a 32 px display (the insect at 16 px): they declare `"smooth": true`,
+and the extension then downscales the sheet with a smooth filter (crisp on
+HiDPI). Without `smooth` (the case for `critter-demo`, at 32x32), display
+uses nearest-neighbor, with no blur. This is the simplest format to slice
+on the extension side (one `Clutter.Image` per frame, generated once when
+the pack loads then cached).
 
-Le sprite est dessiné face à droite par défaut ; quand `facing === -1`, la
-couche de rendu retourne l'image horizontalement plutôt que de dupliquer les
+The sprite is drawn facing right by default; when `facing === -1`, the
+rendering layer flips the image horizontally rather than duplicating the
 frames.
 
-## Vol
+## Flight
 
-Une espèce qui sait marcher au sol et voler (oiseau, pack démo) choisit dès
-le décollage un sol ou un rebord de fenêtre où se poser, y vole en ligne
-droite et s'y pose : elle ne retombe jamais en chute libre. Elle ne change de
-cible que très rarement (`flyRetargetChance`, probabilité par seconde) ou si
-sa surface cible disparaît ou bouge. `flyDuration` ne s'applique donc qu'aux
-espèces purement aériennes (voir ci-dessous).
+A species that can both walk on the ground and fly (bird, the demo pack)
+picks, as soon as it takes off, a floor or window ledge to land on, flies
+to it in a straight line, and lands: it never falls into free fall. It
+changes target only very rarely (`flyRetargetChance`, a probability per
+second) or if its target surface disappears or moves. `flyDuration`
+therefore only applies to purely aerial species (see below).
 
-Deux comportements en plus : le **vol rapide** (`flyFastWeight`,
-`flyFastFactor`) et le **piqué** : au décollage, avec la probabilité
-`flyCruiseChance`, l'animal monte d'abord à une altitude de croisière, puis
-en descendant vers sa cible il peut piquer (`diveChance` par seconde, cible
-au moins `diveMinHeight` plus bas et angle raide, vitesse `diveSpeedFactor`).
-Le piqué finit toujours par l'atterrissage sur la cible.
+Two extra behaviors: **fast flight** (`flyFastWeight`, `flyFastFactor`) and
+the **dive**: on takeoff, with probability `flyCruiseChance`, the critter
+first climbs to a cruising altitude, then while descending toward its
+target it may dive (`diveChance` per second, target at least
+`diveMinHeight` lower and at a steep angle, speed `diveSpeedFactor`). A
+dive always ends with landing on the target.
 
-## Allures rapides et nage
+## Fast gaits and swimming
 
 `run` (`runWeight`, `runSpeedFactor`), `swimFast` (`swimFastWeight`,
-`swimFastFactor`) et `flyFast` sont les versions rapides de la marche, de la
-nage et du vol. Une espèce sans sol enchaîne ses sessions en tirant une
-session rapide avec la probabilité `fastChance`. La nage retire sa cible
-toutes les `swimRetargetDuration` secondes (5 à 10 par défaut), avec un
-virage d'au plus `swimTurnMax` degrés à chaque fois ; le vol libre des
-espèces aériennes garde `roamRetargetDuration`.
+`swimFastFactor`), and `flyFast` are the fast versions of walking,
+swimming, and flying. A groundless species chains its sessions by drawing
+a fast session with probability `fastChance`. Swimming redraws its target
+every `swimRetargetDuration` seconds (5 to 10 by default), with a turn of
+at most `swimTurnMax` degrees each time; the free flight of aerial species
+keeps `roamRetargetDuration`.
 
-## Espèces sans sol
+## Groundless species
 
-Une espèce dont `supportedSurfaces` ne contient pas `"ground"` mais
-contient `"water"` (ou `"air"`) ne se pose jamais : à la fin d'une session
-de nage (ou de vol) elle en enchaîne une autre, et si elle tombe (spawn,
-fin de glisser) elle repart dans son roaming en touchant le sol. C'est le
-cas du poisson (`packs/fish`, `["water"]`).
+A species whose `supportedSurfaces` doesn't contain `"ground"` but does
+contain `"water"` (or `"air"`) never lands: at the end of a swimming (or
+flying) session it chains into another one, and if it falls (spawn, end of
+a drag) it resumes roaming as soon as it touches the ground. This is the
+case for the fish (`packs/fish`, `["water"]`).
 
-## Liste de contrôle des états et réactions
+## Checklist of states and reactions
 
-Un pack complet donne à **chaque état atteignable sa propre feuille** (pas de
-feuille partagée) ; `tests/packs.test.js` le vérifie pour tous les packs sauf
-`critter-demo`, qui reste volontairement minimal pour montrer les repli.
+A complete pack gives **every reachable state its own sheet** (no shared
+sheet); `tests/packs.test.js` checks this for every pack except
+`critter-demo`, which stays deliberately minimal to show the fallbacks.
 
-- **Toujours** : `idle`, `fall`, `drag`, `hibernate`, `remind`, `gift`, `play`,
-  `hunt`, `eat`, `seekFood`.
-- **Sol** (`ground`) : `walk`, `sleep`, `wash`, `follow`, `greet`, `seekFocus`,
-  `seekNap`, `chase`, `flee`, `run`, `brushed`, `relieve`.
-- **Mur** : `climb`, `seekWall` ; **plafond** : `ceiling` ; **air** : `fly`,
-  `flyFast`, `dive` ; **eau** : `swim`, `swimFast`.
-- **Tours** : un `trick_<nom>` par tour déclaré dans `tricks`.
-- **Réactions** : `petted`, `tickled`, `annoyed`, `noticed`, `startled`,
+- **Always**: `idle`, `fall`, `drag`, `hibernate`, `remind`, `gift`,
+  `play`, `hunt`, `eat`, `seekFood`.
+- **Ground** (`ground`): `walk`, `sleep`, `wash`, `follow`, `greet`,
+  `seekFocus`, `seekNap`, `chase`, `flee`, `run`, `brushed`, `relieve`.
+- **Wall**: `climb`, `seekWall`; **ceiling**: `ceiling`; **air**: `fly`,
+  `flyFast`, `dive`; **water**: `swim`, `swimFast`.
+- **Tricks**: one `trick_<name>` per trick declared in `tricks`.
+- **Reactions**: `petted`, `tickled`, `annoyed`, `noticed`, `startled`,
   `greeted`, `purring`, `brushed`, `hatched`, `grew`, `awakened`, `ate`,
-  `played`, `sick`, `accident`, `relieved`, `trickLearned`, `birthday`, `gift`,
-  `reminded` (le son est facultatif).
+  `played`, `sick`, `accident`, `relieved`, `trickLearned`, `birthday`,
+  `gift`, `reminded` (the sound is optional).
 
-`scripts/gen_species_sprites.py` génère toutes ces feuilles pour chat, oiseau,
-insecte et poisson, à partir de recettes de poses par état.
+`scripts/gen_species_sprites.py` generates every one of these sheets for
+cat, bird, insect, and fish, from per-state pose recipes.
 
-## Packs fournis
+## Packs provided
 
-| Dossier | Espèce | Locomotions | Particularités |
+| Folder | Species | Locomotion | Notes |
 |---|---|---|---|
-| `critter-demo` | Critter (démo) | toutes | pack de référence |
-| `cat` | Chat | sol, murs, plafond | dort et se lave souvent, suit le curseur |
-| `bug` | Insecte | sol, murs, plafond | 16 px, rapide, grimpe sans arrêt |
-| `fish` | Poisson | eau seulement | nage ondulante en continu |
-| `bird` | Oiseau | sol, air | vole souvent, se pose sur les rebords |
+| `critter-demo` | Critter (demo) | all | reference pack |
+| `cat` | Cat | ground, walls, ceiling | sleeps and washes often, follows the cursor |
+| `bug` | Insect | ground, walls, ceiling | 16 px, fast, climbs constantly |
+| `fish` | Fish | water only | continuous undulating swim |
+| `bird` | Bird | ground, air | flies often, lands on ledges |
 
-Leurs sons sont des placeholders générés par
-`scripts/gen_placeholder_sounds.py`. Les sprites de `critter-demo` viennent de
-`scripts/gen_placeholder_sprites.py` ; ceux de cat/bug/fish/bird de
-`scripts/gen_species_sprites.py` (dessin fin sur-échantillonné, feuilles 64x64, contour doux automatique), qui
-réécrit aussi les sections `animations` et `reactions` de leur `pack.json`
-(une espèce en argument pour n'en régénérer qu'une). Ces packs ont des
-feuilles dédiées pour la plupart des états (grimper, plafond, course, fuite,
-salut...) et pour chaque réaction. `tests/packs.test.js`
-vérifie automatiquement chaque pack (fichiers présents, découpage des
-spritesheets, sons, clés `behavior`).
+Their sounds are placeholders generated by
+`scripts/gen_placeholder_sounds.py`. `critter-demo`'s sprites come from
+`scripts/gen_placeholder_sprites.py`; cat/bug/fish/bird's from
+`scripts/gen_species_sprites.py` (fine, supersampled drawing, 64x64
+sheets, automatic soft outline), which also rewrites the `animations` and
+`reactions` sections of their `pack.json` (pass a species as an argument
+to regenerate just one). These packs have dedicated sheets for most states
+(climbing, ceiling, running, fleeing, greeting…) and for every reaction.
+`tests/packs.test.js` automatically checks every pack (files present,
+spritesheet slicing, sounds, `behavior` keys).
 
-## Ajouter une nouvelle espèce
+## Adding a new species
 
-1. Copier `packs/critter-demo/` sous un nouveau `<species-id>`.
-2. Remplacer les spritesheets par les tiens (même convention de découpage).
-3. Ajuster `supportedSurfaces` et `speeds` selon ce que l'animal doit savoir
-   faire (un poisson : `["water"]` ; un oiseau : `["ground", "air"]`, etc.),
-   puis donner du caractère à l'espèce via `behavior`.
-4. Lancer `npm test` : `tests/packs.test.js` signale tout fichier manquant
-   ou spritesheet mal découpé.
-5. Aucun changement de code n'est nécessaire pour un comportement standard,
-   y compris les activités idle automatiques déjà câblées (suivre le
-   curseur, se laver, sursauter à l'ouverture d'une fenêtre) : elles
-   marchent pour toute espèce, avec ou sans animation dédiée dans le pack.
-   Un comportement vraiment nouveau (ex: une espèce qui vole en formation
-   avec d'autres critters) reste un ajout dans `core/critter.js`.
+1. Copy `packs/critter-demo/` to a new `<species-id>`.
+2. Replace the spritesheets with your own (same slicing convention).
+3. Adjust `supportedSurfaces` and `speeds` to what the critter should be
+   able to do (a fish: `["water"]`; a bird: `["ground", "air"]`, etc.),
+   then give the species some personality via `behavior`.
+4. Run `npm test`: `tests/packs.test.js` flags any missing file or
+   mis-sliced spritesheet.
+5. No code change is needed for standard behavior, including the
+   automatic idle activities already wired in (following the cursor,
+   washing, startling at a window opening): they work for any species,
+   with or without a dedicated animation in the pack. A genuinely new
+   behavior (e.g. a species that flies in formation with other critters)
+   stays an addition in `core/critter.js`.

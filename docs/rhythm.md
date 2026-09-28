@@ -1,47 +1,45 @@
-# Rythme du monde
+# World rhythm
 
-Les animaux réagissent à l'heure, à ta présence, à ton rythme de travail et à
-quelques événements du bureau. La logique est dans `core/rhythm.js` et
-`core/critter.js` (pures et testées) ; les capteurs sont dans
-`extension/lib/activitySensor.js` et `extension/lib/manager.js`.
+Critters react to the time of day, your presence, your work rhythm, and a few
+desktop events. The logic is in `core/rhythm.js` and `core/critter.js` (pure
+and tested); the sensors are in `extension/lib/activitySensor.js` and
+`extension/lib/manager.js`.
 
-**Confidentialité** : aucun contenu n'est jamais lu ni conservé. Une
-notification n'est qu'un « il y en a une » (ni titre, ni texte, ni
-application) ; la frappe n'est qu'un « une touche a été pressée » (jamais
-laquelle) ; l'inactivité n'est qu'une durée.
+**Privacy**: no content is ever read or kept. A notification is only an
+"there is one" (no title, no text, no app); a keystroke is only a "a key was
+pressed" (never which one); inactivity is only a duration.
 
-## Jour et nuit
+## Day and night
 
-De 23 h à 7 h (heure locale), les animaux dorment davantage (poids du sommeil
-x3, activités énergiques x0,4) et sont légèrement assombris. Réglage : cycle
-jour/nuit.
+From 11 pm to 7 am (local time), critters sleep more (sleep weight x3,
+energetic activities x0.4) and are slightly dimmed. Setting: day/night cycle.
 
-## Absence du joueur
+## Player away
 
-Après 10 minutes d'inactivité (réglable), ils s'endorment plus volontiers
-(sommeil x4, énergiques x0,3). À ton retour, ils te saluent et les dormeurs
-se réveillent. Réglages : dormir en votre absence, minutes d'inactivité.
+After 10 minutes of inactivity (adjustable), they fall asleep more readily
+(sleep x4, energetic x0.3). When you come back, they greet you and any
+sleepers wake up. Settings: sleep while you're away, inactivity minutes.
 
-## Rappel de pause
+## Break reminder
 
-Désactivé par défaut. Après 60 minutes d'activité continue (réglable), le
-premier animal éveillé vient vers ton curseur avec une bulle de tasse pendant
-25 secondes. Un clic sur lui acquitte le rappel (le compteur repart de zéro).
-Une vraie pause (5 minutes d'inactivité) remet aussi le compteur à zéro, et un
-délai de grâce de 30 minutes suit chaque rappel. Un œuf ou un animal qui
-hiberne n'est jamais choisi.
+Disabled by default. After 60 minutes of continuous activity (adjustable),
+the first awake critter comes to your cursor with a cup bubble for 25
+seconds. Clicking it acknowledges the reminder (the counter resets to zero).
+An actual break (5 minutes of inactivity) also resets the counter, and a
+30-minute grace period follows each reminder. An egg or a hibernating critter
+is never chosen.
 
-## Notifications et frappe
+## Notifications and typing
 
-- **Notifications** (actif par défaut) : l'animal remarque l'arrivée d'une
-  notification (réaction de curiosité), sans réveiller un dormeur.
-- **Frappe** (désactivé par défaut) : réaction de curiosité limitée à une
-  fois toutes les 20 secondes par animal.
+- **Notifications** (on by default): the critter notices a notification
+  arriving (curiosity reaction), without waking a sleeper.
+- **Typing** (off by default): curiosity reaction limited to once every 20
+  seconds per critter.
 
-Un œuf ignore tout cela, comme il ignore toute interaction.
+An egg ignores all of this, as it ignores every interaction.
 
-## Animations de pack
+## Pack animations
 
-`remind` (repli sur `follow` puis `walk`). Les réactions utilisées sont
-`noticed` (notification, frappe) et `greeted` (retour du joueur), déjà
-présentes dans les packs.
+`remind` (falls back to `follow` then `walk`). The reactions used are
+`noticed` (notification, typing) and `greeted` (player's return), already
+present in packs.

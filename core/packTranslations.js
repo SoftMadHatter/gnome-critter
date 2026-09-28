@@ -1,7 +1,7 @@
-// Traductions portées par un pack (section `translations` de pack.json) :
-// nom de l'espèce, prénoms, textes des succès propres au pack, par langue.
-// Le français du pack est la langue source ; chaque champ absent y retombe.
-// Module pur. Format décrit dans docs/pack-format.md.
+// Translations carried by a pack (`translations` section of pack.json):
+// species name, given names, texts of the pack's own achievements, per
+// language. The pack's French is the source language; any missing field
+// falls back to it. Pure module. Format described in docs/pack-format.md.
 
 const TEXT_FIELDS = ['name', 'description', 'quip', 'title'];
 const LIST_FIELDS = ['names', 'descriptions', 'quips', 'rewardTexts'];
@@ -11,7 +11,7 @@ const isTextList = (v) => Array.isArray(v) && v.length > 0 && v.every((item) => 
 const keyOf = (entry) => (entry?.series ? `s:${entry.series}` : `i:${entry?.id}`);
 
 /**
- * Valide la section `translations` : `{ <langue>: { displayName?, names?, achievements?: { <series ou id>: {...} } } }`.
+ * Validates the `translations` section: `{ <language>: { displayName?, names?, achievements?: { <series or id>: {...} } } }`.
  * @returns {{languages: Record<string, object>, ignored: string[]}}
  */
 export function translationsOverrides(raw) {
@@ -43,7 +43,7 @@ export function translationsOverrides(raw) {
   return { languages, ignored };
 }
 
-/** Une entrée de succès avec ses textes traduits ; une liste de longueur différente de l'originale est ignorée. */
+/** An achievement entry with its translated texts; a list whose length differs from the original is ignored. */
 function localizeEntry(entry, texts) {
   if (!texts) return entry;
   const out = { ...entry };
@@ -62,8 +62,8 @@ function localizeEntry(entry, texts) {
 }
 
 /**
- * Le pack dans une langue : nom, prénoms et textes des succès remplacés par
- * ceux de la section `translations`, champ par champ (le français sinon).
+ * The pack in a language: name, given names and achievement texts replaced
+ * by those of the `translations` section, field by field (French otherwise).
  * @param {object} meta pack.json
  * @param {string} lang `fr`, `en`...
  */
@@ -84,9 +84,9 @@ export function localizePack(meta, lang) {
 }
 
 /**
- * Textes du pack à traduire dans une langue, absents de sa section
- * `translations` (pour les tests et l'outil de revue).
- * @returns {string[]} chemins manquants (« displayName », « names », « achievements.hunts.names »...)
+ * Pack texts to translate into a language, missing from its `translations`
+ * section (for the tests and the review tool).
+ * @returns {string[]} missing paths ("displayName", "names", "achievements.hunts.names"...)
  */
 export function missingTranslations(meta, lang) {
   const section = translationsOverrides(meta?.translations).languages[lang] ?? { achievements: {} };
