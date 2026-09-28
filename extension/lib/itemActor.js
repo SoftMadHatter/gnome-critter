@@ -1,6 +1,6 @@
-// Représentation d'un objet du bureau (aliment, gamelle, lit) : un acteur
-// posé comme le critter dans le chrome du Shell. Se déplace à la souris
-// (glisser-déposer, il retombe au relâchement) et se retire au clic droit.
+// Representation of a desktop object (food, bowl, bed): an actor placed
+// like the critter in the Shell's chrome. Moves with the mouse (drag and
+// drop, it falls again on release) and is removed by right click.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -11,13 +11,13 @@ import { loadImage } from './packLoader.js';
 import { throwItem } from '../core/items.js';
 import { spriteName, spriteSize } from '../core/itemLooks.js';
 
-const THROW_WINDOW_US = 100_000; // fenêtre de mesure de la vitesse du glisser
+const THROW_WINDOW_US = 100_000; // window for measuring the drag's speed
 const MAX_THROW_SPEED = 900; // px/s
-const PREY_FRAME_SECONDS = 0.18; // cadence des deux frames de marche
+const PREY_FRAME_SECONDS = 0.18; // pace of the two walking frames
 
 /**
- * Sprites d'objets (noms : core/itemLooks.js), chargés à la première demande
- * puis gardés en cache ; un sprite absent n'est signalé qu'une fois.
+ * Object sprites (names: core/itemLooks.js), loaded on first request then
+ * cached; a missing sprite is only reported once.
  * @param {string} dir extension/assets/items
  * @returns {{get: (name: string) => St.ImageContent|null}}
  */
@@ -30,7 +30,7 @@ export function loadItemImages(dir) {
         try {
           image = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
         } catch (e) {
-          console.warn(`Critter : sprite d'objet « ${name} » indisponible (${e.message})`);
+          console.warn(`Critter: object sprite "${name}" unavailable (${e.message})`);
         }
         cache.set(name, image);
       }
@@ -57,8 +57,8 @@ export class ItemActor {
       height: size.height,
       pivot_point: new Graphene.Point({ x: 0.5, y: 0.5 }),
     });
-    this._samples = []; // derniers points du glisser, pour l'élan au lancer
-    // Sprites dessinés au double de la taille d'affichage : réduction lissée, nette en HiDPI.
+    this._samples = []; // last points of the drag, for the throw's momentum
+    // Sprites drawn at double the display size: smoothed downscaling, crisp on HiDPI.
     this.actor.set_content_scaling_filters(Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
     this._setupGestures();
     this.sync();
@@ -66,7 +66,7 @@ export class ItemActor {
 
   _setupGestures() {
     if (this.item.type === 'gift') {
-      // Un clic ramasse le cadeau : le Manager crédite les pièces.
+      // A click picks up the gift: the Manager credits the coins.
       const collect = new Clutter.ClickGesture();
       collect.connect('recognize', () => {
         this.item.collected = true;
@@ -76,7 +76,7 @@ export class ItemActor {
     }
 
     if (this.item.type === 'mess' || this.item.type === 'litter') {
-      // Un clic nettoie : la trace disparaît (+1 pièce), la litière redevient propre.
+      // A click cleans up: the mess disappears (+1 coin), the litter box turns clean again.
       const clean = new Clutter.ClickGesture();
       clean.connect('recognize', () => {
         if (this.item.type === 'mess') {
@@ -95,7 +95,7 @@ export class ItemActor {
     });
     remove.connect('recognize', () => {
       this.item.removed = true;
-      this.item.removedByPlayer = true; // compté pour les succès du joueur
+      this.item.removedByPlayer = true; // counted for the player's achievements
     });
     this.actor.add_action(remove);
 
@@ -121,8 +121,8 @@ export class ItemActor {
     });
     pan.connect('end', () => {
       this._releaseGrab();
-      this.item.grabbed = false; // la physique reprend : il retombe
-      // Élan : vitesse moyenne du pointeur sur les derniers instants.
+      this.item.grabbed = false; // physics resumes: it falls again
+      // Momentum: the pointer's average speed over the last instants.
       const first = this._samples[0];
       const last = this._samples[this._samples.length - 1];
       if (first && last && last.t - first.t > 20_000) {
@@ -131,7 +131,7 @@ export class ItemActor {
         const vx = (last.x - first.x) / seconds;
         const vy = (last.y - first.y) / seconds;
         throwItem(this.item, clampSpeed(vx), clampSpeed(vy));
-        // Lancé à la vitesse maximale : le Manager en fait un succès du joueur.
+        // Thrown at maximum speed: the Manager turns it into a player achievement.
         if (Math.max(Math.abs(vx), Math.abs(vy)) >= MAX_THROW_SPEED) this.item.yeeted = true;
       }
       this._samples = [];
@@ -148,7 +148,7 @@ export class ItemActor {
 
   sync() {
     const size = spriteSize(this.item);
-    // Proie : deux frames de marche alternées tant qu'elle bouge.
+    // Prey: two walking frames alternated as long as it's moving.
     const frame =
       this.item.type === 'prey' && this.item.moving
         ? Math.floor(GLib.get_monotonic_time() / 1_000_000 / PREY_FRAME_SECONDS) % 2
@@ -171,8 +171,8 @@ export class ItemActor {
   }
 }
 
-/** Point rouge qui suit le curseur quand le mode pointeur laser est actif.
- * Non réactif, ajouté à uiGroup sans addChrome : il laisse passer les clics. */
+/** Red dot that follows the cursor when the laser pointer mode is active.
+ * Non-reactive, added to uiGroup without addChrome: it lets clicks through. */
 export class LaserDot {
   /** @param {St.ImageContent} image */
   constructor(image) {

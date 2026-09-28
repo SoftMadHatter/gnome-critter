@@ -1,7 +1,7 @@
-// Capteurs du rythme du monde : inactivité du joueur, notifications, frappe.
-// Aucun contenu n'est jamais lu : seuls les faits « une notification est
-// arrivée » et « une touche a été pressée » sont relayés (jamais le titre, le
-// texte, l'application ni la touche).
+// World-rhythm sensors: player inactivity, notifications, typing. No
+// content is ever read: only the facts "a notification arrived" and "a
+// key was pressed" are relayed (never the title, the text, the app, or
+// which key).
 
 import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -19,12 +19,12 @@ export class ActivitySensor {
     this._typingId = null;
   }
 
-  /** Inactivité du joueur, en secondes. */
+  /** Player inactivity, in seconds. */
   idleSeconds() {
     return this._idleMonitor.get_idletime() / 1000;
   }
 
-  /** Active ou coupe la réaction aux notifications. */
+  /** Turns the reaction to notifications on or off. */
   setNotifications(enabled) {
     if (enabled && this._notificationIds.length === 0) this._hookNotifications();
     else if (!enabled) this._unhookNotifications();
@@ -36,7 +36,7 @@ export class ActivitySensor {
       this._connect(tray, 'source-added', (_tray, source) => this._hookSource(source));
       for (const source of tray.getSources?.() ?? []) this._hookSource(source);
     } catch (e) {
-      console.warn(`Critter : réaction aux notifications indisponible (${e.message})`);
+      console.warn(`Critter: notification reaction unavailable (${e.message})`);
       this._unhookNotifications();
     }
   }
@@ -56,14 +56,14 @@ export class ActivitySensor {
       try {
         object.disconnect(id);
       } catch {
-        // source déjà détruite
+        // source already destroyed
       }
     }
     this._notificationIds = [];
     this._sourceHooked.clear();
   }
 
-  /** Active ou coupe la réaction à la frappe (compte seulement qu'une touche est pressée). */
+  /** Turns the reaction to typing on or off (only counts that a key was pressed). */
   setTyping(enabled) {
     if (enabled && this._typingId === null) {
       this._typingId = global.stage.connect('captured-event', (_stage, event) => {

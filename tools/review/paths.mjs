@@ -1,13 +1,12 @@
-// Correspondance adresse -> fichier de l'outil de revue. Les sources sont
-// servies avec la disposition du dépôt (les modules de tools/review importent
-// le cœur par `../../core/...`, comme sous Node), plus deux alias qui imitent
-// le paquet construit par scripts/build.sh : les modules de extension/lib
-// importent `../core/...` et `../packs/...`. Les catalogues po/*.po servent
-// au choix de la langue.
+// Address -> file mapping for the review tool. Sources are served with the
+// repo's layout (tools/review modules import the core via `../../core/...`,
+// as under Node), plus two aliases that mimic the package built by
+// scripts/build.sh: extension/lib modules import `../core/...` and
+// `../packs/...`. The po/*.po catalogs serve the language choice.
 
 import { join, sep } from 'node:path';
 
-/** Préfixes servis -> dossier du dépôt (le plus spécifique d'abord). */
+/** Served prefixes -> repo folder (most specific first). */
 export const ROUTES = Object.freeze([
   ['/extension/core/', 'core'],
   ['/extension/packs/', 'packs'],
@@ -19,14 +18,14 @@ export const ROUTES = Object.freeze([
   ['/tools/review/', 'tools/review'],
 ]);
 
-/** Adresse de la page d'accueil de l'outil. */
+/** Address of the tool's home page. */
 export const HOME = '/tools/review/';
 
 /**
- * Fichier du dépôt servi pour `pathname`, ou null (préfixe inconnu, remontée
- * de répertoire, adresse illisible).
- * @param {string} root racine du dépôt
- * @param {string} pathname chemin de l'adresse, sans la requête
+ * Repo file served for `pathname`, or null (unknown prefix, directory
+ * traversal, unreadable address).
+ * @param {string} root repo root
+ * @param {string} pathname the address's path, without the query
  * @returns {string|null}
  */
 export function resolvePath(root, pathname) {

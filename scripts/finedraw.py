@@ -1,21 +1,21 @@
-"""Rendu fin partagé par les générateurs de sprites (créatures, objets,
-accessoires, bulles).
+"""Fine-drawing rendering shared by the sprite generators (creatures,
+objects, accessories, bubbles).
 
-On dessine en coordonnées d'une grille logique (la taille d'affichage du
-sprite), avec la même sémantique de pixels qu'ImageDraw (bornes incluses,
-centres de pixels), mais chaque forme est tracée en haute résolution ;
-`finish` ajoute un contour doux et réduit l'image à `out` pixels par unité de
-grille, ce qui lisse les bords.
+Drawing happens in the coordinates of a logical grid (the sprite's display
+size), with the same pixel semantics as ImageDraw (inclusive bounds, pixel
+centers), but every shape is traced at high resolution; `finish` adds a
+soft outline and shrinks the image to `out` pixels per grid unit, which
+smooths the edges.
 """
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-SUPERSAMPLE = 4  # pixels haute résolution par pixel de sortie
-OUTLINE = 0.625  # épaisseur du contour, en unités de grille
+SUPERSAMPLE = 4  # high-resolution pixels per output pixel
+OUTLINE = 0.625  # outline thickness, in grid units
 
 
 def _flat(coords):
-    """Accepte [(x, y), ...] ou (x0, y0, x1, y1, ...) et rend une liste de (x, y)."""
+    """Accepts [(x, y), ...] or (x0, y0, x1, y1, ...) and returns a list of (x, y)."""
     coords = list(coords)
     if coords and isinstance(coords[0], (tuple, list)):
         return [(float(x), float(y)) for x, y in coords]
@@ -23,7 +23,7 @@ def _flat(coords):
 
 
 class Canvas:
-    """Toile haute résolution de `w` x `h` unités de grille, rendue à `out` px par unité."""
+    """High-resolution `w` x `h` grid-unit canvas, rendered at `out` px per unit."""
 
     def __init__(self, w, h=None, out=2):
         self.w, self.h, self.out = w, h or w, out
@@ -31,7 +31,7 @@ class Canvas:
         self.img = Image.new("RGBA", (self.w * self.k, self.h * self.k), (0, 0, 0, 0))
         self._d = ImageDraw.Draw(self.img)
 
-    # formes à la grille (sémantique ImageDraw : bornes incluses)
+    # grid-aligned shapes (ImageDraw semantics: inclusive bounds)
     def _box(self, box):
         k = self.k
         x0, y0, x1, y1 = box
@@ -54,14 +54,14 @@ class Canvas:
         self._d.polygon(self._pts(coords), fill=fill)
 
     def poly(self, pts, fill):
-        """Polygone en coordonnées continues de la grille."""
+        """Polygon in continuous grid coordinates."""
         k = self.k
         self._d.polygon([(x * k, y * k) for x, y in pts], fill=fill)
 
     def line(self, coords, fill, width=1):
         pts = self._pts(coords)
         self._d.line(pts, fill=fill, width=max(1, round(width * self.k)), joint="curve")
-        for x, y in (pts[0], pts[-1]):  # bouts arrondis
+        for x, y in (pts[0], pts[-1]):  # rounded ends
             r = width * self.k / 2
             self._d.ellipse((x - r, y - r, x + r, y + r), fill=fill)
 
@@ -70,7 +70,7 @@ class Canvas:
         x, y = xy
         self._d.ellipse((x * k, y * k, (x + 1) * k - 1, (y + 1) * k - 1), fill=fill)
 
-    # formes continues (coordonnées fractionnaires de la grille), pour les détails fins
+    # continuous shapes (fractional grid coordinates), for fine details
     def oval(self, x0, y0, x1, y1, fill):
         k = self.k
         self._d.ellipse((x0 * k, y0 * k, x1 * k, y1 * k), fill=fill)
@@ -83,7 +83,7 @@ class Canvas:
         for x, y in (pts[0], pts[-1]):
             self._d.ellipse((x - r, y - r, x + r, y + r), fill=fill)
 
-    # ombrage en dégradé
+    # gradient shading
     def _mask(self, shape, geom):
         mask = Image.new("L", self.img.size, 0)
         d = ImageDraw.Draw(mask)
@@ -93,20 +93,20 @@ class Canvas:
             d.polygon(self._pts(geom), fill=255)
         elif shape == "poly":
             d.polygon([(x * self.k, y * self.k) for x, y in geom], fill=255)
-        else:  # rounded : (box, rayon)
+        else:  # rounded: (box, radius)
             box, radius = geom
             d.rounded_rectangle(self._box(box), radius=radius * self.k, fill=255)
         return mask
 
     def shaded(self, shape, geom, base, dark, light):
-        """Forme ombrée en dégradé : ombre en bas, reflet doux en haut à gauche.
-        shape : "ellipse" (boîte), "polygon" (points de la grille), "poly" (points
-        continus) ou "rounded" ((boîte, rayon))."""
+        """Gradient-shaded shape: shadow at the bottom, soft highlight at the top left.
+        shape: "ellipse" (box), "polygon" (grid points), "poly" (continuous
+        points), or "rounded" ((box, radius))."""
         if shape in ("polygon", "poly"):
             pts = _flat(geom)
             x0, y0 = min(p[0] for p in pts), min(p[1] for p in pts)
             x1, y1 = max(p[0] for p in pts), max(p[1] for p in pts)
-            if shape == "poly":  # bornes continues -> boîte à bornes incluses
+            if shape == "poly":  # continuous bounds -> inclusive-bounds box
                 x1, y1 = x1 - 1, y1 - 1
         else:
             x0, y0, x1, y1 = geom if shape == "ellipse" else geom[0]
@@ -127,11 +127,11 @@ class Canvas:
         self.img.alpha_composite(layer)
 
     def blob(self, box, base, dark, light):
-        """Ellipse ombrée en dégradé."""
+        """Gradient-shaded ellipse."""
         self.shaded("ellipse", box, base, dark, light)
 
     def composite(self, other, clip=None):
-        """Colle une autre toile de même taille, découpée par une forme (shape, geom) si `clip`."""
+        """Pastes another same-size canvas, clipped by a shape (shape, geom) if `clip`."""
         layer = other.img
         if clip:
             layer = layer.copy()
@@ -144,7 +144,7 @@ class Canvas:
         self._d = ImageDraw.Draw(self.img)
 
     def finish(self, outline_color=None):
-        """Contour doux autour de la silhouette (sauf `outline_color` None), puis réduction."""
+        """Soft outline around the silhouette (unless `outline_color` is None), then downscale."""
         out = self.img
         if outline_color is not None:
             radius = round(OUTLINE * self.k)

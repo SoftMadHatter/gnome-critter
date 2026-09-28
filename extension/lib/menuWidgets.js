@@ -1,8 +1,7 @@
-// Petits éléments de menu réutilisables pour le menu de l'icône de barre :
-// rangée de boutons, jauge compacte, rangée repliable. Les boutons vivent dans
-// un élément de menu non activable : un clic ne referme donc pas le menu (un
-// simple PopupMenuItem le ferme), ce qui permet d'enchaîner les actions et de
-// déplier des sections.
+// Small reusable menu widgets for the tray icon menu: button row, compact
+// gauge, expandable row. The buttons live inside a non-activatable menu
+// item: a click therefore doesn't close the menu (a plain PopupMenuItem
+// does), which lets actions be chained and sections expanded.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -17,7 +16,7 @@ export function barColor(value) {
   return '#e05a5a';
 }
 
-/** Élément de menu sans activation ni focus, qui contient un acteur libre. */
+/** Menu item with no activation or focus, holding a free-form actor. */
 export function staticItem(child) {
   const item = new PopupMenu.PopupBaseMenuItem({ activate: false, can_focus: false });
   if (child) item.add_child(child);
@@ -25,7 +24,7 @@ export function staticItem(child) {
 }
 
 /**
- * Rangée de boutons.
+ * A row of buttons.
  * @param {{label: string, onClick: () => void}[]} buttons
  * @returns {{item: PopupMenu.PopupBaseMenuItem, buttons: St.Button[]}}
  */
@@ -40,7 +39,7 @@ export function buttonRow(buttons) {
   return { item: staticItem(box), buttons: widgets };
 }
 
-/** Active ou grise un bouton. */
+/** Enables or grays out a button. */
 export function setEnabled(button, enabled) {
   button.reactive = enabled;
   button.can_focus = enabled;
@@ -48,7 +47,7 @@ export function setEnabled(button, enabled) {
 }
 
 /**
- * Jauge compacte : libellé et barre colorée (deux jauges par ligne).
+ * Compact gauge: label and colored bar (two gauges per row).
  * @returns {{actor: St.BoxLayout, update: (value: number) => void}}
  */
 export function gaugeCell(label) {
@@ -71,7 +70,7 @@ export function gaugeCell(label) {
   };
 }
 
-/** Deux jauges côte à côte dans une même ligne de menu. */
+/** Two gauges side by side on the same menu row. */
 export function gaugeRow(left, right) {
   const box = new St.BoxLayout({ x_expand: true, style: 'spacing: 18px;' });
   box.add_child(left.actor);
@@ -80,10 +79,10 @@ export function gaugeRow(left, right) {
 }
 
 /**
- * Élément de menu qui bascule au clic SANS fermer le menu : toute la zone en
- * surbrillance est cliquable (comme un élément normal), pas seulement le
- * libellé. Un PopupMenuItem ordinaire émet « activate », que le menu utilise
- * pour se refermer ; ici `activate` est remplacé par la bascule.
+ * Menu item that toggles on click WITHOUT closing the menu: the whole
+ * highlighted area is clickable (like a normal item), not just the label.
+ * A plain PopupMenuItem emits "activate", which the menu uses to close
+ * itself; here `activate` is replaced by the toggle.
  */
 const ToggleMenuItem = GObject.registerClass(
   class ToggleMenuItem extends PopupMenu.PopupBaseMenuItem {
@@ -103,15 +102,15 @@ const ToggleMenuItem = GObject.registerClass(
 );
 
 /**
- * Rangée dépliable : toute la ligne (libellé et flèche) est cliquable et
- * déplie une section. Remplace PopupSubMenuMenuItem, qui ne convient pas dans
- * ces menus : imbriqué dans une section il ne réagissait qu'à sa flèche et
- * s'ouvrait vide. La section peut contenir d'autres rangées dépliables ; ses
- * éléments simples referment le menu au clic, comme d'habitude.
- * @param {PopupMenu.PopupMenuBase} menu menu ou section qui reçoit la rangée
+ * Expandable row: the whole line (label and arrow) is clickable and
+ * expands a section. Replaces PopupSubMenuMenuItem, which doesn't fit in
+ * these menus: nested in a section it only reacted to its arrow and
+ * opened empty. The section can hold other expandable rows; its plain
+ * items close the menu on click, as usual.
+ * @param {PopupMenu.PopupMenuBase} menu the menu or section receiving the row
  * @param {string} title
- * @param {((open: boolean) => void)|null} [onToggle] appelé avec l'état voulu
- *   (accordéon géré par l'appelant) ; par défaut la rangée s'ouvre et se ferme seule
+ * @param {((open: boolean) => void)|null} [onToggle] called with the desired
+ *   state (accordion handled by the caller); by default the row opens and closes on its own
  */
 export function expandableRow(menu, title, onToggle = null) {
   let open = false;
@@ -140,7 +139,7 @@ export function expandableRow(menu, title, onToggle = null) {
       open = value;
       apply();
     },
-    /** Masque ou montre toute la rangée (ex. actions inutiles pour un œuf). */
+    /** Hides or shows the whole row (e.g. actions pointless for an egg). */
     setVisible(value) {
       visible = value;
       apply();

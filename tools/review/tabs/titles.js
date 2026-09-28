@@ -1,5 +1,5 @@
-// Onglet « Titres » : chaque titre d'une espèce, le succès qui le donne et
-// sa condition, avec les alertes des contrôles (titre genré, doublon).
+// "Titles" tab: every title of a species, the achievement that grants it,
+// and its condition, with the checks' alerts (gendered title, duplicate).
 
 import { h, table, badge } from '../dom.js';
 import { traitLabel } from '../../../core/labels.js';

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""Génère les spritesheets (et le câblage animations/réactions des pack.json)
-des espèces cat, bug, fish et bird.
+"""Generates the spritesheets (and the pack.json animations/reactions
+wiring) for the cat, bug, fish, and bird species.
 
-Les recettes de poses dessinent sur une grille logique 32x32, mais le rendu
-est fin (voir finedraw.py) : formes tracées en haute résolution puis réduites
-à 64 px (bords lissés), ombrage en dégradé, contour doux calculé autour de la
-silhouette, détails (yeux, marques) tracés finement. Poses partagées entre
-espèces (marche, course, salut, réactions...). Les feuilles sont carrées (64 px),
-une ligne de frames par fichier ; l'affichage à l'écran reste réglé par
-`spriteSize` dans pack.json (32 px, l'insecte 16 px : la feuille est réduite
-par le filtre linéaire de l'extension).
+The pose recipes draw on a logical 32x32 grid, but the rendering is
+fine-detailed (see finedraw.py): shapes traced at high resolution then
+downscaled to 64 px (smoothed edges), gradient shading, a soft outline
+computed around the silhouette, details (eyes, markings) traced finely.
+Poses are shared between species (walk, run, greet, reactions...). Sheets
+are square (64 px), one row of frames per file; on-screen display is still
+set by `spriteSize` in pack.json (32 px, the insect 16 px: the sheet is
+downscaled by the extension's linear filter).
 
-Le pack `critter-demo` reste géré par gen_placeholder_sprites.py.
+The `critter-demo` pack is still handled by gen_placeholder_sprites.py.
 
-Usage : python3 scripts/gen_species_sprites.py [espèce ...]
+Usage: python3 scripts/gen_species_sprites.py [species ...]
 """
 
 import json
@@ -27,8 +27,8 @@ from PIL import Image, ImageOps
 
 from finedraw import Canvas
 
-G = 32  # grille logique des recettes de dessin
-R = 64  # côté d'une frame de sortie
+G = 32  # logical grid of the drawing recipes
+R = 64  # side of an output frame
 S = R // G
 PACKS_DIR = Path(__file__).resolve().parent.parent / "packs"
 
@@ -95,11 +95,11 @@ def carry_item(d, x, y):
     """Petit cadeau tenu dans la gueule ou le bec."""
     d.rectangle((x, y, x + 3, y + 3), fill=c(245, 200, 60))
     d.rectangle((x + 1, y + 1, x + 2, y + 2), fill=c(250, 235, 150))
-    d.oval(x + 2.6, y - 0.4, x + 4.2, y + 1.2, c(230, 70, 90))  # petit nœud
+    d.oval(x + 2.6, y - 0.4, x + 4.2, y + 1.2, c(230, 70, 90))  # small bow
 
 
 def eye(d, x, y, kind):
-    """Œil fin : ovale, reflet, paupières en arcs lissés."""
+    """Fine eye: oval, highlight, smoothed-arc eyelids."""
     if kind == "open":
         d.oval(x + 0.1, y - 0.3, x + 2.0, y + 2.2, INK)
         d.oval(x + 0.35, y - 0.1, x + 0.95, y + 0.55, WHITE)
@@ -126,7 +126,7 @@ def pose(**kw):
 
 
 def leg_offsets(phase, n, stride, lift, offsets=(0, 0.5, 0.5, 0)):
-    """(dx, lift) pour chaque patte à la frame `phase` d'un cycle de `n`."""
+    """(dx, lift) for each leg at frame `phase` of an `n`-frame cycle."""
     out = []
     for off in offsets:
         t = phase / n + off
@@ -136,7 +136,7 @@ def leg_offsets(phase, n, stride, lift, offsets=(0, 0.5, 0.5, 0)):
     return out
 
 
-# --- poses communes (marche, course, salut, réactions) ---------------------------
+# --- shared poses (walk, run, greet, reactions) ---------------------------
 
 
 def walk_poses(n=6, stride=3, run=False):
@@ -173,7 +173,7 @@ def common_sheets():
 
 
 def legged(stride=3, hop=0):
-    """États d'un animal à pattes (chat, insecte, oiseau au sol) : chacun a sa démarche et son attitude."""
+    """States of a legged animal (cat, insect, grounded bird): each has its own gait and attitude."""
     bob = lambda i: -(i % 2) * (1 + hop)  # noqa: E731
     tails = [0, 1, 0, -1, 0, 1]
     return {
@@ -193,7 +193,7 @@ def legged(stride=3, hop=0):
 
 
 def common_reactions():
-    """Réactions aux événements : chacune a sa feuille (mêmes poses pour toutes les espèces)."""
+    """Reactions to events: each has its own sheet (same poses for every species)."""
     return {
         "react_purr": [pose(eyes="closed", bob=b, mark=m, squash=1) for b, m in ((0, "note"), (1, None), (0, "heart"), (1, None))],
         "react_brushed": [pose(eyes="happy", rot=r, pivot=28, mark="heart") for r in (-4, 0, 4, 0)],
@@ -269,25 +269,25 @@ def draw_cat_sleep(img, d, p):
     d.polygon([(17, 17), (17, 12), (21, 16)], fill=CAT_BASE)
     d.polygon([(23, 16), (27, 12), (27, 18)], fill=CAT_BASE)
     d.line((20, 21, 23, 21), fill=INK)
-    d.line((5, 26, 14, 28), fill=CAT_DARK, width=2)  # queue enroulée
+    d.line((5, 26, 14, 28), fill=CAT_DARK, width=2)  # curled-up tail
     for x in (9, 12, 15):
         d.line((x, 17, x + 1, 20), fill=CAT_DARK)
     mark(d, p.mark, 24, 2)
 
 
 def draw_cat_wash(img, d, p):
-    """Assis, lèche une patte levée."""
+    """Sitting, licking a raised paw."""
     blob(d, (6, 12, 21, 30), CAT_BASE, CAT_DARK, CAT_LIGHT)
     d.line((5, 27, 1, 22, 2, 17), fill=CAT_DARK, width=2)
     cat_head(d, 15, 3, pose(eyes="closed"))
     lift = p.lift
-    d.line((17, 19, 24, 12 + lift), fill=CAT_DARK, width=3)  # patte levée
+    d.line((17, 19, 24, 12 + lift), fill=CAT_DARK, width=3)  # raised paw
     if p.mouth:
         d.point((27, 13 + lift), fill=CAT_PINK)
 
 
 def draw_cat_climb(img, d, p):
-    """Vue de dos contre un mur : tête en haut, pattes qui alternent."""
+    """Back view against a wall: head at the top, paws alternating."""
     b = p.bob
     d.line((16, 26 + b, 16, 31), fill=CAT_DARK, width=2)
     reach = p.lift
@@ -342,7 +342,7 @@ def draw_bug(img, d, p):
     up = p.kind == "back"
     bug_legs(d, b, p, up=up)
     blob(d, (5, 13 + b + p.squash, 25, 27 + b), BUG_BASE, BUG_DARK, BUG_LIGHT)
-    d.line((15, 14 + b, 15, 25 + b), fill=BUG_DARK)  # séparation des élytres
+    d.line((15, 14 + b, 15, 25 + b), fill=BUG_DARK)  # wing-case split
     d.point((11, 20 + b), fill=BUG_DARK)
     d.point((19, 22 + b), fill=BUG_DARK)
     h = p.head
@@ -369,7 +369,7 @@ def draw_bug_climb(img, d, p):
     d.line((20, 3 + b, 23, 0 + b), fill=BUG_LEG)
 
 
-# Larve : la chenille du bébé insecte, mêmes poses (donc mêmes déplacements) que l'adulte.
+# Larva: the baby insect's caterpillar, same poses (so the same movements) as the adult.
 LARVA_BASE = c(150, 214, 96)
 LARVA_DARK = c(84, 150, 72)
 LARVA_LIGHT = c(214, 242, 150)
@@ -379,7 +379,7 @@ LARVA_HEAD_LIGHT = c(250, 214, 130)
 
 
 def draw_caterpillar(img, d, p):
-    """Cinq anneaux qui ondulent (un pic de bosse parcourt le corps quand `phase` avance) et une tête orangée."""
+    """Five undulating rings (a bump peak travels along the body as `phase` advances) and an orange head."""
     b = p.bob
     bottom = min(28 + b, 30)
     height = 7 - (2 if p.squash else 0)
@@ -388,7 +388,7 @@ def draw_caterpillar(img, d, p):
     for i in range(len(xs)):
         t = (p.phase or 0) / 6 - i / 5
         lifts.append(max(0, round(2 * math.sin(2 * math.pi * t))) if p.phase is not None else 0)
-    if p.kind == "back":  # sur le dos : anneaux à plat, pattes en l'air
+    if p.kind == "back":  # on its back: rings flat, legs in the air
         lifts = [0] * len(xs)
         for x in xs:
             d.line((x, bottom - height, x + 1, bottom - height - 3), fill=BUG_LEG)
@@ -413,7 +413,7 @@ def draw_caterpillar(img, d, p):
 
 
 def draw_caterpillar_climb(img, d, p):
-    """Chenille à la verticale : la bosse remonte le long du corps."""
+    """Vertical caterpillar: the bump climbs up along the body."""
     b = p.bob
     ys = (27, 22, 17, 12, 7)
     for i, y in enumerate(ys):
@@ -545,7 +545,7 @@ def draw_bird(img, d, p):
     else:
         d.polygon([(hx + 11, hy), (hx + 15, hy + 2), (hx + 11, hy + 4)], fill=BIRD_BEAK)
     eye(d, hx + 7, hy, p.eyes)
-    if p.ears == "back" or p.eyes == "wide":  # huppe dressée
+    if p.ears == "back" or p.eyes == "wide":  # crest raised
         d.polygon([(hx + 3, hy - 3), (hx + 1, hy - 8), (hx + 6, hy - 4)], fill=BIRD_DARK)
     bird_wing(d, b, p.wing)
     if p.carry:
@@ -580,9 +580,9 @@ def bird_sheets():
     return s
 
 
-# --- assemblage ------------------------------------------------------------------
+# --- assembly ------------------------------------------------------------------
 
-# Durée d'une frame (secondes) par état ; une feuille par état, du même nom.
+# Frame duration (seconds) per state; one sheet per state, of the same name.
 DURATIONS = {
     "idle": 0.5, "walk": 0.1, "fall": 0.12, "drag": 0.12, "sleep": 0.8, "wash": 0.25, "climb": 0.12,
     "ceiling": 0.1, "follow": 0.09, "greet": 0.2, "seekWall": 0.1, "seekFocus": 0.09, "seekNap": 0.14,
@@ -598,7 +598,7 @@ GROUND_STATES = [
 
 
 def make_states(names):
-    """état -> (feuille du même nom, durée de frame)."""
+    """state -> (sheet of the same name, frame duration)."""
     return {name: (name, DURATIONS[name]) for name in names}
 
 
@@ -631,7 +631,7 @@ SPECIES = {
     ),
 }
 
-# réaction -> (feuille, durée d'une frame, son) ; sans son quand l'événement n'en a pas.
+# reaction -> (sheet, frame duration, sound); no sound when the event has none.
 REACTIONS = {
     "petted": ("react_petted", 0.25, "petted"), "tickled": ("react_tickled", 0.12, "tickled"),
     "annoyed": ("react_annoyed", 0.3, "annoyed"), "noticed": ("react_noticed", 0.25, "noticed"),
@@ -646,7 +646,7 @@ REACTIONS = {
 }
 
 
-# --- œufs propres à chaque espèce ------------------------------------------------
+# --- species-specific eggs ------------------------------------------------
 
 EGG_STYLES = {
     "cat": dict(base=c(226, 218, 204), dark=c(168, 158, 146), light=c(248, 244, 236), pattern="stripes", mark=c(120, 120, 134)),
@@ -661,8 +661,8 @@ def egg_frame(style, out, tilt=0, cracked=False):
     box = (8, 5, 23, 29)
     if style["pattern"] == "bubble":
         d.ellipse(box, fill=style["base"][:3] + (150,))
-        d.ellipse((10, 7, 14, 11), fill=style["light"][:3] + (220,))  # reflet
-        d.polygon([(13, 19), (19, 16), (19, 22)], fill=style["mark"])  # petit poisson dedans
+        d.ellipse((10, 7, 14, 11), fill=style["light"][:3] + (220,))  # highlight
+        d.polygon([(13, 19), (19, 16), (19, 22)], fill=style["mark"])  # small fish inside
         d.polygon([(19, 19), (22, 17), (22, 21)], fill=style["mark"])
         d.point((14, 18), fill=INK)
     else:
@@ -674,7 +674,7 @@ def egg_frame(style, out, tilt=0, cracked=False):
         elif style["pattern"] == "spots":
             for x, y in ((11, 12), (17, 10), (15, 18), (19, 21), (11, 23), (13, 15)):
                 d.rectangle((x, y, x + 1, y + 1), fill=style["mark"])
-        else:  # nacré : reflets pâles
+        else:  # pearl: pale highlights
             for x, y in ((11, 11), (14, 14), (17, 12), (12, 20), (18, 19)):
                 d.line((x, y, x + 2, y + 1), fill=style["light"])
             for x, y in ((15, 9), (10, 17), (19, 24)):
@@ -688,18 +688,18 @@ def egg_frame(style, out, tilt=0, cracked=False):
 
 
 def species_egg(species, out):
-    """Œuf de l'espèce : posé, deux oscillations, fissuré."""
+    """Species' egg: resting, two wobbles, cracked."""
     style = EGG_STYLES[species]
     return [egg_frame(style, out), egg_frame(style, out, tilt=-10), egg_frame(style, out, tilt=10), egg_frame(style, out, cracked=True)]
 
 
-# --- stades de croissance : bébé, jeune, senior ------------------------------------
+# --- growth stages: baby, young, senior ------------------------------------
 
-# Abscisse (pixels de sortie) qui sépare le corps de la tête, sprite tourné vers la droite.
+# X coordinate (output pixels) splitting the body from the head, sprite facing right.
 HEAD_SPLIT = {"cat": 17 * S, "bird": 15 * S, "bug": 21 * S, "fish": 21 * S}
 
-# body/head : facteurs d'échelle du corps et de la tête (bébé : grosse tête, petit corps) ;
-# uniform : réduction des feuilles pivotées ; lighten : éclaircissement ; gray : fondu vers un gris clair (poil grisonnant).
+# body/head: scale factors for the body and the head (baby: big head, small body);
+# uniform: downscaling of rotated sheets; lighten: brightening; gray: fade toward a light gray (graying fur).
 STAGE_CFG = {
     "baby": dict(body=0.62, head=1.0, uniform=0.7, lighten=0.10, head_gray=0.0, body_gray=0.0),
     "young": dict(body=0.86, head=0.94, uniform=0.88, lighten=0.06, head_gray=0.0, body_gray=0.0),
@@ -713,7 +713,7 @@ def _mix(color, target, amount):
 
 
 def tint_stage(frame, split, cfg):
-    """Éclaircit et/ou grisonne les pixels clairs (les contours sombres restent intacts)."""
+    """Lightens and/or grays light pixels (dark outlines stay untouched)."""
     img = frame.copy()
     px = img.load()
     for y in range(R):
@@ -721,7 +721,7 @@ def tint_stage(frame, split, cfg):
             r, g, b, a = px[x, y]
             if a == 0 or 0.3 * r + 0.59 * g + 0.11 * b < 70:
                 continue
-            t = min(1.0, max(0.0, (x - (split - 3 * S)) / (6 * S)))  # transition douce corps -> tête
+            t = min(1.0, max(0.0, (x - (split - 3 * S)) / (6 * S)))  # smooth body -> head transition
             gray = cfg["body_gray"] + (cfg["head_gray"] - cfg["body_gray"]) * t
             color = (r, g, b)
             if gray:
@@ -740,7 +740,7 @@ def _scaled(img, factor):
 
 
 def uniform_stage(frame, factor, bbox):
-    """Réduction uniforme du contenu, pieds alignés sur ceux de l'original et centré."""
+    """Uniform downscaling of the content, feet aligned with the original's and centered."""
     if factor == 1:
         return frame
     content = _scaled(frame.crop(bbox), factor)
@@ -751,7 +751,7 @@ def uniform_stage(frame, factor, bbox):
 
 
 def morph_stage(frame, split, body, head, bbox):
-    """Coupe corps/tête, les met chacun à son échelle, les rejoint : proportions différentes du même animal."""
+    """Splits body/head, scales each to its own factor, rejoins them: different proportions of the same animal."""
     left, right = frame.crop((0, 0, split, R)), frame.crop((split, 0, R, R))
     lb0, rb0 = left.getbbox(), right.getbbox()
     if lb0 is None or rb0 is None or (body == 1 and head == 1):
@@ -774,13 +774,13 @@ def morph_stage(frame, split, body, head, bbox):
 
 
 def is_uniform_sheet(poses):
-    """Feuilles pivotées, endormies ou d'escalade : réduites d'un bloc (pas de coupe corps/tête)."""
+    """Rotated, sleeping, or climbing sheets: downscaled as a whole (no body/head split)."""
     return any(p.rot or p.kind in ("sleep", "climb") or p.blanket for p in poses)
 
 
 def build_stage(spec, species, poses, sheets, stage):
     if stage in spec.get("stage_draw", {}):
-        # Stade dessiné à part (larve) : mêmes poses, autre silhouette.
+        # Stage drawn separately (larva): same poses, different silhouette.
         alt = dict(spec, draw=spec["stage_draw"][stage])
         out = {name: [render(alt, p) for p in ps] for name, ps in poses.items()}
         for name, src in spec["flip"].items():
@@ -824,7 +824,7 @@ def render(spec, p):
 
 
 def build_sheets(spec, species):
-    """(nom de feuille -> images, nom de feuille -> poses) ; les feuilles miroir sont dérivées."""
+    """(sheet name -> images, sheet name -> poses); mirrored sheets are derived."""
     poses = spec["sheets"]()
     sheets = {name: [render(spec, p) for p in ps] for name, ps in poses.items()}
     for name, src in spec["flip"].items():
@@ -842,7 +842,7 @@ def save_sheet(path, frames):
 
 def compact_json(data):
     text = json.dumps(data, indent=2, ensure_ascii=False)
-    # Les chaînes sont mises de côté : leurs accolades (« {n} » des succès) ne doivent pas être reformatées.
+    # Strings are set aside: their braces (achievements' "{n}") must not be reformatted.
     strings = []
 
     def stash(m):
@@ -868,7 +868,7 @@ def write_species(name):
     sheets, poses = build_sheets(spec, name)
     for sheet_name, frames in sheets.items():
         save_sheet(out_dir / f"{sheet_name}.png", frames)
-        print(f"écrit {name}/sprites/{sheet_name}.png ({len(frames)} frames)")
+        print(f"wrote {name}/sprites/{sheet_name}.png ({len(frames)} frames)")
 
     pack_path = pack_dir / "pack.json"
     meta = json.loads(pack_path.read_text(encoding="utf-8"))
@@ -884,11 +884,11 @@ def write_species(name):
         if sound:
             reactions[react]["sound"] = f"sounds/{sound}.wav"
         used.add(sheet)
-    meta["smooth"] = True  # dessin fin : l'extension lisse la réduction 64 -> spriteSize
+    meta["smooth"] = True  # fine drawing: the extension smooths the 64 -> spriteSize downscale
     meta["animations"] = animations
     meta["reactions"] = reactions
 
-    # Un dossier par stade (bébé, jeune, senior) : mêmes noms de feuilles, proportions et poil différents.
+    # One folder per stage (baby, young, senior): same sheet names, different proportions and fur.
     meta["stages"] = {}
     for stage in STAGE_CFG:
         stage_dir = out_dir / stage
@@ -898,16 +898,16 @@ def write_species(name):
         meta["stages"][stage] = {"scale": 1, "folder": f"sprites/{stage}"}
     pack_path.write_text(compact_json(meta), encoding="utf-8")
     for orphan in sorted(set(sheets) - used):
-        print(f"  (feuille non référencée : {orphan})")
+        print(f"  (unreferenced sheet: {orphan})")
     for stale in sorted(p.name for p in out_dir.glob("*.png") if p.stem not in sheets):
-        print(f"  (fichier obsolète à supprimer : {name}/sprites/{stale})")
+        print(f"  (stale file to delete: {name}/sprites/{stale})")
 
 
 def main():
     requested = sys.argv[1:] or list(SPECIES)
     unknown = [s for s in requested if s not in SPECIES]
     if unknown:
-        sys.exit(f"espèce(s) inconnue(s) : {', '.join(unknown)} (connues : {', '.join(SPECIES)})")
+        sys.exit(f"unknown species: {', '.join(unknown)} (known: {', '.join(SPECIES)})")
     for name in requested:
         write_species(name)
 

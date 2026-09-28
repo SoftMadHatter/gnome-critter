@@ -1,8 +1,8 @@
-// Bulle de pensée au-dessus d'un animal : icône du besoin le plus urgent.
-// Acteur séparé du sprite (qui est retourné horizontalement selon le sens de
-// marche) et NON réactif : ajouté directement à uiGroup, sans passer par
-// addChrome, il n'entre pas dans la région d'input et laisse donc passer
-// tous les clics.
+// Thought bubble above a critter: icon of its most urgent need. An actor
+// separate from the sprite (which is flipped horizontally based on
+// walking direction) and NON-reactive: added directly to uiGroup, without
+// going through addChrome, it doesn't enter the input region and so lets
+// every click through.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -12,7 +12,7 @@ import { loadImage } from './packLoader.js';
 
 const ICON_FOR_NEED = {
   relief: 'relief',
-  break: 'break', // rappel de pause (pas un besoin : vient de snapshot.bubble)
+  break: 'break', // break reminder (not a need: comes from snapshot.bubble)
   satiety: 'hungry',
   energy: 'sleepy',
   cleanliness: 'dirty',
@@ -21,14 +21,14 @@ const ICON_FOR_NEED = {
   health: 'sick',
 };
 
-const DISPLAY_SIZE = 24; // icônes dessinées à 48 px, affichées à 24 (nettes en HiDPI)
+const DISPLAY_SIZE = 24; // icons drawn at 48 px, displayed at 24 (crisp on HiDPI)
 const FADE_MS = 250;
 const GAP_PX = 2;
 
 /**
- * Charge les icônes de bulles une fois pour tous les animaux.
- * @param {string} dir dossier extension/assets/bubbles
- * @returns {Record<string, St.ImageContent>} vide si le chargement échoue
+ * Loads the bubble icons once for every critter.
+ * @param {string} dir extension/assets/bubbles folder
+ * @returns {Record<string, St.ImageContent>} empty if loading fails
  */
 export function loadBubbleIcons(dir) {
   const icons = {};
@@ -37,7 +37,7 @@ export function loadBubbleIcons(dir) {
       icons[name] = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
     }
   } catch (e) {
-    console.warn(`Critter : icônes de bulles indisponibles (${e.message})`);
+    console.warn(`Critter: bubble icons unavailable (${e.message})`);
     return {};
   }
   return icons;
@@ -61,11 +61,11 @@ export class ThoughtBubble {
   }
 
   /**
-   * @param {string|null} need besoin urgent (clé de Needs) ou null
+   * @param {string|null} need urgent need (a Needs key) or null
    * @param {{x:number, y:number, width:number, height:number}} spriteBox
-   *   rectangle du sprite à l'écran
-   * @param {boolean} spriteVisible faux quand le sprite est masqué
-   *   (chrome caché en plein écran)
+   *   the sprite's on-screen rectangle
+   * @param {boolean} spriteVisible false when the sprite is hidden
+   *   (chrome hidden in fullscreen)
    */
   update(need, spriteBox, spriteVisible) {
     const icon = need && spriteVisible ? this._icons[ICON_FOR_NEED[need]] : null;

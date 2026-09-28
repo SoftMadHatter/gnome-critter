@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Outil de revue (dev) : mini serveur local, en lecture seule, qui sert la
-// page tools/review/ et les sources du jeu, et prévient la page quand un
-// fichier change (elle se recharge seule). Sans dépendance, en écoute sur
-// 127.0.0.1 uniquement. Lancement : scripts/review.sh (voir docs/dev-workflow.md).
+// Review tool (dev): a local, read-only mini server that serves the
+// tools/review/ page and the game's sources, and notifies the page when a
+// file changes (it reloads itself). No dependencies, listening only on
+// 127.0.0.1. Launched by scripts/review.sh (see docs/dev-workflow.md).
 
 import http from 'node:http';
 import { readFile, readdir, stat } from 'node:fs/promises';
@@ -29,7 +29,7 @@ const TYPES = {
 const portArg = process.argv.indexOf('--port');
 const PORT = portArg > 0 ? Number(process.argv[portArg + 1]) : 8765;
 
-/** Pages ouvertes qui écoutent les changements de fichiers. */
+/** Open pages listening for file changes. */
 const listeners = new Set();
 let pending = null;
 
@@ -37,14 +37,14 @@ function notifyChange(file) {
   clearTimeout(pending);
   pending = setTimeout(() => {
     for (const res of listeners) res.write(`event: change\ndata: ${JSON.stringify(file)}\n\n`);
-  }, 200); // anti-rebond : un enregistrement produit souvent plusieurs événements
+  }, 200); // debounce: a single save often produces several events
 }
 
 for (const dir of WATCHED) {
   try {
     watch(join(ROOT, dir), { recursive: true }, (_event, name) => notifyChange(`${dir}/${name ?? ''}`));
   } catch (e) {
-    console.warn(`Surveillance impossible de ${dir} (${e.message}) : pas de rechargement automatique.`);
+    console.warn(`Cannot watch ${dir} (${e.message}): no automatic reload.`);
   }
 }
 
@@ -66,7 +66,7 @@ function send(res, status, body, type = 'text/plain; charset=utf-8') {
 const json = (res, data) => send(res, 200, JSON.stringify(data), TYPES['.json']);
 
 async function handle(req, res) {
-  if (req.method !== 'GET') return send(res, 405, 'Lecture seule.');
+  if (req.method !== 'GET') return send(res, 405, 'Read only.');
   const url = new URL(req.url, 'http://127.0.0.1');
   const path = url.pathname;
 
@@ -83,13 +83,13 @@ async function handle(req, res) {
   }
   if (path === '/api/files') {
     const pack = url.searchParams.get('pack') ?? '';
-    if (!/^[a-z0-9-]+$/.test(pack)) return send(res, 400, 'Pack invalide.');
+    if (!/^[a-z0-9-]+$/.test(pack)) return send(res, 400, 'Invalid pack.');
     const files = await listFiles(join(ROOT, 'packs', pack)).catch(() => null);
-    return files ? json(res, files.sort()) : send(res, 404, 'Pack inconnu.');
+    return files ? json(res, files.sort()) : send(res, 404, 'Unknown pack.');
   }
   if (path === '/api/events') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
-    res.write(': connecté\n\n');
+    res.write(': connected\n\n');
     listeners.add(res);
     const keepAlive = setInterval(() => res.write(': ping\n\n'), 25_000);
     req.on('close', () => {
@@ -100,19 +100,19 @@ async function handle(req, res) {
   }
 
   const file = resolvePath(ROOT, path);
-  if (!file) return send(res, 404, 'Introuvable.');
+  if (!file) return send(res, 404, 'Not found.');
   try {
     const body = await readFile(file);
     return send(res, 200, body, TYPES[extname(file)] ?? 'application/octet-stream');
   } catch {
-    return send(res, 404, 'Introuvable.');
+    return send(res, 404, 'Not found.');
   }
 }
 
 http
   .createServer((req, res) => {
-    handle(req, res).catch((e) => send(res, 500, `Erreur : ${e.message}`));
+    handle(req, res).catch((e) => send(res, 500, `Error: ${e.message}`));
   })
   .listen(PORT, '127.0.0.1', () => {
-    console.log(`Outil de revue : http://127.0.0.1:${PORT}${HOME}  (Ctrl+C pour arrêter)`);
+    console.log(`Review tool: http://127.0.0.1:${PORT}${HOME}  (Ctrl+C to stop)`);
   });

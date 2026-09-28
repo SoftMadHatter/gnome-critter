@@ -1,7 +1,8 @@
-// Menu contextuel d'un animal (clic milieu) : son nom en en-tête, ses actions
-// (voir critterActions.js), le pointeur laser et le rangement des jouets.
-// Ancré sur un petit acteur invisible replacé au-dessus de l'animal à chaque
-// ouverture (l'acteur du critter lui-même est retourné et déplacé en continu).
+// A critter's context menu (middle click): its name as a header, its
+// actions (see critterActions.js), the laser pointer, and tidying up
+// toys. Anchored on a small invisible actor repositioned above the
+// critter on every opening (the critter's own actor is flipped and moved
+// continuously).
 
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -15,7 +16,7 @@ export class CritterMenu {
   /**
    * @param {import('../core/critter.js').Critter} critter
    * @param {{spriteSize: {width:number, height:number}}} pack
-   * @param {object} owner actions de l'animal (voir critterActions.js) + setLaser, isLaser, hasToys, clearToys
+   * @param {object} owner the critter's actions (see critterActions.js) + setLaser, isLaser, hasToys, clearToys
    */
   constructor(critter, pack, owner) {
     this._critter = critter;
@@ -41,11 +42,11 @@ export class CritterMenu {
     this._tidy = this.menu.addAction(_('Ranger les jouets'), () => owner.clearToys());
   }
 
-  /** @param {number} spriteHeight hauteur affichée de l'animal (varie avec son stade) */
+  /** @param {number} spriteHeight the critter's displayed height (varies with its stage) */
   open(spriteHeight) {
     const title = this._owner.titleOf(this._critter);
     this._header.label.text = `${this._critter.name ?? _('Sans nom')}${title ? `, ${title}` : ''} — ${lifeSummary(this._critter.life)}`;
-    if (!this.menu.isOpen) this._owner.noteContextMenuOpen(); // le Comité compte
+    if (!this.menu.isOpen) this._owner.noteContextMenuOpen(); // the Committee is counting
     this._actions.refresh();
     this._laser.setToggleState(this._owner.isLaser());
     this._tidy.setSensitive(this._owner.hasToys());

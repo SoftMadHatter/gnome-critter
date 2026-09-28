@@ -1,5 +1,5 @@
-// Mise en forme des succès pour la page de revue (conditions, exigences,
-// rubriques). Module pur : utilisé aussi par les contrôles, testés sous Node.
+// Formatting of achievements for the review page (conditions, requirements,
+// categories). Pure module: also used by the checks, tested under Node.
 
 import { formatCount } from '../../core/achievements.js';
 import {
@@ -8,12 +8,12 @@ import {
 
 export { categoryLabel };
 
-/** Libellé d'une stat, selon la portée (animal ou joueur). */
+/** A stat's label, based on scope (critter or player). */
 export function statLabel(stat, scope = 'critter') {
   return scope === 'player' ? playerStatLabel(stat) : critterStatLabel(stat);
 }
 
-/** Condition lisible : « Repas ≥ 50 », « Aliments goûtés ≥ 4 », « marque holiday:christmas ». */
+/** Readable condition: "Repas ≥ 50", "Aliments goûtés ≥ 4", "marque holiday:christmas". */
 export function conditionText(def) {
   const { condition, unit = 1 } = def;
   if (condition.stat !== undefined) {
@@ -24,7 +24,7 @@ export function conditionText(def) {
   return `marque ${condition.mark}`;
 }
 
-/** Exigences lisibles : caractère, stade, capacités de l'espèce. */
+/** Readable requirements: trait, stage, species capabilities. */
 export function requiresText(def) {
   const parts = [];
   if (def.requires.trait) parts.push(`caractère ${traitLabel(def.requires.trait)}`);
@@ -33,5 +33,5 @@ export function requiresText(def) {
   return parts.join(' · ');
 }
 
-/** Clé d'un gabarit : sa série, ou son identifiant pour un succès unique. */
+/** A template's key: its series, or its id for a standalone achievement. */
 export const templateKey = (entry) => (entry?.series ? `s:${entry.series}` : `i:${entry?.id}`);

@@ -1,7 +1,7 @@
-// Étiquette de nom (et titre porté, en petit dessous) : s'affiche au-dessus
-// de l'animal après une seconde de survol continu, et s'efface dès que le
-// curseur le quitte. Non réactive, ajoutée à uiGroup sans addChrome : elle
-// laisse passer les clics.
+// Name tag (and worn title, small underneath): shown above the critter
+// after one second of continuous hover, and cleared as soon as the
+// cursor leaves it. Non-reactive, added to uiGroup without addChrome: it
+// lets clicks through.
 
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
@@ -25,18 +25,18 @@ export class NameTag {
     Main.layoutManager.uiGroup.add_child(this.actor);
   }
 
-  /** Le curseur entre sur l'animal (true) ou le quitte (false). */
+  /** The cursor enters the critter (true) or leaves it (false). */
   setHover(hovering) {
     this._hovering = hovering;
     if (!hovering) this._hoverTime = 0;
   }
 
   /**
-   * @param {number} dt secondes
-   * @param {string|null} name nom à afficher (null : rien)
-   * @param {string|null} title titre porté, affiché en petit sous le nom (null : aucun)
-   * @param {{x:number, y:number, width:number, height:number}} box rectangle du sprite à l'écran
-   * @param {boolean} visible faux quand le sprite est masqué ou est un œuf
+   * @param {number} dt seconds
+   * @param {string|null} name name to display (null: nothing)
+   * @param {string|null} title worn title, shown small under the name (null: none)
+   * @param {{x:number, y:number, width:number, height:number}} box the sprite's on-screen rectangle
+   * @param {boolean} visible false when the sprite is hidden or is an egg
    */
   update(dt, name, title, box, visible) {
     if (this._hovering) this._hoverTime += dt;

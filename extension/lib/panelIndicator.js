@@ -1,8 +1,8 @@
-// Icône dans la barre supérieure : humeur des animaux d'un coup d'oeil, et un
-// menu court organisé en « fiche + actions rapides » :
-//   sélecteur d'animal (s'il y en a plusieurs), fiche (nom, jauges),
-//   quatre boutons d'action rapide, puis des rangées repliables (Plus…,
-//   Bureau…, Pièces) et « Réglages… ».
+// Top-bar icon: critters' mood at a glance, and a short menu organized as
+// "card + quick actions":
+//   critter selector (if there are several), card (name, gauges),
+//   four quick-action buttons, then expandable rows (More…,
+//   Desktop…, Coins) and "Settings…".
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -39,9 +39,9 @@ function moodIcon(mood) {
 export const CritterIndicator = GObject.registerClass(
   class CritterIndicator extends PanelMenu.Button {
     /**
-     * @param {object} owner API du Manager : getCritters, getPlayer, achievementSummary, shopList, buyAccessory, foods,
+     * @param {object} owner the Manager's API: getCritters, getPlayer, achievementSummary, shopList, buyAccessory, foods,
      *   dropFood, fillBowl, dropBed, dropBowl, dropToy, toyKinds, setLaser, isLaser, hasToys, clearToys, clearItems, openSettings, pet,
-     *   quickFeed, et les actions d'un animal (rename, brush, train, perform, equip, equippable, wake)
+     *   quickFeed, and a critter's actions (rename, brush, train, perform, equip, equippable, wake)
      * @param {Gio.Settings} settings
      */
     _init(owner, settings) {
@@ -53,7 +53,7 @@ export const CritterIndicator = GObject.registerClass(
       this._sections = [];
 
       this._icon = new St.Icon({ icon_name: 'face-smile-symbolic', style_class: 'system-status-icon' });
-      // Pastille du nombre d'annonces non lues du journal (cachée à 0).
+      // Badge with the number of unread log announcements (hidden at 0).
       this._badge = new St.Label({ text: '', y_align: Clutter.ActorAlign.CENTER, style: 'font-weight: bold; font-size: 0.85em; padding-left: 2px;', visible: false });
       const box = new St.BoxLayout();
       box.add_child(this._icon);
@@ -68,7 +68,7 @@ export const CritterIndicator = GObject.registerClass(
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
         if (!open) return;
-        this._owner.noteMenuOpen(); // le Comité compte (voir les bêtises du joueur)
+        this._owner.noteMenuOpen(); // the Committee is counting (see the player's blunders)
         this._laser.setToggleState(this._owner.isLaser());
         this._tidy.setSensitive(this._owner.hasToys());
         this._actions.refresh();
@@ -94,7 +94,7 @@ export const CritterIndicator = GObject.registerClass(
     _buildMenu() {
       const critters = this._critters();
 
-      // Sélecteur d'animal (un seul animal : pas de sélecteur).
+      // Critter selector (a single critter: no selector).
       this._selector = null;
       if (critters.length > 1) {
         this._selector = buttonRow(
@@ -103,7 +103,7 @@ export const CritterIndicator = GObject.registerClass(
         this.menu.addMenuItem(this._selector.item);
       }
 
-      // Fiche : nom, état, jauges sur deux colonnes.
+      // Card: name, state, gauges in two columns.
       this._title = new St.Label({ text: '', style: 'font-weight: bold;' });
       this.menu.addMenuItem(staticItem(this._title));
       this._gauges = {};
@@ -116,17 +116,17 @@ export const CritterIndicator = GObject.registerClass(
         this.menu.addMenuItem(gaugeRow(cells[0], cells[1]));
       }
 
-      // Actions rapides : elles ne referment pas le menu, on peut les enchaîner.
+      // Quick actions: they don't close the menu, they can be chained.
       this._quick = buttonRow([
         { label: _('Nourrir'), onClick: () => this._owner.quickFeed(this._critter()) },
-        // Le premier jouet adapté : la balle, ou l'anneau flottant pour le poisson.
+        // The first suitable toy: the ball, or the floating ring for fish.
         { label: _('Jouer'), onClick: () => this._owner.dropToy(this._owner.toyKinds()[0] ?? 'ball', this._critter()) },
         { label: _('Brosser'), onClick: () => this._owner.brush(this._critter()) },
         { label: _('Câlin'), onClick: () => this._owner.pet(this._critter()) },
       ]);
       this.menu.addMenuItem(this._quick.item);
 
-      // Rangées repliables : une seule ouverte à la fois.
+      // Expandable rows: only one open at a time.
       this._more = expandableRow(this.menu, _('Plus…'), (open) => this._toggle(this._more, open));
       this._desk = expandableRow(this.menu, _('Bureau…'), (open) => this._toggle(this._desk, open));
       this._progress = expandableRow(this.menu, _('Pièces'), (open) => this._toggle(this._progress, open));
@@ -138,7 +138,7 @@ export const CritterIndicator = GObject.registerClass(
       this.menu.addAction(_('Réglages…'), () => this._owner.openSettings());
     }
 
-    /** « Bureau… » : ce qui concerne tout le monde ; les objets tombent à la position du curseur. */
+    /** "Desktop…": things that concern every critter; objects fall at the cursor's position. */
     _buildDesk(section) {
       this._vacation = new PopupMenu.PopupSwitchMenuItem(_('Mode vacances'), this._settings.get_boolean('vacation-mode'));
       this._vacation.connect('toggled', (_item, state) => this._settings.set_boolean('vacation-mode', state));
@@ -152,7 +152,7 @@ export const CritterIndicator = GObject.registerClass(
         const feed = expandableRow(section, _('Poser de la nourriture'));
         for (const kind of foods) feed.section.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
       }
-      const bowlFoods = foods.filter(isBowlFood); // la nourriture flottante ne va pas dans une gamelle
+      const bowlFoods = foods.filter(isBowlFood); // floating food doesn't go in a bowl
       if (bowlFoods.length > 0) {
         const bowl = expandableRow(section, _('Remplir une gamelle'));
         for (const kind of bowlFoods) bowl.section.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
@@ -183,17 +183,17 @@ export const CritterIndicator = GObject.registerClass(
       this.refresh();
     }
 
-    /** « Plus… » : les actions de l'animal choisi, plus ses succès et statistiques. */
+    /** "More…": the chosen critter's actions, plus its achievements and statistics. */
     _rebuildCritterSection() {
       const section = this._more.section;
       section.removeAll();
       this._actions = buildCritterActions(section, this._critter(), this._owner);
-      // Le détail s'ouvre dans une fenêtre à part : le menu ne montre que le nombre de succès.
+      // The detail opens in a separate window: the menu only shows the achievement count.
       this._achievements = section.addAction(_('Succès'), () => this._owner.openProgress(this._critter(), 'achievements'));
       section.addAction(_('Statistiques'), () => this._owner.openProgress(this._critter(), 'stats'));
     }
 
-    /** Recrée succès, statistiques, boutique et journal (à l'ouverture du menu ou après un achat). */
+    /** Rebuilds achievements, statistics, shop, and log (on menu open or after a purchase). */
     _rebuildProgress() {
       const player = this._owner.getPlayer();
       this._progress.setTitle(fmt(_('Pièces : {coins}'), { coins: player.coins }));
@@ -217,7 +217,7 @@ export const CritterIndicator = GObject.registerClass(
       }
     }
 
-    /** Pastille du panneau et ligne « Journal » : nombre d'annonces non lues. */
+    /** Panel badge and "Log" row: number of unread announcements. */
     _updateUnread() {
       const unread = this._owner.unreadCount();
       this._badge.text = String(unread);
@@ -247,7 +247,7 @@ export const CritterIndicator = GObject.registerClass(
       this._title.text = `${critter.name ?? _('Sans nom')}${title ? `, ${title}` : ''} — ${lifeSummary(critter.life)}`;
       for (const [key] of GAUGES) this._gauges[key].update(critter.needs.values[key]);
 
-      // Œuf : rien ne marche ; hibernation : seul « Câlin » (il réveille).
+      // Egg: nothing works; hibernation: only "Pet" (it wakes the critter).
       const egg = critter.life.stage === 'egg';
       const asleep = critter.life.hibernating;
       const [feed, play, brush, pet] = this._quick.buttons;
@@ -269,7 +269,7 @@ export const CritterIndicator = GObject.registerClass(
   },
 );
 
-/** Ajoute l'indicateur à la barre du haut. */
+/** Adds the indicator to the top bar. */
 export function addIndicator(owner, settings, uuid) {
   const indicator = new CritterIndicator(owner, settings);
   Main.panel.addToStatusArea(uuid, indicator);

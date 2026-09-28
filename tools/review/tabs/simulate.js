@@ -1,8 +1,8 @@
-// Onglet « Vue en jeu » : on règle les compteurs et marques d'un animal (et
-// du joueur), les succès se débloquent comme en jeu, et la fenêtre de
-// progression s'affiche telle que le joueur la voit, avec les annonces du
-// Comité. Le scénario est gardé dans le navigateur (par pack) : il survit
-// au rechargement automatique après une correction.
+// "In-game view" tab: a critter's (and the player's) counters and marks
+// are set, achievements unlock as in the game, and the progression window
+// displays exactly as the player sees it, with the Committee's
+// announcements. The scenario is kept in the browser (per pack): it
+// survives the automatic reload after a fix.
 
 import { h, select, field, debounce, fill } from '../dom.js';
 import { newlyUnlocked, achievementView, formatCount } from '../../../core/achievements.js';
@@ -18,7 +18,7 @@ import { _, ngettext, fmt } from '../../../core/i18n.js';
 import { categoryLabel } from '../format.js';
 
 const STORE = 'gnome-critter-review-simulation';
-/** Faits d'animal saisis à la main ; `achievementsUnlocked` est calculé. */
+/** Critter facts entered by hand; `achievementsUnlocked` is computed. */
 const CRITTER_KEYS = ['daysAlive', 'stageReached', 'tricksLearned', ...STAT_KEYS];
 const PLAYER_KEYS = [...PLAYER_STAT_KEYS, 'coins', 'accessoriesOwned'];
 const MONTH = {
@@ -40,13 +40,13 @@ function saveSim(packId, sim) {
   try {
     localStorage.setItem(`${STORE}:${packId}`, JSON.stringify(sim));
   } catch {
-    // stockage indisponible (navigation privée) : le scénario ne survivra pas au rechargement
+    // storage unavailable (private browsing): the scenario won't survive a reload
   }
 }
 
 const emptySim = () => ({ trait: 'playful', stage: 'adult', stats: {}, marks: [], playerStats: {}, playerMarks: [] });
 
-/** Marques proposées par famille : ce que l'espèce peut connaître, plus celles que citent les succès. */
+/** Marks offered per family: what the species can experience, plus those achievements mention. */
 function markChoices(pack, defs, families) {
   const choices = new Map(families.map((family) => [family, new Set()]));
   const add = (family, value) => choices.get(family)?.add(value);
@@ -65,7 +65,7 @@ function markChoices(pack, defs, families) {
   return [...choices].filter(([, values]) => values.size > 0);
 }
 
-/** Déblocage comme en jeu, répété tant que de nouveaux succès tombent (le nombre de succès obtenus compte lui-même). */
+/** Unlocking as in the game, repeated as long as new achievements land (the count of earned achievements counts toward itself). */
 function unlockAll(defs, { trait = null, stage, facts, countSelf = false }) {
   const unlocked = new Set();
   for (let pass = 0; pass < 30; pass++) {
@@ -77,7 +77,7 @@ function unlockAll(defs, { trait = null, stage, facts, countSelf = false }) {
   return unlocked;
 }
 
-/** Tout ce qu'il faut pour débloquer tous les succès de `defs`. */
+/** Everything needed to unlock every achievement in `defs`. */
 function everything(defs, choices) {
   const stats = {};
   const marks = new Set();
@@ -90,7 +90,7 @@ function everything(defs, choices) {
   return { stats, marks: [...marks] };
 }
 
-/** Fenêtre de progression telle que le joueur la voit (mêmes règles et mêmes textes que extension/lib/progressDialog.js). */
+/** Progression window exactly as the player sees it (same rules and same text as extension/lib/progressDialog.js). */
 function progressWindow(view, open) {
   return h(
     'div',
@@ -167,7 +167,7 @@ function marksPicker(choices, selected, onChange) {
       })));
 }
 
-/** Scénario d'un préréglage : animal neuf, un mois de vie, ou tout débloqué. */
+/** A preset's scenario: new critter, a month of life, or everything unlocked. */
 function presetSim(name, pack, sim) {
   if (name === 'all') {
     const all = everything(pack.critter, new Map(markChoices(pack, pack.critter, MARK_FAMILIES)));
@@ -189,7 +189,7 @@ function presetSim(name, pack, sim) {
 export function render(root, { pack, state, setState }) {
   const stored = { ...emptySim(), ...(loadSim(pack.id) ?? {}) };
   if (['new', 'month', 'all'].includes(state.preset)) {
-    // Préréglage demandé dans l'adresse (#...&preset=all) : appliqué une fois, puis retiré de l'adresse.
+    // Preset requested in the address (#...&preset=all): applied once, then removed from the address.
     saveSim(pack.id, presetSim(state.preset, pack, stored));
     setState({ preset: '' });
     return;

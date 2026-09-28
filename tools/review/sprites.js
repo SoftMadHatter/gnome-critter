@@ -1,7 +1,7 @@
-// Lecture des feuilles de sprites dans un canevas, comme l'extension les
-// affiche : frames carrées sur une ligne, taille d'affichage `spriteSize` et
-// échelle du stade, lissage selon `smooth`, retournement, variations de
-// couleur (shiftPixels) et accessoire posé sur la tête (accessoryPlacement).
+// Reads sprite sheets into a canvas, the way the extension displays them:
+// square frames in a row, `spriteSize` display size and the stage's scale,
+// smoothing per `smooth`, flipping, color variations (shiftPixels), and an
+// accessory placed on the head (accessoryPlacement).
 
 import { shiftPixels } from '../../core/colorShift.js';
 import { accessoryPlacement } from '../../core/accessories.js';
@@ -9,7 +9,7 @@ import { stagesOverrides, Life } from '../../core/life.js';
 
 const images = new Map();
 
-/** Image chargée une seule fois (promesse partagée). */
+/** Image loaded only once (shared promise). */
 export function loadImage(url) {
   if (!images.has(url)) {
     images.set(
@@ -17,7 +17,7 @@ export function loadImage(url) {
       new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error(`image introuvable : ${url}`));
+        img.onerror = () => reject(new Error(`image not found: ${url}`));
         img.src = url;
       }),
     );
@@ -25,14 +25,14 @@ export function loadImage(url) {
   return images.get(url);
 }
 
-/** Échelle d'affichage de chaque stade (valeurs par défaut du jeu, complétées par le pack). */
+/** Display scale of each stage (the game's default values, filled in by the pack). */
 export function stageScales(meta) {
   return new Life({}, { scales: stagesOverrides(meta.stages).scales }).scales;
 }
 
 /**
- * Adresse de la feuille d'une animation pour un stade : celle du dossier du
- * stade si le pack la fournit, sinon celle de l'adulte (même règle que packLoader).
+ * URL of an animation's sheet for a stage: the one in the stage's folder
+ * if the pack provides it, otherwise the adult's (same rule as packLoader).
  */
 export function sheetUrl(pack, file, stage) {
   const folder = stagesOverrides(pack.meta.stages).folders[stage];
@@ -41,7 +41,7 @@ export function sheetUrl(pack, file, stage) {
   return `/packs/${pack.id}/${path}`;
 }
 
-/** Animation d'un stade : feuille, nombre de frames, durée d'une frame (l'œuf commun si le pack n'a pas le sien). */
+/** A stage's animation: sheet, frame count, frame duration (the shared egg if the pack has none of its own). */
 export function animationOf(pack, name, stage) {
   if (stage === 'egg') {
     const egg = pack.meta.animations?.egg;
@@ -54,7 +54,7 @@ export function animationOf(pack, name, stage) {
   return { url: sheetUrl(pack, def.file, stage), frames: def.frames, duration: def.frameDuration ?? 0.2 };
 }
 
-/** Feuille recolorée (mise en cache par réglage). */
+/** Recolored sheet (cached per setting). */
 async function tintedSheet(url, color) {
   const img = await loadImage(url);
   if (!color || (Math.abs(color.hue) < 0.5 && color.saturation === 1 && !color.colorizeGrays)) return img;
@@ -73,7 +73,7 @@ async function tintedSheet(url, color) {
   return images.get(key);
 }
 
-/** Lecteurs actifs, animés par une seule boucle ; un lecteur dont le canevas a quitté la page s'arrête. */
+/** Active players, animated by a single loop; a player whose canvas left the page stops. */
 const players = new Set();
 let looping = false;
 
@@ -87,9 +87,9 @@ function loop(time) {
 }
 
 /**
- * Lecteur d'une animation dans un canevas.
- * options : pack, name (état ou réaction), stage, zoom, speed, smooth, facing (1 | -1),
- * color ({hue, saturation, tone, colorizeGrays, graySaturation} ou null), accessory (id ou null), padding.
+ * Player for an animation in a canvas.
+ * options: pack, name (state or reaction), stage, zoom, speed, smooth, facing (1 | -1),
+ * color ({hue, saturation, tone, colorizeGrays, graySaturation} or null), accessory (id or null), padding.
  */
 export class SpritePlayer {
   constructor(options) {
@@ -119,7 +119,7 @@ export class SpritePlayer {
     this.box = { x: pad, y: pad, width: this.display.width, height: this.display.height };
     try {
       this.sheet = await tintedSheet(this.animation.url, color);
-      // Comme en jeu : pas d'accessoire sur un œuf.
+      // Like in the game: no accessory on an egg.
       const egg = stage === 'egg' || this.options.name === 'egg';
       this.accessory = accessory && !egg ? await loadImage(`/extension/assets/accessories/${accessory}.png`) : null;
       this.error = null;

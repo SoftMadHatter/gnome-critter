@@ -1,8 +1,7 @@
-// Contrôles de la page de revue : structure de la bibliothèque de succès
-// d'un pack (erreurs), qualité des textes (avertissements) et, hors du
-// français, traductions (catalogue .po et section `translations` des packs).
-// Module pur, utilisé par l'onglet « Contrôles » et testé sous Node
-// (tests/review.test.js).
+// Checks for the review page: structure of a pack's achievement library
+// (errors), text quality (warnings), and, outside of French, translations
+// (the .po catalog and packs' `translations` section). Pure module, used
+// by the "Checks" tab and tested under Node (tests/review.test.js).
 
 import { CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY } from '../../core/achievements.js';
 import { announceUnlock } from '../../core/narrator.js';
@@ -17,7 +16,7 @@ export const LIMITS = Object.freeze({
   minTrollShare: 0.4,
 });
 
-/** Mots d'un titre qui varient selon le genre (les créatures n'en ont pas). */
+/** Words in a title that vary by gender (creatures don't have one). */
 const GENDERED_WORDS = new Set([
   'roi', 'reine', 'maître', 'maîtresse', 'ami', 'amie', 'prince', 'princesse', 'martyr', 'martyre',
   'chasseur', 'chasseuse', 'voyageur', 'voyageuse', 'champion', 'championne', 'héros', 'héroïne',
@@ -27,7 +26,7 @@ const GENDERED_WORDS = new Set([
 
 const SPACE = '[\\s\\u00a0\\u202f]';
 
-/** Problèmes de typographie française d'un texte (espaces, guillemets, points de suspension). */
+/** French typography issues in a text (spaces, quotes, ellipsis). */
 export function typographyIssues(text) {
   if (typeof text !== 'string' || text === '') return [];
   const issues = [];
@@ -41,7 +40,7 @@ export function typographyIssues(text) {
   return issues;
 }
 
-/** Mots genrés d'un titre. */
+/** Gendered words in a title. */
 export function genderedWords(title) {
   return title
     .toLowerCase()
@@ -50,7 +49,7 @@ export function genderedWords(title) {
 }
 
 /**
- * Contrôles d'un pack préparé (voir data.js : `all`, `ignored`...).
+ * Checks for a prepared pack (see data.js: `all`, `ignored`...).
  * @returns {{level: 'error'|'warning', id: string|null, message: string}[]}
  */
 export function checkPack(pack) {
@@ -59,7 +58,7 @@ export function checkPack(pack) {
   const warn = (id, message) => issues.push({ level: 'warning', id, message });
   const all = pack.all;
 
-  // Structure (les mêmes règles que tests/packs.test.js).
+  // Structure (the same rules as tests/packs.test.js).
   for (const id of pack.ignored) error(id, 'entrée rejetée par buildAchievements (format, stat, récompense...)');
   const trolls = all.filter((def) => def.troll).length;
   if (all.length > 0 && trolls / all.length < LIMITS.minTrollShare) {
@@ -77,7 +76,7 @@ export function checkPack(pack) {
     else conditions.set(key, def.id);
   }
 
-  // Textes.
+  // Text.
   const firstSeen = { name: new Map(), title: new Map(), quip: new Map() };
   for (const def of all) {
     for (const [field, text] of [['name', def.name], ['description', def.description], ['quip', def.quip], ['title', def.title]]) {
@@ -106,7 +105,7 @@ export function checkPack(pack) {
     if (longest > LIMITS.notification) warn(def.id, `notification longue (${longest} caractères)`);
   }
 
-  // Séries dont tous les paliers ont la même description ({n} oublié dans le gabarit).
+  // Series whose tiers all have the same description ({n} forgotten in the template).
   const series = new Map();
   for (const def of all) {
     if (!def.series) continue;
@@ -121,25 +120,25 @@ export function checkPack(pack) {
   return issues;
 }
 
-/** Espaces réservés nommés d'un texte, triés, sans `{s}` (marque du pluriel des descriptions, libre dans chaque langue). */
+/** A text's named placeholders, sorted, without `{s}` (the plural marker in descriptions, free per language). */
 export function placeholders(text) {
   return [...new Set(text.match(/\{\w+\}/g) ?? [])].filter((p) => p !== '{s}').sort();
 }
 
 const samePlaceholders = (a, b) => placeholders(a).join() === placeholders(b).join();
 
-/** Expressions françaises reprises telles quelles dans les autres langues. */
+/** French phrases kept as-is in other languages. */
 const KEPT_AS_IS = ['Bon appétit'];
 
-/** Allure d'un texte resté en français : accents, guillemets français, petits mots courants. */
+/** Whether a text looks like it stayed in French: accents, French quotes, common short words. */
 export function looksFrench(text) {
   const rest = KEPT_AS_IS.reduce((out, phrase) => out.replaceAll(phrase, ''), text);
   return /[àâçéèêëîïôûùüÿœæ«»]|\b(le|la|les|des|du|une?|et|est|pas|il|tu|ta|tes|fois|avec|dans|sur|aux?)\b/i.test(rest);
 }
 
 /**
- * Contrôles d'un catalogue lu par parsePo (langue autre que le français).
- * @returns {{level: 'error'|'warning'|'info', id: string, message: string}[]} `id` : le texte source
+ * Checks for a catalog read by parsePo (a language other than French).
+ * @returns {{level: 'error'|'warning'|'info', id: string, message: string}[]} `id`: the source text
  */
 export function checkCatalog({ entries }) {
   const issues = [];
@@ -161,9 +160,9 @@ export function checkCatalog({ entries }) {
 }
 
 /**
- * Contrôles de la traduction d'un pack affiché hors du français (voir data.js :
- * `raw`, `lang`, `french`) : section `translations` du pack, textes restés en
- * français, longueur des notifications dans la langue.
+ * Checks for the translation of a pack displayed outside of French (see
+ * data.js: `raw`, `lang`, `french`): the pack's `translations` section,
+ * text left in French, notification length in the language.
  * @returns {{level: 'error'|'warning', id: string|null, message: string}[]}
  */
 export function checkTranslations(pack) {

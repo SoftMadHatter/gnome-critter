@@ -1,8 +1,8 @@
-// Notifications de l'extension dans la liste de GNOME : une source « Critter »
-// dont les notifications restent jusqu'à ce qu'on les ferme (elles ne passent
-// plus « trop vite »). Cliquer une notification ou la fermer la marque lue dans
-// le journal (rappels du Manager). Si l'API du shell ne répond pas comme prévu,
-// on retombe sur `Main.notify`.
+// The extension's notifications in GNOME's list: a "Critter" source whose
+// notifications stay until dismissed (they no longer go by "too fast").
+// Clicking a notification or dismissing it marks it read in the log
+// (Manager callbacks). If the shell's API doesn't respond as expected, it
+// falls back to `Main.notify`.
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
@@ -23,7 +23,7 @@ export class Notifier {
   _ensureSource() {
     if (this._source) return this._source;
     const source = new MessageTray.Source({ title: SOURCE_TITLE, iconName: SOURCE_ICON });
-    // La source peut être détruite de l'extérieur (« tout effacer ») : on la recrée à la demande.
+    // The source can be destroyed from outside ("clear all"): recreated on demand.
     source.connect('destroy', () => {
       if (this._source === source) this._source = null;
     });
@@ -32,7 +32,7 @@ export class Notifier {
     return source;
   }
 
-  /** Affiche et conserve une notification liée à l'entrée `id` du journal. */
+  /** Shows and keeps a notification linked to log entry `id`. */
   notify(id, title, body) {
     try {
       const source = this._ensureSource();
@@ -43,7 +43,7 @@ export class Notifier {
       });
       source.addNotification(notification);
     } catch (e) {
-      console.warn(`Critter: notification GNOME indisponible (${e.message}), repli sur Main.notify`);
+      console.warn(`Critter: GNOME notification unavailable (${e.message}), falling back to Main.notify`);
       Main.notify(title, body);
     }
   }

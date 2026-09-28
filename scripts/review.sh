@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Outil de revue (dev) : page locale, en lecture seule, pour relire les
-# succès, titres, récompenses, annonces du Système, créatures et objets tels
-# que le jeu les calcule. Les corrections se font dans l'éditeur ; la page se
-# recharge seule à chaque enregistrement. Rien n'est livré avec l'extension
-# (tools/ n'est pas copié par build.sh). Voir docs/dev-workflow.md.
+# Review tool (dev): a local, read-only page to review achievements,
+# titles, rewards, Committee announcements, creatures, and objects the way
+# the game computes them. Fixes are made in the editor; the page reloads
+# itself on every save. Nothing ships with the extension (tools/ isn't
+# copied by build.sh). See docs/dev-workflow.md.
 #
-# Usage : scripts/review.sh [--port N] [--open]
+# Usage: scripts/review.sh [--port N] [--open]
 
 set -euo pipefail
 
@@ -17,7 +17,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --port) PORT="$2"; shift 2 ;;
     --open) OPEN=1; shift ;;
-    *) echo "Option inconnue : $1 (usage : scripts/review.sh [--port N] [--open])" >&2; exit 2 ;;
+    *) echo "Unknown option: $1 (usage: scripts/review.sh [--port N] [--open])" >&2; exit 2 ;;
   esac
 done
 
@@ -25,7 +25,7 @@ if [ "$OPEN" = 1 ]; then
   if command -v xdg-open >/dev/null 2>&1; then
     (sleep 1 && xdg-open "http://127.0.0.1:$PORT/" >/dev/null 2>&1) &
   else
-    echo "xdg-open introuvable : ouvre http://127.0.0.1:$PORT/ à la main." >&2
+    echo "xdg-open not found: open http://127.0.0.1:$PORT/ manually." >&2
   fi
 fi
 

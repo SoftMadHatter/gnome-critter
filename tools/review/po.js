@@ -1,6 +1,6 @@
-// Lecteur de catalogues gettext (.po) en JavaScript, pour les tests et
-// l'outil de revue (l'extension, elle, lit les .mo compilés par msgfmt via
-// le gettext de GNOME). Module pur, utilisable sous Node et dans le navigateur.
+// A gettext (.po) catalog reader in JavaScript, for the tests and the
+// review tool (the extension itself reads the .mo files compiled by
+// msgfmt via GNOME's gettext). Pure module, usable under Node and in the browser.
 
 function unescape(text) {
   return text.replace(/\\(.)/g, (_match, c) => ({ n: '\n', t: '\t', r: '\r', '"': '"', '\\': '\\' })[c] ?? c);
@@ -8,16 +8,16 @@ function unescape(text) {
 
 function unquote(value) {
   const match = value.match(/^"(.*)"$/);
-  if (!match) throw new Error(`chaîne .po mal formée : ${value}`);
+  if (!match) throw new Error(`malformed .po string: ${value}`);
   return unescape(match[1]);
 }
 
 const newEntry = () => ({ msgctxt: null, msgid: null, msgidPlural: null, msgstr: [], flags: [], comments: [] });
 
 /**
- * Lit un catalogue .po.
+ * Reads a .po catalog.
  * @returns {{headers: Record<string, string>, entries: {msgctxt: string|null, msgid: string, msgidPlural: string|null,
- *   msgstr: string[], flags: string[], comments: string[]}[]}} entrées hors en-tête, sans les obsolètes (#~)
+ *   msgstr: string[], flags: string[], comments: string[]}[]}} entries excluding the header, without obsolete ones (#~)
  */
 export function parsePo(text) {
   const entries = [];
@@ -35,9 +35,9 @@ export function parsePo(text) {
       flush();
       continue;
     }
-    if (line.startsWith('#~')) continue; // entrée obsolète
+    if (line.startsWith('#~')) continue; // obsolete entry
     if (line.startsWith('#')) {
-      if (field && field.startsWith('msgstr')) flush(); // commentaire de l'entrée suivante
+      if (field && field.startsWith('msgstr')) flush(); // the next entry's comment
       if (line.startsWith('#,')) entry.flags.push(...line.slice(2).split(',').map((flag) => flag.trim()).filter(Boolean));
       else entry.comments.push(line);
       continue;
@@ -45,7 +45,7 @@ export function parsePo(text) {
     const match = line.match(/^(msgctxt|msgid_plural|msgid|msgstr)(?:\[(\d+)\])?\s+(".*")$/);
     if (match) {
       const [, key, idx, value] = match;
-      if ((key === 'msgid' || key === 'msgctxt') && field && field !== 'msgctxt') flush(); // entrée suivante sans ligne vide
+      if ((key === 'msgid' || key === 'msgctxt') && field && field !== 'msgctxt') flush(); // next entry with no blank line
       field = key;
       index = idx === undefined ? 0 : Number(idx);
       const text = unquote(value);
@@ -63,7 +63,7 @@ export function parsePo(text) {
       else entry.msgstr[index] += text;
       continue;
     }
-    throw new Error(`ligne .po illisible : ${raw}`);
+    throw new Error(`unreadable .po line: ${raw}`);
   }
   flush();
   const header = entries.find((e) => e.msgid === '' && e.msgctxt === null);
@@ -75,7 +75,7 @@ export function parsePo(text) {
   return { headers, entries: entries.filter((e) => e.msgid !== '') };
 }
 
-/** Règle de pluriel d'un en-tête Plural-Forms (celles du français et de l'anglais ; anglais par défaut). */
+/** Plural rule from a Plural-Forms header (French's and English's; English by default). */
 export function pluralRule(pluralForms = '') {
   const expression = (pluralForms.match(/plural\s*=\s*([^;]+)/)?.[1] ?? 'n != 1').replace(/\s+/g, '');
   if (/^\(?n>1\)?$/.test(expression)) return (n) => (n > 1 ? 1 : 0);
@@ -83,8 +83,8 @@ export function pluralRule(pluralForms = '') {
 }
 
 /**
- * Traducteur (pour `setTranslator` de core/i18n.js) tiré d'un catalogue lu :
- * les entrées floues ou vides ne traduisent pas (le texte source reste).
+ * A translator (for core/i18n.js's `setTranslator`) built from a loaded
+ * catalog: fuzzy or empty entries don't translate (the source text stays).
  */
 export function translatorFrom({ headers, entries }, language) {
   const singles = new Map();
@@ -101,7 +101,7 @@ export function translatorFrom({ headers, entries }, language) {
     ngettext: (singular, plural, n) => {
       const translated = plurals.get(singular)?.msgstr[rule(n)];
       if (translated) return translated;
-      return n > 1 ? plural : singular; // non traduit : le français, avec sa règle
+      return n > 1 ? plural : singular; // not translated: French, with its own rule
     },
   };
 }

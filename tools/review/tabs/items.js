@@ -1,5 +1,5 @@
-// Onglet « Objets » : tous les sprites d'objets du catalogue (core/itemLooks.js),
-// groupés, à la taille d'affichage (lissée, comme l'extension) et au double.
+// "Objects" tab: every object sprite in the catalog (core/itemLooks.js),
+// grouped, at display size (smoothed, like the extension) and at double.
 
 import { h, select, fill } from '../dom.js';
 import { spriteCatalog } from '../../../core/itemLooks.js';

@@ -1,7 +1,7 @@
-// Actions propres à un animal, partagées par son menu contextuel (clic milieu)
-// et par son bloc dans le menu de l'icône de barre : renommer, donner à
-// manger, gamelle, lit, brosser, jouer, tours, accessoires, réveiller.
-// Chaque action vise l'animal passé en paramètre.
+// Actions specific to a critter, shared by its context menu (middle click)
+// and by its block in the tray icon menu: rename, feed, bowl, bed, brush,
+// play, tricks, accessories, wake up. Every action targets the critter
+// passed as a parameter.
 
 import { expandableRow } from './menuWidgets.js';
 import { _, fmt } from '../core/i18n.js';
@@ -11,14 +11,14 @@ import { FOODS, isBowlFood, toyFits } from '../core/items.js';
 import { Locomotion } from '../core/critter.js';
 
 /**
- * Ajoute les actions d'un animal à `menu` (un PopupMenu ou un PopupMenuSection).
+ * Adds a critter's actions to `menu` (a PopupMenu or a PopupMenuSection).
  * @param {PopupMenu.PopupMenuBase} menu
  * @param {import('../core/critter.js').Critter} critter
  * @param {{rename: Function, dropFood: Function, fillBowl: Function, dropBed: Function, dropBowl: Function, dropToy: Function, brush: Function, train: Function, perform: Function, equip: Function, equippable: Function, titles: Function, setTitle: Function, wake: Function}} owner
- * @returns {{refresh: () => void}} refresh : à appeler à l'ouverture du menu
+ * @returns {{refresh: () => void}} refresh: to call when the menu opens
  */
 export function buildCritterActions(menu, critter, owner) {
-  /** Actions masquées pour un œuf (seul « Renommer » reste) : éléments de menu et rangées dépliables. */
+  /** Actions hidden for an egg (only "Rename" stays): menu items and expandable rows. */
   const hiddenForEgg = [];
   const track = (item) => {
     hiddenForEgg.push({ setVisible: (visible) => (item.actor.visible = visible) });
@@ -31,8 +31,8 @@ export function buildCritterActions(menu, critter, owner) {
 
   menu.addAction(_('Renommer…'), () => owner.rename(critter));
 
-  // Aliments du régime, le préféré d'abord (les plantes se posent à part) ; la
-  // nourriture flottante ne va pas dans une gamelle.
+  // Diet foods, favorite first (plants are placed separately); floating
+  // food doesn't go in a bowl.
   const foods = Object.entries(critter.config.needsDiet)
     .filter(([kind]) => FOODS[kind])
     .sort((a, b) => b[1] - a[1])
@@ -61,7 +61,7 @@ export function buildCritterActions(menu, critter, owner) {
   for (const model of Object.keys(BED_LABELS)) beds.section.addAction(bedLabel(model), () => owner.dropBed(critter, model));
   track(menu.addAction(_('Brosser'), () => owner.brush(critter)));
 
-  // Jouets adaptés : l'anneau flottant pour une espèce sans sol, les autres sinon.
+  // Suitable toys: the floating ring for a groundless species, the others otherwise.
   const groundless = !critter.supports(Locomotion.GROUND);
   const play = trackRow(expandableRow(menu, _('Jouer')));
   for (const kind of Object.keys(TOY_LABELS)) {
@@ -78,7 +78,7 @@ export function buildCritterActions(menu, critter, owner) {
     }
   };
 
-  // Titres gagnés (séries terminées, certaines bêtises) : un seul porté à la fois.
+  // Titles earned (completed series, some blunders): only one worn at a time.
   const rebuildTitles = () => {
     titles.section.removeAll();
     const earned = owner.titles(critter);

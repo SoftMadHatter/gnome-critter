@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-// Extraction des textes de la bibliothèque commune de succès
-// (core/achievementLibrary.js : noms, descriptions, commentaires du Système,
-// titres, textes de récompense) au format .pot, pour scripts/i18n.sh. Ces
-// textes sont des données, sans marqueur _() : buildAchievements les traduit
-// à la construction (voir docs/i18n.md). Les tests réutilisent libraryTexts.
+// Extracts the shared achievement library's text (core/achievementLibrary.js:
+// names, descriptions, the Committee's comments, titles, reward text) into
+// .pot format, for scripts/i18n.sh. This text is data, with no _() marker:
+// buildAchievements translates it at build time (see docs/i18n.md). Tests
+// reuse libraryTexts.
 
 import { pathToFileURL } from 'node:url';
 import { LIBRARY } from '../core/achievementLibrary.js';
 
 /**
- * Textes à traduire d'une bibliothèque de succès.
- * @returns {Map<string, Set<string>>} msgid -> séries ou identifiants qui l'utilisent
+ * Text to translate from an achievement library.
+ * @returns {Map<string, Set<string>>} msgid -> series or ids that use it
  */
 export function libraryTexts(library = LIBRARY) {
   const entries = new Map();
@@ -35,7 +35,7 @@ export function libraryTexts(library = LIBRARY) {
 
 const quote = (text) => `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', '\\n')}"`;
 
-/** Catalogue .pot des textes de la bibliothèque. */
+/** .pot catalog of the library's text. */
 export function libraryPot(entries = libraryTexts()) {
   const out = [
     'msgid ""',
@@ -45,7 +45,7 @@ export function libraryPot(entries = libraryTexts()) {
     '',
   ];
   for (const [text, ids] of entries) {
-    out.push(`#. succès : ${[...ids].join(', ')}`, '#: core/achievementLibrary.js', `msgid ${quote(text)}`, 'msgstr ""', '');
+    out.push(`#. achievement: ${[...ids].join(', ')}`, '#: core/achievementLibrary.js', `msgid ${quote(text)}`, 'msgstr ""', '');
   }
   return out.join('\n');
 }

@@ -1,42 +1,42 @@
 #!/usr/bin/env bash
-# Boucle de développement rapide sous Wayland : reconstruit l'extension, la
-# relie en mode dev (symlink), puis lance une session GNOME Shell imbriquée
-# jetable pour tester sans se déconnecter de la vraie session.
+# Fast development loop on Wayland: rebuilds the extension, links it in dev
+# mode (symlink), then launches a disposable nested GNOME Shell session to
+# test without logging out of the real session.
 #
-# Pourquoi : sous Wayland, GNOME Shell ne sait pas se recharger à chaud
-# (Alt+F2, r ne marche que sous X11) ; la seule façon de repartir d'un Shell
-# "propre" est normalement de se déconnecter/reconnecter. La session
-# imbriquée (dbus-run-session -- gnome-shell --devkit --wayland) donne un
-# Shell jetable, isolé de la vraie session (bus D-Bus dédié), qu'on peut
-# fermer et relancer en quelques secondes. Voir docs/dev-workflow.md.
+# Why: on Wayland, GNOME Shell can't reload live (Alt+F2, r only works on
+# X11); the only way to start from a "clean" Shell is normally to log
+# out/back in. The nested session (dbus-run-session -- gnome-shell --devkit
+# --wayland) gives a disposable Shell, isolated from the real session (its
+# own D-Bus bus), that can be closed and relaunched in a few seconds. See
+# docs/dev-workflow.md.
 #
-# Note : le flag --nested a disparu à partir de GNOME Shell 49/50 (voir
-# `gnome-shell --help`). `gnome-shell --wayland` seul (sans --devkit) a été
-# testé et échoue avec "Failed to take control of the session: EBUSY" sur
-# GNOME 50 quand on est déjà dans une session Wayland active : le process
-# enfant essaie de prendre le contrôle logind de LA MÊME session que le vrai
-# Shell, qui la détient déjà. --devkit (GNOME 48+, "development kit") évite
-# ce conflit -- vu en pratique : "Will monitor session 8" au lieu de tenter
-# de la contrôler -- et c'est ce que fait tourner ce script.
+# Note: the --nested flag was removed starting with GNOME Shell 49/50 (see
+# `gnome-shell --help`). `gnome-shell --wayland` alone (without --devkit)
+# was tested and fails with "Failed to take control of the session: EBUSY"
+# on GNOME 50 when already inside an active Wayland session: the child
+# process tries to take logind control of THE SAME session the real Shell
+# already holds. --devkit (GNOME 48+, "development kit") avoids this
+# conflict -- seen in practice: "Will monitor session 8" instead of trying
+# to control it -- and that's what this script runs.
 #
-# Usage :
-#   scripts/dev.sh              # build --link, lance la session imbriquée,
-#                                # active l'extension automatiquement dedans
-#   scripts/dev.sh --no-build   # saute le rebuild (utile si seul packs/ ou
-#                                # schemas/ a changé et que le lien symlink
-#                                # est déjà à jour)
-#   scripts/dev.sh --lang en    # session imbriquée dans une autre langue
-#                                # (traductions, voir docs/i18n.md)
+# Usage:
+#   scripts/dev.sh              # build --link, launches the nested session,
+#                                # enables the extension in it automatically
+#   scripts/dev.sh --no-build   # skips the rebuild (useful if only packs/
+#                                # or schemas/ changed and the symlink is
+#                                # already up to date)
+#   scripts/dev.sh --lang en    # nested session in another language
+#                                # (translations, see docs/i18n.md)
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UUID="gnome-critter@beedi.xyz"
 
-# Couleurs/icônes : désactivées si la sortie n'est pas un terminal (log,
-# pipe...). Exportées (variables + fonctions) pour rester utilisables dans
-# le `bash -c` lancé plus bas par dbus-run-session, qui hérite de
-# l'environnement mais pas des définitions locales non exportées.
+# Colors/icons: disabled if the output isn't a terminal (log, pipe...).
+# Exported (variables + functions) to stay usable in the `bash -c` launched
+# further down by dbus-run-session, which inherits the environment but not
+# unexported local definitions.
 if [[ -t 1 ]]; then
   BOLD=$'\033[1m'; DIM=$'\033[2m'; RESET=$'\033[0m'
   RED=$'\033[31m'; GREEN=$'\033[32m'; YELLOW=$'\033[33m'; BLUE=$'\033[34m'
@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-build) BUILD=0; shift ;;
     --lang) LANG_CODE="${2:-}"; shift 2 ;;
-    *) err "Option inconnue : $1 (usage : scripts/dev.sh [--no-build] [--lang en])"; exit 2 ;;
+    *) err "Unknown option: $1 (usage: scripts/dev.sh [--no-build] [--lang en])"; exit 2 ;;
   esac
 done
 
@@ -65,36 +65,36 @@ if [[ "$BUILD" == 1 ]]; then
   "$ROOT_DIR/scripts/build.sh" --link
 fi
 
-# Langue de la session imbriquée : LANGUAGE passe devant la locale pour les
-# catalogues gettext ; la vraie session n'est pas touchée.
+# Nested session's language: LANGUAGE takes priority over the locale for
+# the gettext catalogs; the real session isn't touched.
 if [[ -n "$LANG_CODE" ]]; then
   export LANGUAGE="$LANG_CODE"
-  info "Session imbriquée en langue « $LANG_CODE »."
+  info "Nested session in language \"$LANG_CODE\"."
 fi
 
 if ! command -v dbus-run-session >/dev/null 2>&1; then
-  err "dbus-run-session introuvable (paquet 'dbus' / 'dbus-user-session')."
+  err "dbus-run-session not found (the 'dbus' / 'dbus-user-session' package)."
   exit 1
 fi
 
 DEVKIT_BIN="/usr/libexec/mutter-devkit"
 if [[ ! -x "$DEVKIT_BIN" ]]; then
-  err "$DEVKIT_BIN introuvable : --devkit démarrera sans erreur mais"
-  err "AUCUNE fenêtre n'apparaîtra pour voir/piloter le Shell imbriqué"
-  err "(le binaire compagnon qui affiche le devkit manque)."
-  err "Installe-le puis relance : ${BOLD}sudo dnf install mutter-devkit${RESET}"
+  err "$DEVKIT_BIN not found: --devkit will start with no error but"
+  err "NO window will appear to see/control the nested Shell"
+  err "(the companion binary that displays the devkit is missing)."
+  err "Install it then relaunch: ${BOLD}sudo dnf install mutter-devkit${RESET}"
   exit 1
 fi
 
-info "${BOLD}Lancement d'une session GNOME Shell imbriquée (Wayland).${RESET}"
-printf '  %sFerme simplement la fenêtre (ou Ctrl+C ici) pour la quitter --%s\n' "$DIM" "$RESET"
-printf '  %sça n'"'"'affecte pas ta vraie session ni ton vrai GNOME Shell.%s\n' "$DIM" "$RESET"
+info "${BOLD}Launching a nested GNOME Shell session (Wayland).${RESET}"
+printf '  %sJust close the window (or Ctrl+C here) to quit it --%s\n' "$DIM" "$RESET"
+printf '  %sit does not affect your real session or your real GNOME Shell.%s\n' "$DIM" "$RESET"
 echo
 
-# Sur son propre bus D-Bus privé (celui que dbus-run-session vient de créer) :
-# on lance le Shell imbriqué en tâche de fond, on attend qu'il soit prêt, on
-# active l'extension dessus (gnome-extensions hérite du même bus), puis on
-# attend la fin du Shell imbriqué pour rendre la main.
+# On its own private D-Bus bus (the one dbus-run-session just created):
+# the nested Shell is launched in the background, we wait for it to be
+# ready, enable the extension on it (gnome-extensions inherits the same
+# bus), then wait for the nested Shell to end before returning control.
 exec dbus-run-session -- bash -c '
   gnome-shell --devkit --wayland &
   shell_pid=$!
@@ -102,7 +102,7 @@ exec dbus-run-session -- bash -c '
   for _ in $(seq 1 20); do
     sleep 0.5
     if gnome-extensions enable "'"$UUID"'" 2>/dev/null; then
-      ok "Extension activée dans la session imbriquée."
+      ok "Extension enabled in the nested session."
       break
     fi
   done

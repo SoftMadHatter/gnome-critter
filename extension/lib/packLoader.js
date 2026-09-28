@@ -1,15 +1,15 @@
-// Charge un pack d'animal (voir docs/pack-format.md) : lit pack.json, puis
-// découpe chaque spritesheet en frames individuelles converties en
-// St.ImageContent, prêtes à être posées sur un acteur.
+// Loads an animal pack (see docs/pack-format.md): reads pack.json, then
+// slices each spritesheet into individual frames converted to
+// St.ImageContent, ready to be placed on an actor.
 //
-// GdkPixbuf fait le décodage PNG et le découpage (new_subpixbuf), Cogl fait
-// le pont vers une texture GPU utilisable par Clutter. C'est le chemin
-// standard pour afficher des images arbitraires dans GNOME Shell.
+// GdkPixbuf does the PNG decoding and slicing (new_subpixbuf), Cogl bridges
+// to a GPU texture usable by Clutter. This is the standard path to display
+// arbitrary images in GNOME Shell.
 //
-// Clutter.Image a été supprimé (GNOME Shell 48+, voir
-// https://gjs.guide/extensions/upgrading/gnome-shell-48.html#clutter-image) :
-// St.ImageContent le remplace, et set_data() exige désormais explicitement
-// le Cogl.Context du compositeur en premier argument.
+// Clutter.Image was removed (GNOME Shell 48+, see
+// https://gjs.guide/extensions/upgrading/gnome-shell-48.html#clutter-image):
+// St.ImageContent replaces it, and set_data() now explicitly requires the
+// compositor's Cogl.Context as its first argument.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -24,7 +24,7 @@ import { language } from '../core/i18n.js';
 
 /**
  * @param {GdkPixbuf.Pixbuf} pixbuf
- * @param {((pixels: Uint8Array) => Uint8Array)|null} [transform] variation de couleur
+ * @param {((pixels: Uint8Array) => Uint8Array)|null} [transform] color variation
  * @returns {St.ImageContent}
  */
 function pixbufToImage(pixbuf, transform = null) {
@@ -37,14 +37,14 @@ function pixbufToImage(pixbuf, transform = null) {
   const image = St.ImageContent.new_with_preferred_size(width, height);
   const ok = image.set_data(coglContext, pixels, format, width, height, pixbuf.get_rowstride());
   if (!ok) {
-    throw new Error('St.ImageContent.set_data a échoué (spritesheet corrompue ?)');
+    throw new Error('St.ImageContent.set_data failed (corrupt spritesheet?)');
   }
   return image;
 }
 
 /**
- * Charge une image PNG seule (icônes d'interface, hors packs).
- * @param {string} path chemin absolu
+ * Loads a single PNG image (interface icons, outside of packs).
+ * @param {string} path absolute path
  * @returns {St.ImageContent}
  */
 export function loadImage(path) {
@@ -52,9 +52,9 @@ export function loadImage(path) {
 }
 
 /**
- * Découpe un spritesheet décodé (une ligne de frames carrées) en `count` images.
+ * Slices a decoded spritesheet (a single row of square frames) into `count` images.
  * @param {GdkPixbuf.Pixbuf} sheet
- * @param {string} path pour les messages d'erreur
+ * @param {string} path for error messages
  * @param {number} count
  * @param {((pixels: Uint8Array) => Uint8Array)|null} transform
  * @returns {St.ImageContent[]}
@@ -65,7 +65,7 @@ function sliceFrames(sheet, path, count, transform) {
 
   if (!Number.isInteger(sheetFrameCount) || count > sheetFrameCount) {
     throw new Error(
-      `${path}: largeur ${sheet.get_width()} incohérente avec ${count} frames de ${frameSize}px`,
+      `${path}: width ${sheet.get_width()} inconsistent with ${count} frames of ${frameSize}px`,
     );
   }
 
@@ -76,7 +76,7 @@ function sliceFrames(sheet, path, count, transform) {
   return frames;
 }
 
-/** Vrai quand l'apparence ne change aucun pixel (teinte nulle, saturation normale). */
+/** True when the appearance changes no pixel (zero hue, normal saturation). */
 function isIdentity(appearance, colorizeGrays) {
   return !appearance || (Math.abs(appearance.hue) < 0.5 && appearance.saturation === 1 && !colorizeGrays);
 }
@@ -86,8 +86,8 @@ function cacheKey(appearance) {
 }
 
 /**
- * Feuille d'une seule ligne (ex. l'œuf, commun à toutes les espèces), avec
- * une variante de couleur par apparence, calculée à la demande et mise en cache.
+ * A single-row sheet (e.g. the egg, shared by every species), with one
+ * color variant per appearance, computed on demand and cached.
  * @param {string} path
  * @returns {{framesFor: (appearance: {hue:number, tone:number, saturation:number}) => St.ImageContent[]}}
  */
@@ -111,7 +111,7 @@ export function loadVariantSheet(path) {
 }
 
 /**
- * @param {string} packDirPath dossier contenant pack.json
+ * @param {string} packDirPath folder containing pack.json
  * @returns {{
  *   meta: object,
  *   spriteSize: {width:number, height:number},
@@ -133,12 +133,12 @@ export function loadPack(packDirPath) {
   const dir = Gio.File.new_for_path(packDirPath);
   const packFile = dir.get_child('pack.json');
   const [, contents] = packFile.load_contents(null);
-  // Nom, prénoms et succès du pack dans la langue de la session (section `translations`).
+  // The pack's name, given names, and achievements in the session's language (`translations` section).
   const meta = localizePack(JSON.parse(new TextDecoder('utf-8').decode(contents)), language());
   const appearanceConfig = appearanceOverrides(meta.appearance).config;
 
-  // Feuilles décodées une seule fois : chaque variante de couleur repart des
-  // pixels d'origine.
+  // Sheets decoded only once: every color variant starts over from the
+  // original pixels.
   const sheets = new Map();
   const sheetOf = (relativePath) => {
     if (!sheets.has(relativePath)) {
@@ -147,7 +147,7 @@ export function loadPack(packDirPath) {
     return sheets.get(relativePath);
   };
 
-  // Dossier de feuilles propre à un stade (bébé, jeune, senior) ; une feuille absente retombe sur l'adulte.
+  // Sheet folder specific to a stage (baby, young, senior); a missing sheet falls back to the adult's.
   const stageFolders = stagesOverrides(meta.stages).folders;
   const fileFor = (file, stage) => {
     const folder = stageFolders[stage];
@@ -173,7 +173,7 @@ export function loadPack(packDirPath) {
   const base = buildFrames(null, null);
   const variants = new Map();
   const framesFor = (appearance, stage = null) => {
-    const stageKey = stageFolders[stage] ? stage : null; // sans dossier, tous les stades partagent le jeu adulte
+    const stageKey = stageFolders[stage] ? stage : null; // without a folder, every stage shares the adult set
     const identity = !appearanceConfig.enabled || isIdentity(appearance, appearanceConfig.colorizeGrays);
     if (identity && !stageKey) return base;
     const key = `${stageKey}|${identity ? 'base' : cacheKey(appearance)}`;
@@ -203,8 +203,8 @@ export function loadPack(packDirPath) {
   const reactionSounds = {};
   for (const [name, def] of Object.entries(meta.reactions ?? {})) {
     reactionTiming[name] = { frameDuration: def.frameDuration, loop: def.loop === true };
-    // Optionnel : un pack peut ne fournir aucun son, ou seulement pour
-    // certaines réactions (rétrocompatible avec les packs sans "sound").
+    // Optional: a pack may provide no sound at all, or only for some
+    // reactions (backward compatible with packs without "sound").
     if (def.sound) reactionSounds[name] = dir.get_child(def.sound);
   }
 
@@ -226,7 +226,7 @@ export function loadPack(packDirPath) {
   };
 }
 
-/** Résout un chemin de pack relatif au dossier de l'extension. */
+/** Resolves a pack path relative to the extension's folder. */
 export function resolvePackPath(extensionDir, packId) {
   return GLib.build_filenamev([extensionDir, 'packs', packId]);
 }
