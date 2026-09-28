@@ -21,14 +21,14 @@ const EN = parsePo(read('po/en.po'));
 const POT = parsePo(read('po/gnome-critter.pot'));
 const PACKS = readdirSync(join(ROOT, 'packs')).map((id) => [id, JSON.parse(read(`packs/${id}/pack.json`))]);
 
-/** Sources passés à xgettext par scripts/i18n.sh (chemins relatifs au dépôt). */
+/** Sources passed to xgettext by scripts/i18n.sh (paths relative to the repo). */
 const SOURCES = [
   ...['extension', 'extension/lib', 'core'].flatMap((dir) =>
     readdirSync(join(ROOT, dir)).filter((file) => file.endsWith('.js')).map((file) => `${dir}/${file}`)),
 ];
 const TRANSLATION_CALLS = new Set(['_', 'N_', 'ngettext']);
 
-/** Exécute `fn` avec le catalogue anglais, puis revient au français. */
+/** Runs `fn` with the English catalog, then reverts to French. */
 function inEnglish(fn) {
   setTranslator(translatorFrom(EN, 'en'));
   try {
@@ -149,13 +149,13 @@ test('couverture : chaque texte marqué du code et chaque texte de la bibliothè
 });
 
 test('rien n’échappe à la traduction : aucun texte d’interface hors de _(), N_() ou ngettext()', () => {
-  // Textes de données traduits autrement : la bibliothèque (extraite par scripts/i18n-data.mjs,
-  // vérifiée ci-dessus) et les prénoms génériques (une liste par langue).
+  // Data text translated another way: the library (extracted by
+  // scripts/i18n-data.mjs, checked above) and generic given names (one list per language).
   const exempt = new Set(['core/achievementLibrary.js', 'core/names.js']);
-  // Journaux et erreurs de développement ; nom propre (source des notifications, bouton de la barre).
+  // Development logs and errors; the proper noun (source of notifications, the tray button).
   const allowedCalls = new Set(['log', 'logError', 'console.log', 'console.warn', 'console.error', 'console.debug', 'Error', 'TypeError']);
   const allowedTexts = new Set(['Critter']);
-  // Allure de texte : une lettre accentuée, deux mots, ou un mot seul à majuscule (« Journal »).
+  // Text-like appearance: an accented letter, two words, or a single capitalized word ("Journal").
   const looksLikeText = (text) =>
     /[À-ÖØ-öø-ÿŒœ]/.test(text) || /\p{L}{2,}[ '’]+\p{L}{2,}/u.test(text) || /^[A-ZÀ-Ý][a-zà-ÿœ]+[.…!?]?$/.test(text);
   const escaped = [];

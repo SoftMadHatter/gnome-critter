@@ -126,7 +126,7 @@ test('gamelle : remplissage, portions, un seul aliment', () => {
 });
 
 test('consume : un aliment se mange en bouchées puis disparaît, la réclamation est libérée', () => {
-  const food = createItem('food', 'meat', 0, 0); // 2 bouchées
+  const food = createItem('food', 'meat', 0, 0); // 2 bites
   assert.equal(food.portions, 2);
   food.claimedBy = {};
   assert.deepEqual(consume(food), { sick: false, fraction: 0.5, finished: false });

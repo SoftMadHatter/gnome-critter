@@ -4,7 +4,7 @@ import { Stats, STAT_KEYS } from '../core/stats.js';
 import { buildAchievements, newlyUnlocked, isEligible, CAPABILITIES } from '../core/achievements.js';
 import { Player, COIN_REWARDS } from '../core/player.js';
 
-/** Succès écrits pour le test seuls (sans la bibliothèque commune), pour une espèce qui sait tout faire. */
+/** Achievements written for the test alone (without the shared library), for a species that can do everything. */
 const build = (entries) => buildAchievements(entries, { can: new Set(CAPABILITIES), diet: [], toys: [], tricks: [] }, []);
 const facts = (stats, marks = []) => ({ stats, marks: new Set(marks) });
 

@@ -17,7 +17,7 @@ import { namesOverrides } from '../core/names.js';
 
 const PACKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs');
 
-/** Succès des packs d'avant l'étape 15 : leurs identifiants sont dans les sauvegardes, ils doivent rester obtenables. */
+/** Pre-existing packs' achievements: their ids are in saves, they must stay obtainable. */
 const LEGACY_ACHIEVEMENTS = {
   cat: ['nap-king', 'ball-hunter', 'gourmet', 'cuddle-pro', 'old-timer', 'mouser', 'salad'],
   bird: ['sky-lightning', 'traveler', 'pecker', 'cozy-nest', 'bug-hunter'],
@@ -26,13 +26,13 @@ const LEGACY_ACHIEVEMENTS = {
 };
 const LOCOMOTIONS = new Set(Object.values(Locomotion));
 
-/** Largeur/hauteur d'un PNG, lues dans l'en-tête IHDR (octets 16 à 24). */
+/** A PNG's width/height, read from the IHDR header (bytes 16 to 24). */
 function pngSize(path) {
   const buf = readFileSync(path);
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 
-/** États atteignables selon les locomotions du pack, plus un `trick_<nom>` par tour déclaré. */
+/** States reachable based on the pack's locomotions, plus one `trick_<name>` per declared trick. */
 const ALWAYS = ['idle', 'fall', 'drag', 'hibernate', 'remind', 'gift', 'play', 'hunt', 'eat', 'seekFood'];
 const BY_LOCOMOTION = {
   ground: ['walk', 'sleep', 'wash', 'follow', 'greet', 'seekFocus', 'seekNap', 'chase', 'flee', 'run', 'brushed', 'relieve'],
@@ -48,7 +48,7 @@ function requiredStates(meta) {
   return [...new Set(states)];
 }
 
-/** Événements notables qui ont une réaction dédiée. */
+/** Notable events that have a dedicated reaction. */
 const REQUIRED_REACTIONS = [
   'petted', 'tickled', 'annoyed', 'noticed', 'startled', 'greeted', 'purring', 'brushed', 'hatched', 'grew',
   'awakened', 'ate', 'played', 'sick', 'accident', 'relieved', 'trickLearned', 'birthday', 'gift', 'reminded',
@@ -80,7 +80,7 @@ for (const id of packIds) {
     for (const [name, def] of entries) {
       const path = join(packDir, def.file);
       assert.ok(existsSync(path) && statSync(path).isFile(), `${name} : ${def.file} introuvable`);
-      // Même règle que packLoader.loadFrames : une ligne de frames carrées.
+      // Same rule as packLoader.loadFrames: a single row of square frames.
       const { width, height } = pngSize(path);
       const cells = width / height;
       assert.ok(
@@ -157,7 +157,7 @@ for (const id of packIds) {
     for (const legacy of LEGACY_ACHIEVEMENTS[id] ?? []) {
       assert.ok(all.some((def) => def.id === legacy), `identifiant historique « ${legacy} » perdu (sauvegardes)`);
     }
-    // Deux succès identiques (même condition, même caractère et stade) feraient doublon.
+    // Two identical achievements (same condition, same trait and stage) would be a duplicate.
     const keys = all.map((def) => JSON.stringify([def.scope, def.condition, def.requires.trait, def.requires.stage]));
     const twins = keys.filter((key, i) => keys.indexOf(key) !== i);
     assert.deepEqual(twins, [], 'succès en double');
@@ -177,8 +177,8 @@ for (const id of packIds) {
     assert.ok(list.length >= 8, 'assez de noms pour plusieurs animaux');
   });
 
-  // Couverture : chaque état atteignable a sa propre feuille, chaque événement notable sa réaction.
-  // Le pack de démonstration reste volontairement minimal (il montre les repli).
+  // Coverage: every reachable state has its own sheet, every notable event its own reaction.
+  // The demo pack stays deliberately minimal (it shows the fallbacks).
   if (id !== 'critter-demo') {
     test(`pack "${id}" : un état atteignable = sa propre animation`, () => {
       const required = requiredStates(meta);

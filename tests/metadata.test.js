@@ -1,7 +1,7 @@
-// Garde-fou pour la publication sur extensions.gnome.org : les règles de revue
-// (gjs.guide/extensions/review-guidelines) exigent un uuid valide, une url
-// réelle, un shell-version de versions stables, et pas de champ `version`
-// (attribué par le site). Voir docs/publishing.md.
+// Safety net for publishing on extensions.gnome.org: the review guidelines
+// (gjs.guide/extensions/review-guidelines) require a valid uuid, a real
+// url, a shell-version of stable versions, and no `version` field
+// (assigned by the site).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
