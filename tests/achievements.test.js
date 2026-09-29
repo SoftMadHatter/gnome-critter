@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildAchievements, speciesProfile, newlyUnlocked, titlesFor, achievementView, achievementCount, conditionValue,
-  formatCount, CAPABILITIES, TROLL_CATEGORY, PLAYER_CATEGORY, TIER_COINS,
+  formatCount, CAPABILITIES, PLAYER_CATEGORY, TIER_COINS,
 } from '../core/achievements.js';
 
 const ALL = { can: new Set(CAPABILITIES), diet: ['fish', 'meat', 'kibble', 'grass'], toys: ['ball', 'yarn', 'plush'], tricks: ['sit', 'roll'] };
@@ -93,7 +93,7 @@ test('troll : caché, commentaire et récompense obligatoires, récompenses vali
   const single = { id: 'owl', troll: true, mark: 'moment:night-owl', name: 'N', description: 'd', quip: 'q' };
   const { critter, ignored } = build([ok, single]);
   assert.deepEqual(ignored, []);
-  assert.ok(critter.every((d) => d.troll && d.category === TROLL_CATEGORY));
+  assert.ok(critter.every((d) => d.troll && d.category === 'life'), 'sans catégorie explicite, retombe sur le défaut comme un succès réel');
   assert.deepEqual(critter.map((d) => d.reward), [{ coins: -1, text: 'frais de dossier' }, { box: 'gold' }, { coins: 0 }]);
   assert.deepEqual(critter.map((d) => d.quip), ['q1', 'q2', 'q']);
 
@@ -139,28 +139,34 @@ test('titres : ceux des séries terminées et des uniques obtenus', () => {
   assert.deepEqual(titlesFor(critter, new Set(['meals-200', 'lol'])), [{ id: 'meals-200', title: 'ogre du bureau' }, { id: 'lol', title: 'as de la chute' }]);
 });
 
-test("affichage : une ligne par série (dernier palier, suivant, progression), bêtises cachées jusqu'à leur découverte", () => {
+test("affichage : bêtises mêlées aux succès réels de leur catégorie, cachées jusqu'à leur découverte", () => {
   const { critter } = build([
     meals,
-    { series: 'drags', troll: true, stat: 'drags', tiers: [25, 100], names: ['Mal des transports', 'Tapis volant'], description: 'Porté {n} fois', quip: 'q' },
-    { id: 'owl', troll: true, mark: 'moment:night-owl', name: 'Noctambule', description: 'd', quip: 'hou' },
+    {
+      series: 'drags', category: 'care', troll: true, stat: 'drags', tiers: [25, 100],
+      names: ['Mal des transports', 'Tapis volant'], description: 'Porté {n} fois', quip: 'q',
+    },
+    { id: 'owl', category: 'care', troll: true, mark: 'moment:night-owl', name: 'Noctambule', description: 'd', quip: 'hou' },
     { id: 'lazy-only', category: 'life', stat: 'naps', atLeast: 5, name: 'Z', description: 'd', requires: { trait: 'lazy' } },
   ]);
   const unlocked = new Set(['meals-10']);
   const view = achievementView(critter, { trait: 'playful', unlocked, facts: facts({ meals: 37, drags: 30 }) });
   assert.deepEqual([view.done, view.total], [1, 6], 'le succès de caractère « paresseux » ne compte pas');
   const care = view.categories.find((c) => c.id === 'care');
+  assert.deepEqual([care.done, care.total], [1, 6], 'les bêtises comptent dans le total de leur catégorie dès le départ, avant découverte');
   assert.deepEqual(care.entries, [{
     id: 'meals-50', series: true, troll: false, name: 'Bon appétit', description: 'Faire 50 repas', done: false,
     last: { name: 'Petit creux' }, value: 37, target: 50, tier: 1, tiers: 3, title: 'ogre du bureau', quip: null, reward: { coins: 5 },
-  }]);
-  const mischief = view.categories.find((c) => c.id === TROLL_CATEGORY);
-  assert.deepEqual([mischief.done, mischief.total, mischief.entries.length], [0, 3, 0], 'rien de découvert : seulement le compte');
+  }], 'les bêtises non découvertes de « care » ne montrent aucune ligne, contrairement aux succès réels');
 
   unlocked.add('drags-25');
   unlocked.add('owl');
   const found = achievementView(critter, { trait: 'playful', unlocked, facts: facts({ meals: 37, drags: 30 }) });
-  const entries = found.categories.find((c) => c.id === TROLL_CATEGORY).entries;
-  assert.deepEqual(entries.map((e) => [e.name, e.done, e.quip]), [['Tapis volant', false, 'q'], ['Noctambule', true, 'hou']]);
+  const careAfter = found.categories.find((c) => c.id === 'care');
+  assert.deepEqual(
+    careAfter.entries.map((e) => [e.name, e.done, e.troll, e.quip]),
+    [['Bon appétit', false, false, null], ['Tapis volant', false, true, 'q'], ['Noctambule', true, true, 'hou']],
+    'une fois découvertes, les bêtises rejoignent les succès réels de leur catégorie',
+  );
   assert.deepEqual(achievementCount(critter, { trait: 'playful', unlocked }), { done: 3, total: 6 });
 });

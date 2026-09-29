@@ -79,6 +79,7 @@
     {
       "id": "cat-early-meal",
       "troll": true,
+      "category": "care",
       "mark": "moment:early-meal",
       "name": "Réveil-matin",
       "description": "Manger entre 5 h et 6 h du matin",

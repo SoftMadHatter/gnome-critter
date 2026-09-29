@@ -9,7 +9,7 @@ import { needsOverrides } from '../core/needs.js';
 import { appearanceOverrides } from '../core/colorShift.js';
 import { stagesOverrides } from '../core/life.js';
 import {
-  buildAchievements, speciesProfile, CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY,
+  buildAchievements, speciesProfile, CATEGORIES, PLAYER_CATEGORY,
 } from '../core/achievements.js';
 import { anchorsOverrides } from '../core/accessories.js';
 import { tricksOverrides } from '../core/tricks.js';
@@ -148,7 +148,7 @@ for (const id of packIds) {
     assert.ok(all.length >= 150, `${all.length} succès`);
     const trolls = all.filter((def) => def.troll).length;
     assert.ok(trolls / all.length >= 0.4, `${trolls} bêtises sur ${all.length}`);
-    for (const category of [...CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY]) {
+    for (const category of [...CATEGORIES, PLAYER_CATEGORY]) {
       assert.ok(all.some((def) => def.category === category), `catégorie ${category} vide`);
     }
     assert.ok(all.filter((def) => def.title).length >= 20, 'au moins 20 titres');

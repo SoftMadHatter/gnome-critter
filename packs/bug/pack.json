@@ -48,6 +48,7 @@
     {
       "id": "bug-unbreakable",
       "troll": true,
+      "category": "exploration",
       "stat": "falls",
       "atLeast": 50,
       "requires": { "can": "ground" },

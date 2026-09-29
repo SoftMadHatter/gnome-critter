@@ -3,7 +3,7 @@
 // (the .po catalog and packs' `translations` section). Pure module, used
 // by the "Checks" tab and tested under Node (tests/review.test.js).
 
-import { CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY } from '../../core/achievements.js';
+import { CATEGORIES, PLAYER_CATEGORY } from '../../core/achievements.js';
 import { announceUnlock } from '../../core/narrator.js';
 import { missingTranslations, translationsOverrides } from '../../core/packTranslations.js';
 
@@ -64,7 +64,7 @@ export function checkPack(pack) {
   if (all.length > 0 && trolls / all.length < LIMITS.minTrollShare) {
     error(null, `${trolls} bêtises sur ${all.length} : moins de ${LIMITS.minTrollShare * 100} %`);
   }
-  for (const category of [...CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY]) {
+  for (const category of [...CATEGORIES, PLAYER_CATEGORY]) {
     if (!all.some((def) => def.category === category)) error(null, `rubrique vide : ${category}`);
   }
   const titled = all.filter((def) => def.title);
