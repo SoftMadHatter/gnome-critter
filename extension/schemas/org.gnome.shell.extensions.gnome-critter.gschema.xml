@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="gnome-critter">
   <schema id="org.gnome.shell.extensions.gnome-critter" path="/org/gnome/shell/extensions/gnome-critter/">
-    <key name="pack-id" type="s">
-      <default>'cat'</default>
-      <summary>Identifiant du pack d'animal actif</summary>
-      <description>Nom du dossier sous packs/ à charger (ex: "cat").</description>
-    </key>
-    <key name="critter-count" type="i">
-      <range min="1" max="10"/>
-      <default>1</default>
-      <summary>Nombre d'animaux affichés</summary>
+    <key name="critter-mix" type="s">
+      <default>'[{"pack":"cat","count":1}]'</default>
+      <summary>Animaux affichés, par espèce</summary>
+      <description>JSON : liste de {"pack": identifiant du dossier sous packs/, "count": nombre d'animaux de cette espèce}. Total plafonné à 10.</description>
     </key>
     <key name="sounds-enabled" type="b">
       <default>true</default>
