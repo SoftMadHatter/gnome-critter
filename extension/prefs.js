@@ -39,6 +39,110 @@ function listPacks(extensionPath) {
   return packs.sort((a, b) => a.label.localeCompare(b.label));
 }
 
+/**
+ * Reads the `critter-mix` setting (JSON array of `{pack, count}`): drops
+ * entries whose pack id isn't actually installed or whose count isn't a
+ * positive number. Falls back to one entry of the first installed pack if
+ * nothing valid remains (mirrors extension.js's own defensive parsing).
+ * @param {{id: string}[]} packs installed packs, from listPacks()
+ * @returns {{pack: string, count: number}[]}
+ */
+function readMix(settings, packs) {
+  let raw;
+  try {
+    raw = JSON.parse(settings.get_string('critter-mix'));
+  } catch {
+    raw = null;
+  }
+  const known = new Set(packs.map((p) => p.id));
+  const entries = Array.isArray(raw) ? raw : [];
+  const clean = entries
+    .filter((e) => known.has(e?.pack) && Number.isFinite(e?.count) && e.count >= 1)
+    .map((e) => ({ pack: e.pack, count: Math.floor(e.count) }));
+  return clean.length > 0 ? clean : packs[0] ? [{ pack: packs[0].id, count: 1 }] : [];
+}
+
+/**
+ * One species picker + count per `critter-mix` entry, plus a header button
+ * to add another species. Rebuilds its rows on every change (add/remove/
+ * pick another already-used species) rather than trying to patch them in
+ * place -- simpler, and this list is short.
+ * @param {Adw.PreferencesGroup} group
+ * @param {Gio.Settings} settings
+ * @param {{id: string, label: string}[]} packs installed packs, from listPacks()
+ */
+function buildMixRows(group, settings, packs) {
+  const mix = readMix(settings, packs);
+  const rows = [];
+
+  const writeMix = () => settings.set_string('critter-mix', JSON.stringify(mix));
+
+  const render = () => {
+    for (const row of rows.splice(0)) group.remove(row);
+    mix.forEach((entry, index) => {
+      const packRow = new Adw.ComboRow({
+        title: _('Animal'),
+        model: Gtk.StringList.new(packs.map((p) => p.label)),
+      });
+      const current = packs.findIndex((p) => p.id === entry.pack);
+      packRow.selected = current >= 0 ? current : Gtk.INVALID_LIST_POSITION;
+      packRow.connect('notify::selected', () => {
+        const pack = packs[packRow.selected];
+        if (pack) {
+          entry.pack = pack.id;
+          writeMix();
+        }
+      });
+      group.add(packRow);
+      rows.push(packRow);
+
+      const countRow = new Adw.SpinRow({
+        title: _("Nombre d'animaux"),
+        adjustment: new Gtk.Adjustment({ lower: 1, upper: 10, step_increment: 1 }),
+        value: entry.count,
+      });
+      countRow.connect('notify::value', () => {
+        entry.count = countRow.value;
+        writeMix();
+      });
+      if (mix.length > 1) {
+        const removeButton = new Gtk.Button({
+          icon_name: 'user-trash-symbolic',
+          valign: Gtk.Align.CENTER,
+          css_classes: ['flat'],
+          tooltip_text: _('Retirer cette espèce'),
+        });
+        removeButton.connect('clicked', () => {
+          mix.splice(index, 1);
+          writeMix();
+          render();
+        });
+        countRow.add_suffix(removeButton);
+      }
+      group.add(countRow);
+      rows.push(countRow);
+    });
+  };
+
+  const addButton = new Gtk.Button({
+    icon_name: 'list-add-symbolic',
+    valign: Gtk.Align.CENTER,
+    css_classes: ['flat'],
+    tooltip_text: _('Ajouter une espèce'),
+  });
+  addButton.connect('clicked', () => {
+    const used = new Set(mix.map((e) => e.pack));
+    const next = packs.find((p) => !used.has(p.id)) ?? packs[0];
+    if (!next) return;
+    mix.push({ pack: next.id, count: 1 });
+    writeMix();
+    render();
+  });
+  group.set_header_suffix(addButton);
+
+  render();
+}
+
 export default class CritterPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
     // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo catalog).
@@ -53,7 +157,10 @@ export default class CritterPreferences extends ExtensionPreferences {
     // Every setting applies immediately, without reloading the extension
     // (changing the critter or the count recreates the manager live).
     const generalPage = new Adw.PreferencesPage({ title: _('Général'), icon_name: 'preferences-system-symbolic' });
-    const group = new Adw.PreferencesGroup({ title: _('Animaux'), description: _('Les changements sont appliqués tout de suite.') });
+    const group = new Adw.PreferencesGroup({
+      title: _('Animaux'),
+      description: _('Les changements sont appliqués tout de suite. 10 animaux au total, tous ensemble.'),
+    });
     generalPage.add(group);
 
     const lifePage = new Adw.PreferencesPage({ title: _('Besoins et vie'), icon_name: 'emblem-favorite-symbolic' });
@@ -63,26 +170,7 @@ export default class CritterPreferences extends ExtensionPreferences {
     const worldPage = new Adw.PreferencesPage({ title: _('Rythme et capteurs'), icon_name: 'preferences-system-time-symbolic' });
 
     const packs = listPacks(this.path);
-    const packRow = new Adw.ComboRow({
-      title: _('Animal'),
-      model: Gtk.StringList.new(packs.map((p) => p.label)),
-    });
-    // Active pack not found: no selection, and the setting isn't
-    // overwritten until the user explicitly picks one.
-    const current = packs.findIndex((p) => p.id === settings.get_string('pack-id'));
-    packRow.selected = current >= 0 ? current : Gtk.INVALID_LIST_POSITION;
-    packRow.connect('notify::selected', () => {
-      const pack = packs[packRow.selected];
-      if (pack) settings.set_string('pack-id', pack.id);
-    });
-    group.add(packRow);
-
-    const countRow = new Adw.SpinRow({
-      title: _("Nombre d'animaux"),
-      adjustment: new Gtk.Adjustment({ lower: 1, upper: 10, step_increment: 1 }),
-    });
-    settings.bind('critter-count', countRow, 'value', 0);
-    group.add(countRow);
+    buildMixRows(group, settings, packs);
 
     const soundsRow = new Adw.SwitchRow({ title: _('Sons activés') });
     settings.bind('sounds-enabled', soundsRow, 'active', 0);

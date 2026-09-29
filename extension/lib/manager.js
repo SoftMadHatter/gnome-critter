@@ -56,12 +56,16 @@ const OVERFED_SATIETY = 95; // feeding a critter this full is a blunder
 
 export class Manager {
   /**
-   * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
+   * @param {{pack: ReturnType<typeof import('./packLoader.js').loadPack>, count: number}[]} packs
+   *   one entry per species in the mix; a species used by several critters
+   *   still only appears once here (see `_packData`, called once per id)
    * @param {Gio.Settings} settings
    * @param {{extensionPath: string, uuid: string, openSettings?: () => void}} extension
    */
-  constructor(pack, settings, { extensionPath, uuid, openSettings = () => {} }) {
-    this.pack = pack;
+  constructor(packs, settings, { extensionPath, uuid, openSettings = () => {} }) {
+    this.packs = packs;
+    /** Per-pack derived data (behavior, needs, achievements...), built once per distinct pack id. */
+    this._packCache = new Map();
     this.settings = settings;
     this._extensionPath = extensionPath;
     this._uuid = uuid;
@@ -84,8 +88,7 @@ export class Manager {
     this._preySpawner = new PreySpawner();
     this._plantTimer = 0;
     this._player = new Player();
-    /** Critter and player achievements, expanded from the library and the pack. */
-    this._achievements = [];
+    /** Player achievements (critter-scope ones live on each `critter.config.achievements` instead -- see `_packData`). */
     this._playerAchievements = [];
     this._vacationSince = null; // start of the current vacation (ms), for "Express vacation"
     this._lastSavedPlayer = null;
@@ -100,7 +103,7 @@ export class Manager {
     this._reminderUntilUs = 0;
     this._laser = false; // laser pointer mode, in memory only (off on every activation)
     this._laserDot = null;
-    /** @type {{critter: Critter, actor: CritterActor}[]} */
+    /** @type {{critter: Critter, actor: CritterActor, pack: object}[]} */
     this._critters = [];
     this._timeoutId = null;
     this._saveTimeoutId = null;
@@ -124,26 +127,56 @@ export class Manager {
     this._focusedWindowExpiryUs = 0;
   }
 
-  spawn(count = 1) {
+  /**
+   * Per-pack derived data (behavior, needs, anchors, achievements...),
+   * built once per distinct pack id and cached -- however many critters
+   * of that species there are, this runs once. Keyed by `pack.meta.id`.
+   */
+  _packData(pack) {
+    const id = pack.meta.id;
+    if (this._packCache.has(id)) return this._packCache.get(id);
+
+    const behavior = behaviorOverrides(pack.behavior);
+    if (behavior.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", "behavior" keys ignored: ${behavior.ignored.join(', ')}`);
+    }
+    const needs = needsOverrides(pack.needs);
+    if (needs.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", "needs" keys ignored: ${needs.ignored.join(', ')}`);
+    }
+    const anchors = anchorsOverrides(pack.meta.anchors);
+    if (anchors.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", "anchors" keys ignored: ${anchors.ignored.join(', ')}`);
+    }
+    const stages = stagesOverrides(pack.meta.stages);
+    if (stages.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", "stages" keys ignored: ${stages.ignored.join(', ')}`);
+    }
+    const translations = translationsOverrides(pack.meta.translations);
+    if (translations.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", translations ignored: ${translations.ignored.join(', ')}`);
+    }
+    const namesList = namesOverrides(pack.meta.names).list;
+    const achievements = buildAchievements(pack.meta.achievements, speciesProfile(pack.meta));
+    if (achievements.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", achievements ignored: ${achievements.ignored.join(', ')}`);
+    }
+    const tricks = tricksOverrides(pack.meta.tricks);
+    if (tricks.ignored.length > 0) {
+      console.warn(`Critter: pack "${id}", tricks ignored: ${tricks.ignored.join(', ')}`);
+    }
+    const hueRange = pack.appearance.enabled ? pack.appearance.hueRange : [0, 0];
+
+    const data = { pack, behavior, needs, anchors, stages, translations, namesList, achievements, tricks, hueRange };
+    this._packCache.set(id, data);
+    return data;
+  }
+
+  spawn() {
     const monitors = getMonitors();
     const bounds = computeWorldBounds(monitors);
 
-    const behavior = behaviorOverrides(this.pack.behavior);
-    if (behavior.ignored.length > 0) {
-      console.warn(
-        `Critter: pack "${this.pack.meta.id}", "behavior" keys ignored: ${behavior.ignored.join(', ')}`,
-      );
-    }
-
-    const needs = needsOverrides(this.pack.needs);
-    if (needs.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", "needs" keys ignored: ${needs.ignored.join(', ')}`);
-    }
     this._accessoryImages = loadAccessoryImages(GLib.build_filenamev([this._extensionPath, 'assets', 'accessories']));
-    const anchors = anchorsOverrides(this.pack.meta.anchors);
-    if (anchors.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", "anchors" keys ignored: ${anchors.ignored.join(', ')}`);
-    }
     this._itemImages = loadItemImages(GLib.build_filenamev([this._extensionPath, 'assets', 'items']));
     const laser = this._itemImages.get('laser');
     if (laser) this._laserDot = new LaserDot(laser);
@@ -152,36 +185,35 @@ export class Manager {
     } catch (e) {
       console.warn(`Critter: egg sprite unavailable (${e.message})`);
     }
-    const stages = stagesOverrides(this.pack.meta.stages);
-    if (stages.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", "stages" keys ignored: ${stages.ignored.join(', ')}`);
-    }
-    const translations = translationsOverrides(this.pack.meta.translations);
-    if (translations.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", translations ignored: ${translations.ignored.join(', ')}`);
-    }
-    const namesList = namesOverrides(this.pack.meta.names).list;
-    const achievements = buildAchievements(this.pack.meta.achievements, speciesProfile(this.pack.meta));
-    if (achievements.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", achievements ignored: ${achievements.ignored.join(', ')}`);
-    }
-    this._achievements = achievements.critter;
-    this._playerAchievements = achievements.player;
-    const tricks = tricksOverrides(this.pack.meta.tricks);
-    if (tricks.ignored.length > 0) {
-      console.warn(`Critter: pack "${this.pack.meta.id}", tricks ignored: ${tricks.ignored.join(', ')}`);
-    }
     this._player = Player.parse(this.settings.get_string('saved-player'));
     const growthEnabled = this.settings.get_boolean('growth-enabled');
-    const hueRange = this.pack.appearance.enabled ? this.pack.appearance.hueRange : [0, 0];
     const bubbleIcons = loadBubbleIcons(GLib.build_filenamev([this._extensionPath, 'assets', 'bubbles']));
 
-    const saved = parseSavedState(this.settings.get_string('saved-state'), {
-      packId: this.pack.meta.id,
-      bounds,
-    });
+    // Flattened spawn order: one distinct pack's data is built once (see
+    // _packData) however many of its critters there are, but each of
+    // those critters still gets its own slot here, in the mix's order.
+    const slots = [];
+    for (const { pack, count } of this.packs) {
+      const data = this._packData(pack);
+      for (let i = 0; i < count; i++) slots.push(data);
+    }
+    const packIds = slots.map((data) => data.pack.meta.id);
+    const saved = parseSavedState(this.settings.get_string('saved-state'), { packIds, bounds });
 
-    for (let i = 0; i < count; i++) {
+    // Player-scope achievements: the union of every distinct species in
+    // the mix, deduplicated by id (the shared library's entries are
+    // identical in every pack, so a single-species mix changes nothing).
+    const seenPlayerIds = new Set();
+    this._playerAchievements = [];
+    for (const { pack } of this.packs) {
+      for (const def of this._packData(pack).achievements.player) {
+        if (seenPlayerIds.has(def.id)) continue;
+        seenPlayerIds.add(def.id);
+        this._playerAchievements.push(def);
+      }
+    }
+
+    slots.forEach((data, i) => {
       const startX = bounds.x + bounds.width * (0.3 + 0.1 * i);
       // critter.y is the feet's position (see CritterActor.syncPosition,
       // which places the sprite at critter.y - height): starting exactly
@@ -189,29 +221,29 @@ export class Manager {
       // monitor during the initial fall. It's offset by one sprite height
       // so it's visible from the very first frame, at the very top of the
       // screen.
-      const startY = bounds.y + this.pack.spriteSize.height;
+      const startY = bounds.y + data.pack.spriteSize.height;
 
       const critter = new Critter(
         {
           // First: the pack's `speeds` and locomotions, set afterward,
           // keep priority over any equivalent keys.
-          ...behavior.config,
-          needsRates: needs.rates,
-          needsDiet: needs.diet,
-          needsPrey: needs.prey,
+          ...data.behavior.config,
+          needsRates: data.needs.rates,
+          needsDiet: data.needs.diet,
+          needsPrey: data.needs.prey,
           autonomyMode: this.settings.get_string('autonomy'),
           lifeAgeScale: this._lifeAgeScale(),
-          achievements: this._achievements,
-          tricks: tricks.list,
-          stageScales: stages.scales,
+          achievements: data.achievements.critter,
+          tricks: data.tricks.list,
+          stageScales: data.stages.scales,
           needsRateScale: this._needsRateScale(),
-          speciesId: this.pack.meta.id,
-          walkSpeed: this.pack.speeds.walk ?? 40,
-          climbSpeed: this.pack.speeds.climb ?? 30,
-          swimSpeed: this.pack.speeds.swim ?? 25,
-          flySpeed: this.pack.speeds.fly ?? 60,
+          speciesId: data.pack.meta.id,
+          walkSpeed: data.pack.speeds.walk ?? 40,
+          climbSpeed: data.pack.speeds.climb ?? 30,
+          swimSpeed: data.pack.speeds.swim ?? 25,
+          flySpeed: data.pack.speeds.fly ?? 60,
           supportedSurfaces: new Set(
-            [...this.pack.supportedSurfaces].map((s) => Locomotion[s.toUpperCase()] ?? s),
+            [...data.pack.supportedSurfaces].map((s) => Locomotion[s.toUpperCase()] ?? s),
           ),
         },
         { x: startX, y: startY },
@@ -220,26 +252,26 @@ export class Manager {
       // A new critter is born as an egg (if growth is active); a save
       // from before growth existed turns it into an adult with a random trait.
       critter.setLife(
-        Life.create(Math.random, { growth: growthEnabled && !saved[i], hueRange, scales: stages.scales }),
+        Life.create(Math.random, { growth: growthEnabled && !saved[i], hueRange: data.hueRange, scales: data.stages.scales }),
       );
       if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
-      // Name: the saved one, otherwise drawn from the species' list among the free ones.
+      // Name: the saved one, otherwise drawn from the species' own list among the free ones.
       if (!critter.name) {
         const taken = this._critters.map((e) => e.critter.name).filter(Boolean);
-        critter.setName(pickName(Math.random, namesList, taken));
+        critter.setName(pickName(Math.random, data.namesList, taken));
       }
       if (!saved[i] && growthEnabled) this._player.log(fmt(_('Un œuf est déposé : {name}.'), { name: critter.name }), Date.now());
 
-      const actor = new CritterActor(critter, this.pack, this.settings, bubbleIcons, this._menuOwner(), this._eggSheet);
-      actor.attachAccessories(this._accessoryImages, anchors.anchors);
+      const actor = new CritterActor(critter, data.pack, this.settings, bubbleIcons, this._menuOwner(), this._eggSheet);
+      actor.attachAccessories(this._accessoryImages, data.anchors.anchors);
       // GNOME 50 (layout.js): addChrome() automatically includes the actor
       // in the input region based on its size/position/visibility; the
       // affectsInputRegion parameter no longer exists (Params.parse
       // rejects any unknown key). Only trackFullscreen/affectsStruts remain.
       Main.layoutManager.addChrome(actor.actor);
 
-      this._critters.push({ critter, actor });
-    }
+      this._critters.push({ critter, actor, pack: data.pack });
+    });
 
     for (const item of parseSavedItems(this.settings.get_string('saved-items'), { bounds })) this._addItem(item);
 
@@ -361,7 +393,8 @@ export class Manager {
 
   /** A critter's name in messages: the species, numbered if there are several. */
   _nameOf(index) {
-    return this._critters[index]?.critter.name ?? this.pack.meta.displayName ?? this.pack.meta.id;
+    const entry = this._critters[index];
+    return entry?.critter.name ?? entry?.pack.meta.displayName ?? entry?.pack.meta.id;
   }
 
   /** "Feed" button: the free food the species prefers (otherwise the cheapest), dropped near it. */
@@ -385,7 +418,7 @@ export class Manager {
   openProgress(critter, tab) {
     this._player.stats.add(tab === 'journal' ? 'journalOpens' : 'progressOpens');
     const facts = critter.progressFacts();
-    const mine = achievementView(this._achievements, { trait: critter.life.trait, unlocked: critter.unlocked, facts });
+    const mine = achievementView(critter.config.achievements, { trait: critter.life.trait, unlocked: critter.unlocked, facts });
     const yours = achievementView(this._playerAchievements, { unlocked: this._player.unlocked, facts: this._player.progressFacts() });
     const { stageReached, tricksLearned, achievementsUnlocked, ...values } = facts.stats;
     new ProgressDialog({
@@ -420,12 +453,12 @@ export class Manager {
 
   /** Achievements earned / possible for a critter (matching species and trait). */
   achievementSummary(critter) {
-    return achievementCount(this._achievements, { trait: critter.life.trait, unlocked: critter.unlocked });
+    return achievementCount(critter.config.achievements, { trait: critter.life.trait, unlocked: critter.unlocked });
   }
 
   /** Text of the title worn by a critter, or null. */
   titleOf(critter) {
-    return this._achievements.find((def) => def.id === critter.title)?.title ?? null;
+    return critter.config.achievements.find((def) => def.id === critter.title)?.title ?? null;
   }
 
   /**
@@ -515,7 +548,7 @@ export class Manager {
     if (mess) this._addItem(createItem('mess', null, mess.x, mess.y - 4));
     const gift = critter.takeGift();
     if (gift) this._addItem(createItem('gift', gift.kind, gift.x, gift.y));
-    const defs = critter.takeUnlocked().map((id) => this._achievements.find((def) => def.id === id)).filter(Boolean);
+    const defs = critter.takeUnlocked().map((id) => critter.config.achievements.find((def) => def.id === id)).filter(Boolean);
     if (defs.length > 0) this._announce(defs, { who: name, key: `${index}`, nowSeconds });
   }
 
@@ -602,7 +635,6 @@ export class Manager {
       this._indicator = addIndicator(
         {
           getCritters: () => this._critters.map(({ critter }) => critter),
-          title: this.pack.meta.displayName ?? this.pack.meta.id,
           ...this._menuOwner(),
           getPlayer: () => this._player,
           achievementSummary: (critter) => this.achievementSummary(critter),
@@ -631,7 +663,7 @@ export class Manager {
       unreadCount: () => this.unreadCount(),
       noteMenuOpen: () => this._noteMenuOpen('menuOpens'),
       noteContextMenuOpen: () => this._noteMenuOpen('contextMenuOpens'),
-      titles: (critter) => titlesFor(this._achievements, critter.unlocked),
+      titles: (critter) => titlesFor(critter.config.achievements, critter.unlocked),
       setTitle: (critter, id) => critter.setTitle(id),
       titleOf: (critter) => this.titleOf(critter),
       openProgress: (critter, tab) => this.openProgress(critter, tab),
@@ -680,11 +712,14 @@ export class Manager {
     return Object.entries(diet).sort((a, b) => b[1] - a[1]).map(([kind]) => kind);
   }
 
-  /** Toys suited to the displayed species: floating ones for a groundless species, placed ones otherwise. */
+  /** Toys suited to any displayed species: floating ones for a groundless one, placed ones otherwise. */
   _toyKinds() {
-    const critter = this._critters[0]?.critter;
-    const groundless = critter ? !critter.supports(Locomotion.GROUND) : false;
-    return Object.keys(TOYS).filter((kind) => toyFits(kind, groundless));
+    const kinds = new Set();
+    for (const { critter } of this._critters) {
+      const groundless = !critter.supports(Locomotion.GROUND);
+      for (const kind of Object.keys(TOYS)) if (toyFits(kind, groundless)) kinds.add(kind);
+    }
+    return [...kinds];
   }
 
   _addItem(item) {
@@ -779,7 +814,7 @@ export class Manager {
 
   _saveState() {
     const json = serializeCritters(
-      this.pack.meta.id,
+      this._critters.map(({ pack }) => pack.meta.id),
       this._critters.map(({ critter }) => critter),
     );
     if (json !== this._lastSavedState) {
@@ -935,9 +970,9 @@ export class Manager {
 
     this._worldTick(dt, nowUs);
     const progress = { now: Date.now() };
-    this._critters.forEach(({ critter, actor }, i) => {
+    this._critters.forEach(({ critter, actor, pack }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
-      critter.ensureVisible(monitors, this.pack.spriteSize.height);
+      critter.ensureVisible(monitors, pack.spriteSize.height);
       const ambient = this._ambientFor(critter);
       const snapshot = critter.tick(dt, surfaces, {
         worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient, progress,

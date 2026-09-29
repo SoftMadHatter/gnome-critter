@@ -49,8 +49,8 @@ of taking control of the display, on its own D-Bus bus (via
   in the terminal that launched it) and rerun the command — a few seconds,
   no logout needed;
 - GSettings settings (`enabled-extensions`, the extension's own settings
-  like `pack-id`/`critter-count`) are stored in dconf, which is shared
-  between both sessions: no need to reconfigure everything on every launch.
+  like `critter-mix`) are stored in dconf, which is shared between both
+  sessions: no need to reconfigure everything on every launch.
 
 ## Usage
 
@@ -126,7 +126,8 @@ gsettings --schemadir "$SCHEMAS" reset org.gnome.shell.extensions.gnome-critter 
 Every setting in the "Settings…" window (icon menu) applies without
 reloading the extension. To test them: `gsettings --schemadir
 dist/gnome-critter@beedi.xyz/schemas set org.gnome.shell.extensions.gnome-critter
-critter-count 3` makes two more critters appear right away.
+critter-mix '[{"pack":"cat","count":2},{"pack":"bird","count":1}]'` makes
+two cats and a bird appear right away.
 
 ## Review tool (achievements, titles, rewards, creatures, objects)
 
