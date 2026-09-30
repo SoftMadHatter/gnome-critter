@@ -15,13 +15,11 @@ import { SEASONS, HOLIDAYS } from './calendar.js';
 import { LIBRARY } from './achievementLibrary.js';
 import { _, language } from './i18n.js';
 
-/** Categories of real animal achievements, in display order. */
+/** Categories of animal achievements (real or "troll"), in display order. */
 export const CATEGORIES = Object.freeze(['care', 'play', 'exploration', 'life', 'collection', 'seasons']);
-/** An animal's "troll" achievements (hidden until discovered). */
-export const TROLL_CATEGORY = 'mischief';
 /** Player achievements (shared between animals). */
 export const PLAYER_CATEGORY = 'player';
-export const DISPLAY_ORDER = Object.freeze([...CATEGORIES, TROLL_CATEGORY, PLAYER_CATEGORY]);
+export const DISPLAY_ORDER = Object.freeze([...CATEGORIES, PLAYER_CATEGORY]);
 
 /** What a species can do (see speciesProfile), to rule out impossible achievements. */
 export const CAPABILITIES = Object.freeze([
@@ -140,16 +138,16 @@ function validCoins(value, fallback) {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-/** Scope, category and troll flag common to both series and single entries. */
+/** Scope, category and troll flag common to both series and single entries.
+ * A troll achievement gets a real category like any other (its "hidden
+ * until discovered" treatment comes from the `troll` flag, not a category
+ * of its own): a blunder is counted with the rest of its theme. */
 function placement(entry, condition) {
   const scope = entry.scope === 'player' ? 'player' : entry.scope === undefined || entry.scope === 'critter' ? 'critter' : null;
   if (!scope) return null;
   const troll = entry.troll === true;
-  let category;
-  if (scope === 'player') category = PLAYER_CATEGORY;
-  else if (troll) category = TROLL_CATEGORY;
-  else category = entry.category ?? STAT_CATEGORY[condition?.stat] ?? 'life';
-  if (scope === 'critter' && !troll && !CATEGORIES.includes(category)) return null;
+  const category = scope === 'player' ? PLAYER_CATEGORY : entry.category ?? STAT_CATEGORY[condition?.stat] ?? 'life';
+  if (scope === 'critter' && !CATEGORIES.includes(category)) return null;
   return { scope, troll, category };
 }
 

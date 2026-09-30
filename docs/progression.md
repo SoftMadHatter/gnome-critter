@@ -18,10 +18,12 @@ objects removed, coins spent… Everything is saved; an egg counts nothing
 About 200 to 260 achievements per species, expanded from **templates**
 (`core/achievements.js`): a shared library (`core/achievementLibrary.js`)
 and the pack's `achievements` section. They're grouped into sections: Care,
-Play, Exploration, Life, Collection, Seasons, **Blunders** (the critter's
-"troll" achievements), and **You** (the player's achievements, shared
-across their critters). Over 40% are blunders: pointless, mocking, with
-outlandish rewards.
+Play, Exploration, Life, Collection, Seasons, and **You** (the player's
+achievements, shared across their critters). Over 40% are **blunders** (the
+critter's "troll" achievements): pointless, mocking, with outlandish
+rewards. A blunder isn't set apart in its own section — it's placed in
+whichever of the six above fits its theme, same as a real achievement, and
+already counts toward that section's total before it's ever discovered.
 
 ### Templates
 
@@ -67,9 +69,11 @@ Shared by both:
 
 ### Blunders ("troll" achievements) and the Committee
 
-`"troll": true`: the achievement is **hidden** until discovered (the
-section only shows its count), and carries a `quip`, the Committee's
-comment. Its `reward` is outlandish: `{ "coins": 0 }` (nothing), an absurd
+`"troll": true`: the achievement is **hidden** until discovered — no row for
+it at all, unlike an ungotten real achievement, which still shows its name
+and progress — though it already counts toward its section's `done`/`total`
+before that. It carries a `quip`, the Committee's comment. Its `reward` is
+outlandish: `{ "coins": 0 }` (nothing), an absurd
 amount (`{ "coins": 3, "text": "3.14 coins, rounded to 3" }`), a filing fee
 (`{ "coins": -1 }`, never below zero), a **loot box** (`{ "box": "bronze"
 }`, `silver`, `gold`, `platinum`, `legendary`: opened automatically, most

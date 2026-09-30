@@ -1,8 +1,8 @@
 // Detailed progression window: achievements, statistics, and log, with
 // scrolling. Achievements are grouped into expandable sections: a series
 // shows its last tier and the next one with its progress; blunders
-// ("troll" achievements) stay hidden until discovered, only their count
-// shows.
+// ("troll" achievements) are mixed into their own section like any other
+// achievement, but stay hidden (no row at all) until discovered.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -12,12 +12,10 @@ import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import { statLabel, categoryLabel, statValue, formatJournalDate } from '../core/labels.js';
 import { formatCount } from '../core/achievements.js';
 import { rewardLabel } from '../core/narrator.js';
-import { _, N_, ngettext, fmt } from '../core/i18n.js';
+import { _, N_, fmt } from '../core/i18n.js';
 
 const TAB_KEYS = ['achievements', 'stats', 'journal'];
 const BAR_WIDTH = 160;
-/** Sections of hidden achievements: a "discovered out of N" count. */
-const HIDDEN_CATEGORIES = new Set(['mischief']);
 const TAB_LABELS = { achievements: N_('Succès'), stats: N_('Statistiques'), journal: N_('Journal') };
 
 export const ProgressDialog = GObject.registerClass(
@@ -91,9 +89,7 @@ export const ProgressDialog = GObject.registerClass(
     /** A collapsed section: a button with the count, which expands its rows. */
     _category(category) {
       const name = categoryLabel(category.id);
-      const count = HIDDEN_CATEGORIES.has(category.id)
-        ? fmt(ngettext('{done} découverte sur {total}', '{done} découvertes sur {total}', category.done), { done: category.done, total: category.total })
-        : `${category.done}/${category.total}`;
+      const count = `${category.done}/${category.total}`;
       const header = new St.Button({
         label: `▸ ${name} (${count})`,
         style_class: 'button',

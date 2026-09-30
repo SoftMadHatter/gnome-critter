@@ -108,7 +108,6 @@ export const CATEGORY_LABELS = {
   life: N_('Vie'),
   collection: N_('Collection'),
   seasons: N_('Saisons'),
-  mischief: N_('Bêtises'),
   player: N_('Toi'),
 };
 

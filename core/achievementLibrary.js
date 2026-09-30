@@ -145,7 +145,7 @@ export const LIBRARY = Object.freeze([
     description: 'Fêter {n} anniversaire{s}', title: 'gâteau sur pattes',
   },
   {
-    series: 'reliefs', troll: true, stat: 'reliefs', tiers: [10, 50, 200], requires: { can: 'relieve' },
+    series: 'reliefs', troll: true, category: 'life', stat: 'reliefs', tiers: [10, 50, 200], requires: { can: 'relieve' },
     names: ['Propre', 'Bonnes manières', 'Diplôme de propreté'],
     description: 'Se soulager proprement {n} fois',
     quips: [
@@ -242,7 +242,7 @@ export const LIBRARY = Object.freeze([
 
   // --- Animal mischief (troll, hidden) -------------------------------------------
   {
-    series: 'egg-pets', troll: true, stat: 'eggPets', tiers: [10, 50],
+    series: 'egg-pets', troll: true, category: 'care', stat: 'eggPets', tiers: [10, 50],
     names: ['Toc toc', 'Obstination'],
     description: 'Caresser un œuf {n} fois',
     quips: [
@@ -252,7 +252,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ text: 'un écho' }, { box: 'bronze' }],
   },
   {
-    series: 'tickles', troll: true, stat: 'tickles', tiers: [50, 250],
+    series: 'tickles', troll: true, category: 'care', stat: 'tickles', tiers: [50, 250],
     names: ['Chatouilleux', 'Supplice des plumes'],
     description: 'Être chatouillé {n} fois', title: 'martyr des chatouilles',
     quips: [
@@ -262,7 +262,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 1 }, { box: 'silver' }],
   },
   {
-    series: 'drags', troll: true, stat: 'drags', tiers: [25, 100, 500],
+    series: 'drags', troll: true, category: 'play', stat: 'drags', tiers: [25, 100, 500],
     names: ['Mal des transports', 'Tapis volant', 'Colis express'],
     description: 'Être porté à la souris {n} fois',
     quips: [
@@ -273,7 +273,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ text: "un sachet pour le mal de l'air" }, { accessory: 'sock' }, { coins: 3, text: '3,14 pièces, arrondies à 3' }],
   },
   {
-    series: 'falls', troll: true, stat: 'falls', tiers: [100, 500], requires: { can: 'ground' },
+    series: 'falls', troll: true, category: 'exploration', stat: 'falls', tiers: [100, 500], requires: { can: 'ground' },
     names: ['Chute libre', "Pilote d'essai"],
     description: 'Tomber {n} fois', title: "pilote d'essai en chute libre",
     quips: [
@@ -283,7 +283,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 0 }, { box: 'gold' }],
   },
   {
-    series: 'sicknesses', troll: true, stat: 'sicknesses', tiers: [1, 5],
+    series: 'sicknesses', troll: true, category: 'care', stat: 'sicknesses', tiers: [1, 5],
     names: ['Estomac en carton', 'Cobaye'],
     description: 'Tomber malade {n} fois (nourriture moisie)',
     quips: [
@@ -293,7 +293,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ text: 'une ordonnance illisible' }, { coins: -1, text: 'frais de consultation' }],
   },
   {
-    series: 'accidents', troll: true, stat: 'accidents', tiers: [1, 10, 25], requires: { can: 'relieve' },
+    series: 'accidents', troll: true, category: 'life', stat: 'accidents', tiers: [1, 10, 25], requires: { can: 'relieve' },
     names: ['Oups', 'Récidive', 'Dossier ouvert'],
     description: 'Avoir {n} accident{s}',
     quips: [
@@ -304,14 +304,14 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 0 }, { accessory: 'cone' }, { coins: -1, text: 'frais de dossier' }],
   },
   {
-    series: 'awakenings', troll: true, stat: 'awakenings', tiers: [10, 50],
+    series: 'awakenings', troll: true, category: 'life', stat: 'awakenings', tiers: [10, 50],
     names: ['Réveil brutal', 'Sommeil interdit'],
     description: 'Être réveillé {n} fois',
     quips: ['Dix réveils. Le sommeil était un droit. Était.', 'Cinquante réveils. Il dort désormais les yeux ouverts, par précaution.'],
     reward: [{ text: 'un réveille-matin cassé' }, { box: 'bronze' }],
   },
   {
-    series: 'startles', troll: true, stat: 'startles', tiers: [25, 100],
+    series: 'startles', troll: true, category: 'life', stat: 'startles', tiers: [25, 100],
     names: ['Cardiaque', "Nerfs d'acier (non)"],
     description: 'Sursauter {n} fois',
     quips: [
@@ -321,7 +321,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 1 }, { box: 'bronze' }],
   },
   {
-    series: 'annoyances', troll: true, stat: 'annoyances', tiers: [20, 100],
+    series: 'annoyances', troll: true, category: 'play', stat: 'annoyances', tiers: [20, 100],
     names: ['Tu le fais exprès ?', 'Clic droit compulsif'],
     description: 'Être agacé {n} fois (clic droit)', title: 'souffre-douleur officiel',
     quips: [
@@ -331,25 +331,25 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: -1, text: 'frais de dossier' }, { box: 'silver' }],
   },
   {
-    id: 'night-owl', troll: true, mark: 'moment:night-owl', name: 'Noctambule', description: 'Être éveillé à 3 h du matin',
+    id: 'night-owl', troll: true, category: 'life', mark: 'moment:night-owl', name: 'Noctambule', description: 'Être éveillé à 3 h du matin',
     quip: 'Trois heures du matin et il est réveillé. Toi aussi. Va dormir.', reward: { text: 'une tisane imaginaire' },
   },
   {
-    series: 'leftovers', troll: true, stat: 'leftovers', tiers: [10, 50],
+    series: 'leftovers', troll: true, category: 'care', stat: 'leftovers', tiers: [10, 50],
     names: ['Anti-gaspi (raté)', 'Restes à volonté'],
     description: 'Laisser {n} restes',
     quips: ['Dix restes abandonnés. Quelque part, une grand-mère soupire.', 'Cinquante restes. Ton bureau est officiellement un buffet froid.'],
     reward: [{ coins: 0 }, { box: 'bronze' }],
   },
   {
-    series: 'hibernations', troll: true, stat: 'hibernations', tiers: [1, 3],
+    series: 'hibernations', troll: true, category: 'life', stat: 'hibernations', tiers: [1, 3],
     names: ['Hibernatus', 'Ours polaire'],
     description: 'Hiberner {n} fois',
     quips: ['Il a hiberné. Par manque de soins. Les tiens.', 'Trois hibernations. Il a acheté un sac de couchage avec ses économies.'],
     reward: [{ text: 'une couverture de survie' }, { box: 'bronze' }],
   },
   {
-    series: 'overfeeds', troll: true, stat: 'overfeeds', tiers: [5, 25],
+    series: 'overfeeds', troll: true, category: 'care', stat: 'overfeeds', tiers: [5, 25],
     names: ['Gavage', 'Buffet forcé'],
     description: 'Être nourri {n} fois sans avoir faim',
     quips: [
@@ -359,7 +359,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 0 }, { box: 'bronze' }],
   },
   {
-    series: 'pointless-brushes', troll: true, stat: 'pointlessBrushes', tiers: [10, 50],
+    series: 'pointless-brushes', troll: true, category: 'care', stat: 'pointlessBrushes', tiers: [10, 50],
     names: ['Brossage de précision', 'Lustrage'],
     description: 'Être brossé {n} fois alors que tout était propre',
     quips: [
@@ -369,14 +369,14 @@ export const LIBRARY = Object.freeze([
     reward: [{ text: 'un poil' }, { box: 'bronze' }],
   },
   {
-    series: 'trick-fails', troll: true, stat: 'trickFails', tiers: [10, 50], requires: { can: 'tricks' },
+    series: 'trick-fails', troll: true, category: 'play', stat: 'trickFails', tiers: [10, 50], requires: { can: 'tricks' },
     names: ['Persévérance', 'Toujours pas'],
     description: "Rater {n} fois l'apprentissage d'un tour", title: 'cancre du cirque',
     quips: ["Dix échecs. L'important, c'est de participer. Non, en fait.", 'Cinquante échecs. Le problème vient peut-être du professeur.'],
     reward: [{ coins: 1 }, { box: 'bronze' }],
   },
   {
-    series: 'laser-chases', troll: true, stat: 'laserChases', tiers: [100, 500],
+    series: 'laser-chases', troll: true, category: 'play', stat: 'laserChases', tiers: [100, 500],
     names: ['Point rouge', 'Obsession écarlate'],
     description: 'Poursuivre le laser {n} fois', title: 'victime du point rouge',
     quips: [
@@ -386,7 +386,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 0 }, { box: 'silver' }],
   },
   {
-    series: 'renames', troll: true, stat: 'renames', tiers: [5, 20],
+    series: 'renames', troll: true, category: 'life', stat: 'renames', tiers: [5, 20],
     names: ["Crise d'identité", 'Témoin protégé'],
     description: 'Être renommé {n} fois', title: 'témoin protégé',
     quips: [
@@ -396,39 +396,39 @@ export const LIBRARY = Object.freeze([
     reward: [{ text: 'un badge « Bonjour, je m’appelle… »' }, { box: 'bronze' }],
   },
   {
-    series: 'hovers', troll: true, stat: 'hovers', tiers: [500, 5000],
+    series: 'hovers', troll: true, category: 'play', stat: 'hovers', tiers: [500, 5000],
     names: ['Regard insistant', 'Tu le fixes encore'],
     description: 'Être survolé {n} fois par le curseur',
     quips: ['Cinq cents survols. Il sait que tu le regardes.', 'Cinq mille survols. Ça devient gênant pour tout le monde.'],
     reward: [{ coins: 0 }, { box: 'silver' }],
   },
   {
-    id: 'starving', troll: true, mark: 'state:starving', name: 'Régime extrême', description: 'Laisser la satiété tomber à zéro',
+    id: 'starving', troll: true, category: 'life', mark: 'state:starving', name: 'Régime extrême', description: 'Laisser la satiété tomber à zéro',
     quip: "Satiété à zéro. Il y avait de la nourriture. Quelque part. Chez quelqu'un d'autre.",
     reward: { coins: -1, text: 'frais de dossier' },
   },
   {
-    id: 'filthy', troll: true, mark: 'state:filthy', requires: { can: 'groom' }, name: 'Fleur de fumier',
+    id: 'filthy', troll: true, category: 'care', mark: 'state:filthy', requires: { can: 'groom' }, name: 'Fleur de fumier',
     description: 'Laisser la propreté tomber à zéro',
     quip: 'Propreté à zéro. Les mouches ont déposé une demande de résidence.', reward: { text: 'une pince à linge (pour le nez)' },
   },
   {
-    id: 'perfect', troll: true, mark: 'state:perfect', name: 'Perfection (provisoire)', description: 'Avoir toutes les jauges au maximum',
+    id: 'perfect', troll: true, category: 'life', mark: 'state:perfect', name: 'Perfection (provisoire)', description: 'Avoir toutes les jauges au maximum',
     quip: 'Toutes les jauges au maximum. Profite, ça ne durera pas trois minutes.', reward: { box: 'gold' },
   },
   {
-    id: 'rock-bottom', troll: true, mark: 'state:rock-bottom', requires: { can: ['sleep', 'groom', 'relieve'] },
+    id: 'rock-bottom', troll: true, category: 'life', mark: 'state:rock-bottom', requires: { can: ['sleep', 'groom', 'relieve'] },
     name: 'Au fond du trou', description: 'Avoir toutes les jauges au plus bas',
     quip: "Toutes les jauges au plus bas. Le Comité n'a pas de mots. Si, un seul : bravo.",
     reward: { text: 'une pelle, pour creuser plus bas' },
   },
   {
-    id: 'coma', troll: true, stat: 'longestSleepSeconds', atLeast: 36000, requires: { can: 'sleep' },
+    id: 'coma', troll: true, category: 'life', stat: 'longestSleepSeconds', atLeast: 36000, requires: { can: 'sleep' },
     name: 'Coma', description: "Dormir 10 h d'affilée",
     quip: "Dix heures d'affilée. Vérifie qu'il respire. (Il respire.)", reward: { box: 'bronze' },
   },
   {
-    series: 'hibernation-wakes', troll: true, stat: 'hibernationWakes', tiers: [1, 10],
+    series: 'hibernation-wakes', troll: true, category: 'life', stat: 'hibernationWakes', tiers: [1, 10],
     names: ["Réveil de l'ours", 'Printemps forcé'],
     description: 'Être tiré {n} fois de son hibernation',
     quips: [
@@ -438,134 +438,134 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 1 }, { box: 'bronze' }],
   },
   {
-    id: 'rare-feather', troll: true, mark: 'gift:feather', name: 'La plume rare', description: 'Rapporter la plume rare',
+    id: 'rare-feather', troll: true, category: 'collection', mark: 'gift:feather', name: 'La plume rare', description: 'Rapporter la plume rare',
     quip: 'Une plume rare ! Ta récompense : une plume. Oui, la même.', reward: { text: 'une plume' },
   },
   {
-    id: 'tendinitis', troll: true, stat: 'pets', atLeast: 10000, name: 'Tendinite', description: 'Recevoir 10 000 caresses',
+    id: 'tendinitis', troll: true, category: 'care', stat: 'pets', atLeast: 10000, name: 'Tendinite', description: 'Recevoir 10 000 caresses',
     quip: 'Dix mille caresses. Ton poignet a déposé une réclamation.', reward: { box: 'gold' },
   },
   {
-    id: 'black-hole', troll: true, stat: 'meals', atLeast: 10000, name: 'Trou noir', description: 'Faire 10 000 repas',
+    id: 'black-hole', troll: true, category: 'care', stat: 'meals', atLeast: 10000, name: 'Trou noir', description: 'Faire 10 000 repas',
     title: 'trou noir', quip: "Dix mille repas. Les astronomes s'intéressent à son cas.", reward: { box: 'platinum' },
   },
   {
-    id: 'earthquake', troll: true, stat: 'purrs', atLeast: 1000, name: 'Tremblement de terre',
+    id: 'earthquake', troll: true, category: 'care', stat: 'purrs', atLeast: 1000, name: 'Tremblement de terre',
     description: 'Savourer 1 000 séries de caresses',
     quip: "Mille séries de caresses. Les voisins pensent que c'est la machine à laver.", reward: { box: 'silver' },
   },
   {
-    id: 'sleep-is-life', troll: true, stat: 'naps', atLeast: 5000, requires: { can: 'sleep' },
+    id: 'sleep-is-life', troll: true, category: 'life', stat: 'naps', atLeast: 5000, requires: { can: 'sleep' },
     name: "Dormir, c'est vivre", description: 'Faire 5 000 siestes',
     quip: "Cinq mille siestes. Il a compris quelque chose que tu n'as pas compris.", reward: { box: 'gold' },
   },
   {
-    id: 'still-here', troll: true, stat: 'daysAlive', atLeast: 3650, name: 'Tu es encore là ?', description: 'Vivre 3 650 jours',
+    id: 'still-here', troll: true, category: 'life', stat: 'daysAlive', atLeast: 3650, name: 'Tu es encore là ?', description: 'Vivre 3 650 jours',
     title: 'fossile de bureau',
     quip: "Dix ans. Ce succès a été écrit en pensant que personne ne l'obtiendrait. Le Comité est ému. Un peu.",
     reward: { box: 'legendary' },
   },
   {
-    id: 'bald', troll: true, stat: 'brushes', atLeast: 1000, name: 'Chauve', description: 'Être brossé 1 000 fois',
+    id: 'bald', troll: true, category: 'care', stat: 'brushes', atLeast: 1000, name: 'Chauve', description: 'Être brossé 1 000 fois',
     quip: "Mille brossages. Il ne lui reste plus un poil. (Si. C'était pour voir ta tête.)", reward: { box: 'silver' },
   },
   {
-    id: 'overpolite', troll: true, stat: 'greets', atLeast: 500, name: 'Politesse excessive',
+    id: 'overpolite', troll: true, category: 'care', stat: 'greets', atLeast: 500, name: 'Politesse excessive',
     description: 'Saluer ou être salué 500 fois',
     quip: 'Cinq cents bonjours. Même le Comité ne dit pas bonjour autant.', reward: { coins: 1 },
   },
   {
-    id: 'extinction', troll: true, stat: 'hunts', atLeast: 1000, requires: { can: 'hunt' }, name: 'Extinction',
+    id: 'extinction', troll: true, category: 'exploration', stat: 'hunts', atLeast: 1000, requires: { can: 'hunt' }, name: 'Extinction',
     description: 'Attraper 1 000 proies',
     quip: "Mille proies. Leur espèce a porté plainte. Le Comité a classé l'affaire.", reward: { box: 'gold' },
   },
   {
-    id: 'all-nighter', troll: true, mark: 'moment:all-nighter', requires: { can: 'sleep' }, name: 'Nuit blanche',
+    id: 'all-nighter', troll: true, category: 'life', mark: 'moment:all-nighter', requires: { can: 'sleep' }, name: 'Nuit blanche',
     description: "Rester éveillé 24 h d'affilée",
     quip: 'Vingt-quatre heures sans dormir. Il tient debout grâce à la seule force de ta négligence.', reward: { coins: 0 },
   },
   {
-    id: 'ceiling-fall', troll: true, mark: 'moment:ceiling-fall', requires: { can: 'ceiling' }, name: 'Décollage du plafond',
+    id: 'ceiling-fall', troll: true, category: 'exploration', mark: 'moment:ceiling-fall', requires: { can: 'ceiling' }, name: 'Décollage du plafond',
     description: 'Tomber du plafond',
     quip: 'Il est tombé du plafond. Tu as ri. Le Comité a enregistré ton rire.', reward: { coins: 1 },
   },
   {
-    series: 'rescues', troll: true, stat: 'rescues', tiers: [1, 10],
+    series: 'rescues', troll: true, category: 'exploration', stat: 'rescues', tiers: [1, 10],
     names: ['Porté disparu', 'Triangle des Bermudes'],
     description: "Sortir de l'écran {n} fois",
     quips: ["Il est sorti de l'écran. Le Comité l'a ramené. Tu n'avais rien remarqué.", "Dix disparitions. À ce stade, c'est un numéro de magie."],
     reward: [{ text: 'un avis de recherche' }, { box: 'bronze' }],
   },
   {
-    id: 'pet-while-eating', troll: true, mark: 'state:pet-while-eating', name: 'Pas pendant le repas !',
+    id: 'pet-while-eating', troll: true, category: 'care', mark: 'state:pet-while-eating', name: 'Pas pendant le repas !',
     description: 'Être caressé en mangeant',
     quip: "Une caresse en plein repas. Tu aimes qu'on te tapote la tête au restaurant ?", reward: { coins: 0 },
   },
   {
-    id: 'tickle-sleep', troll: true, mark: 'state:tickle-sleep', requires: { can: 'sleep' }, name: 'Cauchemar chatouilleux',
+    id: 'tickle-sleep', troll: true, category: 'life', mark: 'state:tickle-sleep', requires: { can: 'sleep' }, name: 'Cauchemar chatouilleux',
     description: 'Être chatouillé en dormant',
     quip: "Chatouiller quelqu'un qui dort. Même le Comité trouve ça bas. Frais de dossier.",
     reward: { coins: -1, text: 'frais de dossier' },
   },
   {
-    id: 'dinner-thief', troll: true, mark: 'state:dinner-thief', name: 'Voleur de repas', description: 'Être soulevé en plein repas',
+    id: 'dinner-thief', troll: true, category: 'care', mark: 'state:dinner-thief', name: 'Voleur de repas', description: 'Être soulevé en plein repas',
     quip: "Soulevé en plein repas. Il s'en souviendra. Longtemps.", reward: { coins: 0 },
   },
   {
-    id: 'sleepwalk', troll: true, mark: 'state:sleepwalk', requires: { can: 'sleep' }, name: 'Somnambule',
+    id: 'sleepwalk', troll: true, category: 'life', mark: 'state:sleepwalk', requires: { can: 'sleep' }, name: 'Somnambule',
     description: 'Être déplacé pendant son sommeil',
     quip: 'Déplacé pendant son sommeil. Il se réveillera ailleurs, perplexe. Comme toi un lundi.', reward: { box: 'bronze' },
   },
   {
-    id: 'skydive', troll: true, mark: 'moment:skydive', requires: { can: 'ground' }, name: 'Saut sans parachute',
+    id: 'skydive', troll: true, category: 'exploration', mark: 'moment:skydive', requires: { can: 'ground' }, name: 'Saut sans parachute',
     description: "Tomber de toute la hauteur de l'écran",
     quip: "Une chute de toute la hauteur de l'écran. Atterrissage parfait. Enfin, atterrissage.", reward: { box: 'bronze' },
   },
   {
-    id: 'royal-nap', troll: true, mark: 'state:royal-nap', requires: { can: 'sleep' }, name: 'Sieste royale',
+    id: 'royal-nap', troll: true, category: 'life', mark: 'state:royal-nap', requires: { can: 'sleep' }, name: 'Sieste royale',
     description: 'Dormir en portant la couronne',
     quip: 'Dormir avec une couronne. Le luxe, le vrai.', reward: { coins: 3, text: '3,14 pièces, arrondies à 3' },
   },
   {
-    id: 'glasses-nap', troll: true, mark: 'state:glasses-nap', requires: { can: 'sleep' }, name: 'Lecture soporifique',
+    id: 'glasses-nap', troll: true, category: 'life', mark: 'state:glasses-nap', requires: { can: 'sleep' }, name: 'Lecture soporifique',
     description: 'Dormir avec ses lunettes',
     quip: "Il s'est endormi avec ses lunettes. Il lisait sûrement tes statistiques.", reward: { coins: 1 },
   },
   {
-    id: 'sock-play', troll: true, mark: 'state:sock-play', name: 'Tenue décontractée',
+    id: 'sock-play', troll: true, category: 'play', mark: 'state:sock-play', name: 'Tenue décontractée',
     description: 'Jouer avec une chaussette sur la tête',
     quip: "Jouer avec une chaussette sur la tête. Le style n'a pas de règles. Enfin si, mais pas ici.", reward: { coins: 0 },
   },
   {
-    id: 'pet-while-relieving', troll: true, mark: 'state:pet-while-relieving', requires: { can: 'relieve' },
+    id: 'pet-while-relieving', troll: true, category: 'life', mark: 'state:pet-while-relieving', requires: { can: 'relieve' },
     name: "Un peu d'intimité ?", description: "Être caressé pendant qu'il se soulage",
     quip: "Une caresse pendant qu'il se soulage. Il existe des limites. Tu viens de les trouver.",
     reward: { coins: -1, text: 'frais de dossier' },
   },
   {
-    id: 'bored-stiff', troll: true, mark: 'state:bored-stiff', name: 'Ennui mortel', description: 'Laisser la stimulation tomber à zéro',
+    id: 'bored-stiff', troll: true, category: 'play', mark: 'state:bored-stiff', name: 'Ennui mortel', description: 'Laisser la stimulation tomber à zéro',
     quip: "Stimulation à zéro. Il compte les pixels de l'écran. Il en est à trois.", reward: { text: 'un pixel à compter' },
   },
   {
-    id: 'cone-worn', troll: true, mark: 'accessory:cone', name: 'La honte, assumée', description: 'Porter le cône de la honte',
+    id: 'cone-worn', troll: true, category: 'collection', mark: 'accessory:cone', name: 'La honte, assumée', description: 'Porter le cône de la honte',
     quip: 'Il porte le cône de la honte. Avec une certaine élégance, il faut bien le dire.', reward: { coins: 0 },
   },
   {
-    id: 'sock-worn', troll: true, mark: 'accessory:sock', name: 'Chaussette de compétition', description: 'Porter la chaussette',
+    id: 'sock-worn', troll: true, category: 'collection', mark: 'accessory:sock', name: 'Chaussette de compétition', description: 'Porter la chaussette',
     quip: "Une chaussette sur la tête. Propre, on l'espère. Le Comité préfère ne pas vérifier.", reward: { coins: 1 },
   },
   {
-    id: 'foilhat-worn', troll: true, mark: 'accessory:foilhat', name: 'Ils nous écoutent', description: 'Porter le chapeau en papier alu',
+    id: 'foilhat-worn', troll: true, category: 'collection', mark: 'accessory:foilhat', name: 'Ils nous écoutent', description: 'Porter le chapeau en papier alu',
     quip: "Chapeau en papier alu enfilé. Le Comité renonce à lire dans tes pensées. Il n'y avait pas grand-chose à lire.",
     reward: { text: 'un rouleau d’aluminium entamé' },
   },
   {
-    id: 'hungry-nap', troll: true, mark: 'state:hungry-nap', requires: { can: 'sleep' }, name: 'Au lit sans dîner',
+    id: 'hungry-nap', troll: true, category: 'life', mark: 'state:hungry-nap', requires: { can: 'sleep' }, name: 'Au lit sans dîner',
     description: "S'endormir le ventre vide",
     quip: "Il s'est endormi le ventre vide. Il rêve de croquettes. Tu pourrais en poser, tu sais.", reward: { coins: 0 },
   },
   {
-    series: 'typing-watches', troll: true, stat: 'typingWatches', tiers: [100, 1000],
+    series: 'typing-watches', troll: true, category: 'play', stat: 'typingWatches', tiers: [100, 1000],
     names: ['Spectateur de clavier', 'Dactylo'],
     description: 'Te regarder taper {n} fois',
     quips: [
@@ -575,7 +575,7 @@ export const LIBRARY = Object.freeze([
     reward: [{ coins: 0 }, { box: 'bronze' }],
   },
   {
-    id: 'notification-fan', troll: true, stat: 'notificationsSeen', atLeast: 100, name: 'Fan de notifications',
+    id: 'notification-fan', troll: true, category: 'play', stat: 'notificationsSeen', atLeast: 100, name: 'Fan de notifications',
     description: 'Remarquer 100 notifications',
     quip: 'Cent notifications remarquées. Lui, au moins, il les lit. (Non. Personne ne les lit.)', reward: { coins: 1 },
   },

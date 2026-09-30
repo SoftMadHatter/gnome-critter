@@ -14,7 +14,7 @@ import { ACCESSORIES, accessoryLabel } from '../../../core/accessories.js';
 import { openBox } from '../../../core/lootBoxes.js';
 import { announceUnlock, announceBurst, rewardLabel } from '../../../core/narrator.js';
 import { statLabel, playerStatLabel, markFamilyLabel, traitLabel, stageLabel } from '../../../core/labels.js';
-import { _, ngettext, fmt } from '../../../core/i18n.js';
+import { _, fmt } from '../../../core/i18n.js';
 import { categoryLabel } from '../format.js';
 
 const STORE = 'gnome-critter-review-simulation';
@@ -97,9 +97,7 @@ function progressWindow(view, open) {
     {},
     h('p', {}, h('b', {}, fmt(_('{done} / {total} débloqués'), { done: view.done, total: view.total }))),
     view.categories.map((category) => {
-      const count = category.id === 'mischief'
-        ? fmt(ngettext('{done} découverte sur {total}', '{done} découvertes sur {total}', category.done), { done: category.done, total: category.total })
-        : `${category.done}/${category.total}`;
+      const count = `${category.done}/${category.total}`;
       return h(
         'details',
         { open },
