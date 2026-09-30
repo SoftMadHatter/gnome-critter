@@ -552,14 +552,22 @@ export class Manager {
     if (defs.length > 0) this._announce(defs, { who: name, key: `${index}`, nowSeconds });
   }
 
-  /** Prey species hunted by the displayed critter (the pack's `needs.prey` section). */
+  /** Prey species hunted by any displayed critter (each pack's `needs.prey` section). */
   _preyKinds() {
-    return Object.keys(this._critters[0]?.critter.config.needsPrey ?? {});
+    const kinds = new Set();
+    for (const { critter } of this._critters) {
+      for (const kind of Object.keys(critter.config.needsPrey)) kinds.add(kind);
+    }
+    return [...kinds];
   }
 
-  /** Plants the species nibbles (its diet, restricted to known plants). */
+  /** Plants any displayed species nibbles (its diet, restricted to known plants). */
   _plantKinds() {
-    return Object.keys(this._critters[0]?.critter.config.needsDiet ?? {}).filter((kind) => PLANTS[kind]);
+    const kinds = new Set();
+    for (const { critter } of this._critters) {
+      for (const kind of Object.keys(critter.config.needsDiet)) if (PLANTS[kind]) kinds.add(kind);
+    }
+    return [...kinds];
   }
 
   /**
