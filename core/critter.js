@@ -902,8 +902,8 @@ export class Critter {
   _resyncCurrentSurface(surfaces) {
     const surface = this.currentSurface;
     const fresh = surface.side
-      ? findWallById(surfaces.walls, surface.surfaceId, surface.side)
-      : findSegmentById(surfaces.segments, surface.surfaceId, surface.type);
+      ? findWallById(surfaces.walls, surface.surfaceId, surface.side, this.y)
+      : findSegmentById(surfaces.segments, surface.surfaceId, surface.type, this.x);
 
     if (!fresh) {
       this._enterState(State.FALL);
@@ -2447,7 +2447,7 @@ export class Critter {
     let target = this._flyTarget;
     if (target?.segment) {
       const seg = target.segment;
-      const fresh = findSegmentById(surfaces.segments ?? [], seg.surfaceId, seg.type);
+      const fresh = findSegmentById(surfaces.segments ?? [], seg.surfaceId, seg.type, (seg.x1 + seg.x2) / 2);
       if (!fresh || fresh.y !== seg.y || fresh.x1 !== seg.x1 || fresh.x2 !== seg.x2) target = null;
     }
     if (target && this.state !== State.DIVE && this.config.random() < this.config.flyRetargetChance * dt) {
