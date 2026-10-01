@@ -16,7 +16,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { _, N_, ngettext, fmt } from '../core/i18n.js';
 import { lifeSummary } from '../core/labels.js';
 import { buildCritterActions, buildDropActions } from './critterActions.js';
-import { Pager, buttonRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
+import { Pager, stayAction, buttonRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
 
 const GAUGES = [
   ['satiety', N_('Satiété')],
@@ -129,7 +129,7 @@ export const CritterIndicator = GObject.registerClass(
 
       // Pages: objects to place (at the cursor), the chosen critter, progress, shop, desktop.
       this._place = this._pager.row(this._pager.root, _('Poser…'));
-      buildDropActions(this._pager, this._place, this._owner);
+      buildDropActions(this._pager, this._place, this._owner, undefined, () => this._afterAction());
       this._me = this._pager.row(this._pager.root, _('Sans nom'));
       this._progress = this._pager.row(this._pager.root, _('Progrès'));
       this._achievements = this._progress.section.addAction(_('Succès'), () => this._owner.openProgress(this._critter(), 'achievements'));
@@ -150,9 +150,20 @@ export const CritterIndicator = GObject.registerClass(
       this._laser = new PopupMenu.PopupSwitchMenuItem(_('Pointeur laser'), this._owner.isLaser());
       this._laser.connect('toggled', (_item, state) => this._owner.setLaser(state));
       section.addMenuItem(this._laser);
-      section.addAction(_('Nettoyer les traces'), () => this._owner.cleanAll());
-      this._tidy = section.addAction(_('Ranger les jouets'), () => this._owner.clearToys());
-      section.addAction(_('Retirer les objets'), () => this._owner.clearItems());
+      stayAction(section, _('Nettoyer les traces'), () => this._owner.cleanAll());
+      this._tidy = stayAction(section, _('Ranger les jouets'), () => {
+        this._owner.clearToys();
+        this._afterAction();
+      });
+      stayAction(section, _('Retirer les objets'), () => {
+        this._owner.clearItems();
+        this._afterAction();
+      });
+    }
+
+    /** After an action (the menu stays open): what depends on the objects on the desktop. */
+    _afterAction() {
+      this._tidy.setSensitive(this._owner.hasToys());
     }
 
     _select(index) {
@@ -166,7 +177,7 @@ export const CritterIndicator = GObject.registerClass(
     /** The chosen critter's page: its actions (the progress page covers achievements and statistics). */
     _rebuildCritterSection() {
       this._pager.clearPage(this._me.page);
-      this._actions = buildCritterActions(this._pager, this._me.page, this._critter(), this._owner, { drops: false, brush: false });
+      this._actions = buildCritterActions(this._pager, this._me.page, this._critter(), this._owner, { drops: false, brush: false, onAction: () => this._afterAction() });
     }
 
     /** Rebuilds achievements, shop, and log rows (on menu open or after a purchase). */
@@ -185,9 +196,13 @@ export const CritterIndicator = GObject.registerClass(
           const text = owned ? `✓ ${label}` : fmt(_('{accessory} (gratuit de saison)'), { accessory: label });
           this._shop.section.addMenuItem(new PopupMenu.PopupMenuItem(text, { reactive: false, can_focus: false }));
         } else {
-          this._shop.section.addAction(fmt(_('Acheter : {accessory} ({price} pièces)'), { accessory: label, price }), () => {
+          stayAction(this._shop.section, fmt(_('Acheter : {accessory} ({price} pièces)'), { accessory: label, price }), () => {
             this._owner.buyAccessory(id);
-            this._rebuildProgress();
+            // The list is rebuilt, the clicked item included: once its handler is over.
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+              this._rebuildProgress();
+              return GLib.SOURCE_REMOVE;
+            });
           });
         }
       }

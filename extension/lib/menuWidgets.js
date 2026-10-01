@@ -101,6 +101,17 @@ const NavMenuItem = GObject.registerClass(
   },
 );
 
+/**
+ * An action item that does NOT close the menu (a plain `addAction` does):
+ * for actions that can be chained. Actions opening a window keep `addAction`.
+ * @returns {PopupMenu.PopupBaseMenuItem} (with `label`)
+ */
+export function stayAction(section, title, onActivate) {
+  const item = new NavMenuItem(title, onActivate, null);
+  section.addMenuItem(item);
+  return item;
+}
+
 /** Share of the monitor's work area a page may take before it scrolls. */
 const MAX_HEIGHT_SHARE = 0.75;
 /** Room kept for what surrounds a page's content: arrow and padding (root), plus back and title rows (sub-pages). */
