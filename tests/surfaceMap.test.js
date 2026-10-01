@@ -9,6 +9,8 @@ import {
   findReachableWall,
   findReachableShelf,
   findSegmentById,
+  findDropEdges,
+  findLedgeAtWallTop,
   findWallById,
   groundPoint,
 } from '../core/surfaceMap.js';
@@ -248,4 +250,42 @@ test('findSegmentById / findWallById : choisit le morceau le plus proche de la c
   assert.equal(findSegmentById(segments, 'back', 'shelf').x1, 100);
   assert.equal(findSegmentById(segments, 'nope', 'shelf', 0), null);
   assert.ok(findWallById(walls, 'back', 'left', 650));
+});
+
+// --- Stepping off / over (#21) ----------------------------------------------
+
+const GROUND_SHELF = new Set(['ground', 'shelf']);
+
+test('findDropEdges : rebord de fenêtre -> sol en dessous des deux côtés', () => {
+  const { segments } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1000, height: 800 }],
+    windows: [{ id: 'w', x: 300, y: 400, width: 200, height: 200 }],
+  });
+  const shelf = segments.find((s) => s.type === 'shelf');
+  const edges = findDropEdges(segments, shelf, 400, 500, GROUND_SHELF);
+  assert.deepEqual(edges.map((e) => [e.x, e.dir, e.landing.type]), [[300, -1, 'ground'], [500, 1, 'ground']]);
+  assert.deepEqual(findDropEdges(segments, shelf, 400, 100, GROUND_SHELF), [], 'trop haut pour maxDrop');
+});
+
+test("findDropEdges : le sol de l'écran haut descend vers l'écran bas, pas dans le vide", () => {
+  const low = { x: 0, y: 300, width: 1000, height: 500 };
+  const high = { x: 1000, y: 0, width: 1000, height: 500 };
+  const { segments } = computeSurfaces({ monitors: [low, high], windows: [] });
+  const highGround = segments.find((s) => s.type === 'ground' && s.y === 500);
+  const edges = findDropEdges(segments, highGround, 500, 500, GROUND_SHELF);
+  assert.deepEqual(edges.map((e) => [e.x, e.dir, e.landing.y]), [[1000, -1, 800]]);
+  // The low ground has nothing lower: its right end faces a higher surface.
+  const lowGround = segments.find((s) => s.type === 'ground' && s.y === 800);
+  assert.deepEqual(findDropEdges(segments, lowGround, 800, 500, GROUND_SHELF), []);
+});
+
+test('findLedgeAtWallTop : sol voisin au sommet du mur exposé, null pour un mur flottant', () => {
+  const low = { x: 0, y: 300, width: 1000, height: 500 };
+  const high = { x: 1000, y: 0, width: 1000, height: 500 };
+  const { segments, walls } = computeSurfaces({ monitors: [low, high], windows: [] });
+  const wall = walls.find((w) => w.surfaceId === 'monitor:0' && w.side === 'right');
+  const found = findLedgeAtWallTop(segments, wall);
+  assert.equal(found.segment.surfaceId, 'monitor:1');
+  assert.equal(found.dir, 1);
+  assert.equal(findLedgeAtWallTop(segments, { x: 123, y1: 50, y2: 90 }), null);
 });
