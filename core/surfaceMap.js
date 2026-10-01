@@ -239,6 +239,43 @@ function closestPiece(pieces, coord, range) {
   return pieces.reduce((best, p) => (distance(p) < distance(best) ? p : best));
 }
 
+/** How far past a surface's end a critter steps off it (and where we probe for what's below). */
+export const DROP_PROBE = 6;
+
+/**
+ * Ends of `surface` (the segment under the animal's feet at height `y`)
+ * from which one can step off and land on another surface at most
+ * `maxDrop` below: ledge -> ground, or one monitor's ground -> the lower
+ * ground of its neighbour. Nothing is returned for an end that opens onto
+ * the void (monitor outer edge) or onto something higher.
+ * @returns {{x:number, dir:-1|1, landing:Segment}[]} `x` is the end itself, `dir` the way off
+ */
+export function findDropEdges(segments, surface, y, maxDrop, allowedTypes) {
+  const edges = [];
+  for (const [x, dir] of [[surface.x1, -1], [surface.x2, 1]]) {
+    const landing = findSurfaceBelow(segments, x + dir * DROP_PROBE, y + 1, maxDrop, allowedTypes);
+    if (landing) edges.push({ x, dir, landing });
+  }
+  return edges;
+}
+
+/**
+ * Ground/ledge segment that starts or ends right at the top of `wall`
+ * (within `epsilon`): what an animal reaching the top of the wall can step
+ * onto instead of hanging there (the exposed edge of a monitor next to a
+ * higher one, a window's ledge...).
+ * @returns {{segment:Segment, dir:-1|1}|null} `dir` points into the segment
+ */
+export function findLedgeAtWallTop(segments, wall, epsilon = 4) {
+  for (const seg of segments) {
+    if (seg.type !== 'ground' && seg.type !== 'shelf') continue;
+    if (Math.abs(seg.y - wall.y1) > epsilon) continue;
+    if (Math.abs(seg.x1 - wall.x) <= epsilon) return { segment: seg, dir: 1 };
+    if (Math.abs(seg.x2 - wall.x) <= epsilon) return { segment: seg, dir: -1 };
+  }
+  return null;
+}
+
 /**
  * Looks for a wall close enough horizontally to `x` (within `epsilon`)
  * whose vertical span [y1, y2] crosses the interval [yMin, yMax]. Used
