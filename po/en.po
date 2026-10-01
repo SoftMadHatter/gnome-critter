@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-29 19:41+0200\n"
+"POT-Creation-Date: 2026-10-01 14:14+0200\n"
 "PO-Revision-Date: 2026-09-25 07:40+0200\n"
 "Last-Translator: Critter\n"
 "Language-Team: none\n"
@@ -700,104 +700,128 @@ msgid "Succès débloqué."
 msgstr "Achievement unlocked."
 
 #: core/narrator.js:19
-msgid "Bêtise débloquée !"
-msgstr "Mischief unlocked!"
+msgid "Succès douteux débloqué."
+msgstr "Dubious achievement unlocked."
 
 #: core/narrator.js:20
+msgid "Succès… discutable."
+msgstr "Achievement… debatable."
+
+#: core/narrator.js:21
+msgid "Succès homologué, sous réserve."
+msgstr "Achievement approved, pending review."
+
+#: core/narrator.js:22
+msgid "Le Comité n'a rien vu venir."
+msgstr "The Committee didn't see that coming."
+
+#: core/narrator.js:23
+msgid "Succès non contractuel."
+msgstr "Non-binding achievement."
+
+#: core/narrator.js:24
+msgid "Exploit (?) débloqué."
+msgstr "Feat (?) unlocked."
+
+#: core/narrator.js:25
 msgid "Attention, succès en approche."
 msgstr "Heads up, achievement incoming."
 
-#: core/narrator.js:21
+#: core/narrator.js:26
 msgid "Le Comité a tout vu."
 msgstr "The Committee saw everything."
 
-#: core/narrator.js:25
+#: core/narrator.js:30
 msgid "Les spectateurs adorent."
 msgstr "The viewers love it."
 
-#: core/narrator.js:26
+#: core/narrator.js:31
 msgid "Nos sponsors se désolidarisent."
 msgstr "Our sponsors are distancing themselves."
 
-#: core/narrator.js:27
+#: core/narrator.js:32
 msgid "Ce succès ne compte pour rien. Comme les autres."
 msgstr "This achievement counts for nothing. Like all the others."
 
-#: core/narrator.js:28
+#: core/narrator.js:33
 msgid "Applaudissements enregistrés."
 msgstr "Canned applause."
 
-#: core/narrator.js:29
+#: core/narrator.js:34
 msgid "Le Comité n'en revient pas."
 msgstr "The Committee can't believe it."
 
-#: core/narrator.js:30
+#: core/narrator.js:35
 msgid "Personne ne te jugera. Sauf le Comité."
 msgstr "Nobody will judge you. Except the Committee."
 
-#: core/narrator.js:39 core/narrator.js:113 extension/lib/progressDialog.js:122
+#: core/narrator.js:44 core/narrator.js:120 extension/lib/progressDialog.js:120
 msgid "« {name} »"
 msgstr "“{name}”"
 
-#: core/narrator.js:45
+#: core/narrator.js:50
 msgid "{name} : {achievement}"
 msgstr "{name}: {achievement}"
 
-#: core/narrator.js:49
+#: core/narrator.js:54
 msgid "{n} pièce"
 msgid_plural "{n} pièces"
 msgstr[0] "{n} coin"
 msgstr[1] "{n} coins"
 
-#: core/narrator.js:52
+#: core/narrator.js:57
 msgid "frais de dossier"
 msgstr "processing fees"
 
-#: core/narrator.js:61 core/narrator.js:82
+#: core/narrator.js:66 core/narrator.js:87
 msgid "rien"
 msgstr "nothing"
 
-#: core/narrator.js:61
+#: core/narrator.js:66
 msgid "{box}… qui contient : {content}."
 msgstr "{box}… containing: {content}."
 
-#: core/narrator.js:64
+#: core/narrator.js:69
 msgid "{accessory}. À porter, si tu oses."
 msgstr "{accessory}. Wear it, if you dare."
 
-#: core/narrator.js:68
+#: core/narrator.js:73
 msgid "−{coins} ({fee})."
 msgstr "−{coins} ({fee})."
 
-#: core/narrator.js:69
+#: core/narrator.js:74
 msgid "des {fee} que tu ne peux même pas payer. Touchant."
 msgstr "{fee} you can't even pay. Touching."
 
-#: core/narrator.js:73
+#: core/narrator.js:78
 msgid "rien. Absolument rien."
 msgstr "nothing. Absolutely nothing."
 
-#: core/narrator.js:80
+#: core/narrator.js:85
 msgid "−{coins} ({fee})"
 msgstr "−{coins} ({fee})"
 
-#: core/narrator.js:95
+#: core/narrator.js:98
+msgid "Condition : {condition}."
+msgstr "Condition: {condition}."
+
+#: core/narrator.js:102
 msgid "Récompense : {reward}."
 msgstr "Reward: {reward}."
 
-#: core/narrator.js:95
+#: core/narrator.js:102
 msgid "la gloire"
 msgstr "glory"
 
-#: core/narrator.js:102 extension/lib/progressDialog.js:123
+#: core/narrator.js:109 extension/lib/progressDialog.js:121
 msgid "Récompense : {reward}"
 msgstr "Reward: {reward}"
 
-#: core/narrator.js:114
+#: core/narrator.js:121
 msgid "{first} et {last}"
 msgstr "{first} and {last}"
 
-#: core/narrator.js:119
+#: core/narrator.js:126
 msgid ""
 "Le Comité a pris du retard : {name} obtient {count} succès d'un coup, dont "
 "{list}."
@@ -811,7 +835,7 @@ msgstr[1] ""
 "The Committee fell behind: {name} earns {count} achievements at once, "
 "including {list}."
 
-#: core/narrator.js:124
+#: core/narrator.js:131
 msgid ""
 "Le Comité a pris du retard : tu obtiens {count} succès d'un coup, dont "
 "{list}."
@@ -825,17 +849,17 @@ msgstr[1] ""
 "The Committee fell behind: you earn {count} achievements at once, including "
 "{list}."
 
-#: core/narrator.js:131
-msgid "Dont {n} bêtise. Le Comité ne dira rien."
-msgid_plural "Dont {n} bêtises. Le Comité ne dira rien."
-msgstr[0] "Including {n} act of mischief. The Committee won't say a word."
-msgstr[1] "Including {n} acts of mischief. The Committee won't say a word."
+#: core/narrator.js:138
+msgid "Dont {n} exploit douteux. Le Comité ne dira rien."
+msgid_plural "Dont {n} exploits douteux. Le Comité ne dira rien."
+msgstr[0] "Including {n} dubious feat. The Committee won't say a word."
+msgstr[1] "Including {n} dubious feats. The Committee won't say a word."
 
-#: core/narrator.js:133
+#: core/narrator.js:140
 msgid "+{coins}."
 msgstr "+{coins}."
 
-#: core/narrator.js:143
+#: core/narrator.js:150
 msgid ""
 "{count} succès. Tu as droit à : {trophy}. Le Comité est presque impressionné."
 msgid_plural ""
@@ -965,8 +989,8 @@ msgstr[0] "{name}: {count} achievement at once."
 msgstr[1] "{name}: {count} achievements at once."
 
 #: extension/lib/manager.js:481
-msgid "{name} : bêtise « {achievement} »."
-msgstr "{name}: mischief “{achievement}”."
+msgid "{name} : exploit douteux « {achievement} »."
+msgstr "{name}: dubious feat “{achievement}”."
 
 #: extension/lib/manager.js:481
 msgid "{name} : succès « {achievement} »."
@@ -992,7 +1016,7 @@ msgstr "{name} has reached the {stage} stage."
 msgid "{name} a appris un tour."
 msgstr "{name} learned a trick."
 
-#: extension/lib/manager.js:784
+#: extension/lib/manager.js:792
 msgid "Cadeau ramassé : +{coins} pièce."
 msgid_plural "Cadeau ramassé : +{coins} pièces."
 msgstr[0] "Gift collected: +{coins} coin."
@@ -1047,7 +1071,7 @@ msgid "Pièces"
 msgstr "Coins"
 
 #: extension/lib/panelIndicator.js:136 extension/lib/panelIndicator.js:227
-#: extension/lib/progressDialog.js:19
+#: extension/lib/progressDialog.js:20
 msgid "Journal"
 msgstr "Journal"
 
@@ -1091,11 +1115,11 @@ msgstr "Place a toy"
 msgid "Retirer les objets"
 msgstr "Remove items"
 
-#: extension/lib/panelIndicator.js:192 extension/lib/progressDialog.js:19
+#: extension/lib/panelIndicator.js:192 extension/lib/progressDialog.js:20
 msgid "Succès"
 msgstr "Achievements"
 
-#: extension/lib/panelIndicator.js:193 extension/lib/progressDialog.js:19
+#: extension/lib/panelIndicator.js:193 extension/lib/progressDialog.js:20
 msgid "Statistiques"
 msgstr "Statistics"
 
@@ -1121,55 +1145,55 @@ msgid_plural "Journal ({count} non lus)"
 msgstr[0] "Journal ({count} unread)"
 msgstr[1] "Journal ({count} unread)"
 
-#: extension/lib/progressDialog.js:61
+#: extension/lib/progressDialog.js:62
 msgid "Fermer"
 msgstr "Close"
 
-#: extension/lib/progressDialog.js:84
+#: extension/lib/progressDialog.js:82
 msgid "{done} / {total} débloqués"
 msgstr "{done} / {total} unlocked"
 
-#: extension/lib/progressDialog.js:85
+#: extension/lib/progressDialog.js:83
 msgid "Aucun succès pour cet animal."
 msgstr "No achievements for this pet."
 
-#: extension/lib/progressDialog.js:107
+#: extension/lib/progressDialog.js:105
 msgid "Tes succès à toi, partagés entre tous tes animaux."
 msgstr "Your very own achievements, shared across all your pets."
 
-#: extension/lib/progressDialog.js:108
+#: extension/lib/progressDialog.js:106
 msgid "Rien de découvert pour l'instant. Le Comité attend."
 msgstr "Nothing discovered yet. The Committee is waiting."
 
-#: extension/lib/progressDialog.js:118
+#: extension/lib/progressDialog.js:116
 msgid "Palier obtenu : {name} ({tier}/{tiers})"
 msgstr "Tier reached: {name} ({tier}/{tiers})"
 
-#: extension/lib/progressDialog.js:120
+#: extension/lib/progressDialog.js:118
 msgid "Titre gagné : {title}"
 msgstr "Title earned: {title}"
 
-#: extension/lib/progressDialog.js:136
+#: extension/lib/progressDialog.js:137
 msgid "{label} : {value}"
 msgstr "{label}: {value}"
 
-#: extension/lib/progressDialog.js:146
+#: extension/lib/progressDialog.js:147
 msgid "Non lus seulement"
 msgstr "Unread only"
 
-#: extension/lib/progressDialog.js:146
+#: extension/lib/progressDialog.js:147
 msgid "Tout afficher"
 msgstr "Show all"
 
-#: extension/lib/progressDialog.js:155
+#: extension/lib/progressDialog.js:156
 msgid "Tout marquer comme lu"
 msgstr "Mark all as read"
 
-#: extension/lib/progressDialog.js:164
+#: extension/lib/progressDialog.js:165
 msgid "Rien de non lu."
 msgstr "Nothing unread."
 
-#: extension/lib/progressDialog.js:164
+#: extension/lib/progressDialog.js:165
 msgid "Rien pour le moment."
 msgstr "Nothing yet."
 
@@ -4504,6 +4528,17 @@ msgid ""
 msgstr ""
 "You took away the food it was about to eat. The Committee saw nothing. "
 "Actually, it did. Processing fees."
+
+#~ msgid "Bêtise débloquée !"
+#~ msgstr "Mischief unlocked!"
+
+#~ msgid "Dont {n} bêtise. Le Comité ne dira rien."
+#~ msgid_plural "Dont {n} bêtises. Le Comité ne dira rien."
+#~ msgstr[0] "Including {n} act of mischief. The Committee won't say a word."
+#~ msgstr[1] "Including {n} acts of mischief. The Committee won't say a word."
+
+#~ msgid "{name} : bêtise « {achievement} »."
+#~ msgstr "{name}: mischief “{achievement}”."
 
 #~ msgid "Bêtises"
 #~ msgstr "Mischief"

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { announceUnlock, announceBurst, announceTrophy, rewardText, NARRATOR } from '../core/narrator.js';
 import { buildAchievements, speciesProfile } from '../core/achievements.js';
 
-const real = { name: 'Bon appétit', troll: false, reward: { coins: 10 } };
+const real = { name: 'Bon appétit', description: 'Manger 10 fois.', troll: false, reward: { coins: 10 } };
 const troll = { name: 'Toc toc', troll: true, quip: "Il ne s'est rien passé.", reward: { box: 'bronze' } };
 
 test('un vrai succès : annonce sobre, avec les pièces', () => {
@@ -12,6 +12,13 @@ test('un vrai succès : annonce sobre, avec les pièces', () => {
   assert.equal(title, NARRATOR);
   assert.match(body, /Minou : « Bon appétit »/);
   assert.match(body, /10 pièces/);
+});
+
+test('un succès rappelle sa condition, une info par ligne, bêtise comprise', () => {
+  assert.match(announceUnlock({ def: real, who: 'Minou', random: () => 0 }).body, /\nCondition : Manger 10 fois\.\nRécompense/);
+  const { body } = announceUnlock({ def: { ...troll, description: 'Caresser un œuf' }, who: 'Minou', random: () => 0 });
+  assert.match(body, /\nIl ne s'est rien passé\.\nCondition : Caresser un œuf\.\nRécompense : /);
+  assert.ok(!announceUnlock({ def: { ...real, description: undefined }, random: () => 0 }).body.includes('Condition'));
 });
 
 test('une bêtise : commentaire du Comité et contenu de la boîte', () => {
@@ -35,7 +42,7 @@ test('récompenses farfelues : rien, pièces absurdes, frais de dossier payés o
 test('rafale et trophée', () => {
   const burst = announceBurst({ who: 'Minou', defs: [real, troll, real, real], coins: 25 });
   assert.match(burst.body, /4 succès d'un coup, dont « Bon appétit », « Toc toc » et « Bon appétit »/);
-  assert.match(burst.body, /Dont 1 bêtise/);
+  assert.match(burst.body, /Dont 1 exploit douteux/);
   assert.match(burst.body, /\+25 pièces/);
   assert.match(announceTrophy({ label: 'Médaille', count: 25 }).body, /25 succès\. Tu as droit à : médaille/);
 });
