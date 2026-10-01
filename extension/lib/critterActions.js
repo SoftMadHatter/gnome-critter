@@ -1,24 +1,89 @@
 // Actions specific to a critter, shared by its context menu (middle click)
-// and by its block in the tray icon menu: rename, feed, bowl, bed, brush,
-// play, tricks, accessories, wake up. Every action targets the critter
-// passed as a parameter.
+// and by its page in the tray icon menu: rename, accessories, titles,
+// tricks, wake up, brush, and the "Place" page (food, bowl, bed, toys...).
+// Every action targets the critter passed as a parameter.
 
-import { expandableRow } from './menuWidgets.js';
+import GLib from 'gi://GLib';
+
+import { stayAction } from './menuWidgets.js';
 import { _, fmt } from '../core/i18n.js';
 import { foodLabel, toyLabel, bedLabel, bowlLabel, TOY_LABELS, BED_LABELS, BOWL_LABELS } from '../core/labels.js';
 import { trickLabel } from '../core/tricks.js';
 import { FOODS, isBowlFood, toyFits } from '../core/items.js';
 import { Locomotion } from '../core/critter.js';
 
+/** Runs `after` once the activated item's handler is over (the menu may rebuild the very item that was clicked). */
+function later(after) {
+  if (after) GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => { after(); return GLib.SOURCE_REMOVE; });
+}
+
+/** A critter's diet foods, favorite first (plants are placed separately). */
+function dietFoods(critter) {
+  return Object.entries(critter.config.needsDiet)
+    .filter(([kind]) => FOODS[kind])
+    .sort((a, b) => b[1] - a[1])
+    .map(([kind]) => kind);
+}
+
 /**
- * Adds a critter's actions to `menu` (a PopupMenu or a PopupMenuSection).
- * @param {PopupMenu.PopupMenuBase} menu
+ * Fills a "Place" page: food, bowls, bed, toys, and, for the whole desktop,
+ * litter, plant, and prey. With a critter, objects fall next to it and the
+ * choices fit its species; without, they fall at the cursor's position.
+ * @param {import('./menuWidgets.js').Pager} pager
+ * @param {{page: object}} row the "Place" row
+ * @param {object} owner the Manager's API (foods, toyKinds, preyKinds, plantKinds, dropFood, fillBowl, dropBowl, dropBed, dropToy, dropLitter, dropPrey, dropPlant)
+ * @param {import('../core/critter.js').Critter} [critter]
+ * @param {(() => void)|null} [onAction] called after each action (the menu stays open)
+ */
+export function buildDropActions(pager, row, owner, critter, onAction = null) {
+  const page = row.page;
+  const add = (title) => pager.row(page, title).section;
+  const foods = critter ? dietFoods(critter) : owner.foods();
+  const withFavorite = (kind, text) => (critter && kind === foods[0] ? fmt(_('{food} (préféré)'), { food: text }) : text);
+  const target = critter ?? undefined;
+  const stay = (section, title, fn) => stayAction(section, title, () => { fn(); later(onAction); });
+
+  if (foods.length > 0) {
+    const feed = add(_('Nourriture'));
+    for (const kind of foods) stay(feed, withFavorite(kind, foodLabel(kind)), () => owner.dropFood(kind, target));
+  }
+  const bowlFoods = foods.filter(isBowlFood); // floating food doesn't go in a bowl
+  if (bowlFoods.length > 0) {
+    const bowls = add(_('Gamelle'));
+    for (const model of Object.keys(BOWL_LABELS)) stay(bowls, bowlLabel(model), () => owner.dropBowl(critter ?? null, model));
+    const fill = add(_('Remplir une gamelle'));
+    for (const kind of bowlFoods) stay(fill, withFavorite(kind, foodLabel(kind, 5)), () => owner.fillBowl(kind, target));
+  }
+  const beds = add(_('Lit'));
+  for (const model of Object.keys(BED_LABELS)) stay(beds, bedLabel(model), () => owner.dropBed(critter ?? null, model));
+
+  // The floating ring for a groundless species, the other toys otherwise.
+  const toys = add(_('Jouet'));
+  const kinds = critter
+    ? Object.keys(TOY_LABELS).filter((kind) => toyFits(kind, !critter.supports(Locomotion.GROUND)))
+    : owner.toyKinds();
+  for (const kind of kinds) stay(toys, toyLabel(kind), () => owner.dropToy(kind, target));
+
+  if (!critter) {
+    stay(page.content, _('Litière'), () => owner.dropLitter());
+    if (owner.plantKinds().length > 0) stay(page.content, _('Plante'), () => owner.dropPlant());
+    if (owner.preyKinds().length > 0) stay(page.content, _('Proie'), () => owner.dropPrey());
+  }
+}
+
+/**
+ * Adds a critter's actions to a page.
+ * @param {import('./menuWidgets.js').Pager} pager
+ * @param {object} page the page receiving them
  * @param {import('../core/critter.js').Critter} critter
- * @param {{rename: Function, dropFood: Function, fillBowl: Function, dropBed: Function, dropBowl: Function, dropToy: Function, brush: Function, train: Function, perform: Function, equip: Function, equippable: Function, titles: Function, setTitle: Function, wake: Function}} owner
+ * @param {{rename: Function, brush: Function, train: Function, perform: Function, equip: Function, equippable: Function, titles: Function, setTitle: Function, wake: Function}} owner
+ *   (and the drop actions, see buildDropActions)
+ * @param {{drops?: boolean, brush?: boolean}} [options] `onAction`: called after each action (the menu stays open); `drops`: the "Place" row (next to the critter);
+ *   `brush`: a "Brush" action (the tray menu already has a quick button for it)
  * @returns {{refresh: () => void}} refresh: to call when the menu opens
  */
-export function buildCritterActions(menu, critter, owner) {
-  /** Actions hidden for an egg (only "Rename" stays): menu items and expandable rows. */
+export function buildCritterActions(pager, page, critter, owner, { drops = true, brush = true, onAction = null } = {}) {
+  /** Actions hidden for an egg (only "Rename" stays): menu items and rows. */
   const hiddenForEgg = [];
   const track = (item) => {
     hiddenForEgg.push({ setVisible: (visible) => (item.actor.visible = visible) });
@@ -29,52 +94,30 @@ export function buildCritterActions(menu, critter, owner) {
     return row;
   };
 
-  menu.addAction(_('Renommer…'), () => owner.rename(critter));
+  const api = {};
+  // The menu stays open: the marks (✓), lists and visibility catch up afterwards.
+  const stay = (section, title, fn) => stayAction(section, title, () => { fn(); later(() => { api.refresh(); onAction?.(); }); });
 
-  // Diet foods, favorite first (plants are placed separately); floating
-  // food doesn't go in a bowl.
-  const foods = Object.entries(critter.config.needsDiet)
-    .filter(([kind]) => FOODS[kind])
-    .sort((a, b) => b[1] - a[1])
-    .map(([kind]) => kind);
-  const withFavorite = (kind, text) => (kind === foods[0] ? fmt(_('{food} (préféré)'), { food: text }) : text);
-  if (foods.length > 0) {
-    const feed = trackRow(expandableRow(menu, _('Donner à manger')));
-    for (const kind of foods) feed.section.addAction(withFavorite(kind, foodLabel(kind)), () => owner.dropFood(kind, critter));
+  page.content.addAction(_('Renommer…'), () => owner.rename(critter));
+  if (drops) {
+    const place = pager.row(page, _('Poser…'));
+    buildDropActions(pager, place, owner, critter, onAction);
+    hiddenForEgg.push(place);
   }
-  const bowlFoods = foods.filter(isBowlFood);
-  if (bowlFoods.length > 0) {
-    const bowl = trackRow(expandableRow(menu, _('Remplir la gamelle')));
-    for (const kind of bowlFoods) {
-      bowl.section.addAction(withFavorite(kind, foodLabel(kind, 5)), () => owner.fillBowl(kind, critter));
-    }
-    const bowls = trackRow(expandableRow(menu, _('Poser une gamelle')));
-    for (const model of Object.keys(BOWL_LABELS)) bowls.section.addAction(bowlLabel(model), () => owner.dropBowl(critter, model));
-  }
-
-  const accessories = trackRow(expandableRow(menu, _('Accessoires')));
-  const titles = trackRow(expandableRow(menu, _('Titre')));
-  const tricks = trackRow(expandableRow(menu, _('Tours')));
-  const wake = menu.addAction(_('Réveiller'), () => owner.wake(critter));
+  const accessories = trackRow(pager.row(page, _('Accessoires')));
+  const titles = trackRow(pager.row(page, _('Titre')));
+  const tricks = trackRow(pager.row(page, _('Tours')));
+  const wake = stay(page.content, _('Réveiller'), () => owner.wake(critter));
   track(wake);
-  const beds = trackRow(expandableRow(menu, _('Poser un lit')));
-  for (const model of Object.keys(BED_LABELS)) beds.section.addAction(bedLabel(model), () => owner.dropBed(critter, model));
-  track(menu.addAction(_('Brosser'), () => owner.brush(critter)));
-
-  // Suitable toys: the floating ring for a groundless species, the others otherwise.
-  const groundless = !critter.supports(Locomotion.GROUND);
-  const play = trackRow(expandableRow(menu, _('Jouer')));
-  for (const kind of Object.keys(TOY_LABELS)) {
-    if (toyFits(kind, groundless)) play.section.addAction(toyLabel(kind), () => owner.dropToy(kind, critter));
-  }
+  if (brush) track(stay(page.content, _('Brosser'), () => owner.brush(critter)));
 
   const rebuildAccessories = () => {
     accessories.section.removeAll();
     const worn = critter.accessory;
     const checked = (on, text) => (on ? `✓ ${text}` : text);
-    accessories.section.addAction(checked(worn === null, _('Aucun')), () => owner.equip(critter, null));
+    stay(accessories.section, checked(worn === null, _('Aucun')), () => owner.equip(critter, null));
     for (const { id, label } of owner.equippable()) {
-      accessories.section.addAction(checked(worn === id, label), () => owner.equip(critter, id));
+      stay(accessories.section, checked(worn === id, label), () => owner.equip(critter, id));
     }
   };
 
@@ -84,9 +127,9 @@ export function buildCritterActions(menu, critter, owner) {
     const earned = owner.titles(critter);
     titles.setVisible(earned.length > 0 && critter.life.stage !== 'egg');
     const checked = (on, text) => (on ? `✓ ${text}` : text);
-    titles.section.addAction(checked(critter.title === null, _('Aucun')), () => owner.setTitle(critter, null));
+    stay(titles.section, checked(critter.title === null, _('Aucun')), () => owner.setTitle(critter, null));
     for (const { id, title } of earned) {
-      titles.section.addAction(checked(critter.title === id, title), () => owner.setTitle(critter, id));
+      stay(titles.section, checked(critter.title === id, title), () => owner.setTitle(critter, id));
     }
   };
 
@@ -97,15 +140,15 @@ export function buildCritterActions(menu, critter, owner) {
     for (const name of names) {
       const trick = trickLabel(name);
       if (critter.tricks.isLearned(name)) {
-        tricks.section.addAction(fmt(_('Faire : {trick}'), { trick }), () => owner.perform(critter, name));
+        stay(tricks.section, fmt(_('Faire : {trick}'), { trick }), () => owner.perform(critter, name));
       } else {
         const skill = Math.floor(critter.tricks.skill(name));
-        tricks.section.addAction(fmt(_('Entraîner : {trick} ({skill} %)'), { trick, skill }), () => owner.train(critter, name));
+        stay(tricks.section, fmt(_('Entraîner : {trick} ({skill} %)'), { trick, skill }), () => owner.train(critter, name));
       }
     }
   };
 
-  return {
+  return Object.assign(api, {
     refresh() {
       const egg = critter.life.stage === 'egg';
       for (const item of hiddenForEgg) item.setVisible(!egg);
@@ -116,5 +159,5 @@ export function buildCritterActions(menu, critter, owner) {
         rebuildTricks();
       }
     },
-  };
+  });
 }

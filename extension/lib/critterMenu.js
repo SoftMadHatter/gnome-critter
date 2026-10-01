@@ -9,6 +9,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { buildCritterActions } from './critterActions.js';
+import { Pager, stayAction } from './menuWidgets.js';
 import { _ } from '../core/i18n.js';
 import { lifeSummary } from '../core/labels.js';
 
@@ -34,12 +35,17 @@ export class CritterMenu {
 
     this._header = new PopupMenu.PopupMenuItem('', { reactive: false, can_focus: false });
     this.menu.addMenuItem(this._header);
-    this._actions = buildCritterActions(this.menu, critter, owner);
+    this._pager = new Pager(this.menu);
+    const root = this._pager.root;
+    this._actions = buildCritterActions(this._pager, root, critter, owner, { onAction: () => this._tidy.setSensitive(owner.hasToys()) });
 
     this._laser = new PopupMenu.PopupSwitchMenuItem(_('Pointeur laser'), owner.isLaser());
     this._laser.connect('toggled', (_item, state) => owner.setLaser(state));
-    this.menu.addMenuItem(this._laser);
-    this._tidy = this.menu.addAction(_('Ranger les jouets'), () => owner.clearToys());
+    root.content.addMenuItem(this._laser);
+    this._tidy = stayAction(root.content, _('Ranger les jouets'), () => {
+      owner.clearToys();
+      this._tidy.setSensitive(owner.hasToys());
+    });
   }
 
   /** @param {number} spriteHeight the critter's displayed height (varies with its stage) */
