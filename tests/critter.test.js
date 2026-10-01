@@ -2969,3 +2969,150 @@ test("un critter qui grimpe le mur exposé de l'écran bas arrive sur le sol de 
   assert.equal(critter.y, 500);
   assert.ok(critter.x > 1000);
 });
+
+// --- #25 : boucle grimper / plafond / chute contre un mur ---
+
+const WALL_STATES = new Set([State.CLIMB, State.CEILING, State.FALL]);
+const wallSpecies = (extra = {}) => ({
+  climbSeekWeight: 100,
+  supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL, Locomotion.CEILING]),
+  ...extra,
+});
+
+/** Runs `seconds` and returns the transitions [{t, to}]. */
+function transitions(critter, surfaces, bounds, seconds) {
+  const log = [];
+  let last = critter.state;
+  for (let i = 0; i < seconds * 60; i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: bounds });
+    if (critter.state !== last) log.push({ t: i / 60, to: critter.state });
+    last = critter.state;
+  }
+  return log;
+}
+
+/** Most transitions among CLIMB / CEILING / FALL within any 2 seconds. */
+const busiestWindow = (log) => {
+  const wall = log.filter((e) => WALL_STATES.has(e.to));
+  return Math.max(0, ...wall.map((e, i) => wall.filter((o, j) => j >= i && o.t - e.t < 2).length));
+};
+
+test('un plafond qui finit au pied du mur : plus de boucle grimper / chute (#25)', () => {
+  const bounds = { x: 0, y: 0, width: 1920, height: 1080 };
+  const windows = [
+    { id: 'w0', x: 402, y: 428, width: 945, height: 595 },
+    { id: 'w1', x: 434, y: 260, width: 848, height: 810 },
+    { id: 'w2', x: 635, y: 239, width: 1170, height: 844 },
+  ];
+  const surfaces = computeSurfaces({ monitors: [bounds], windows });
+  let seed = 4242;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const critter = new Critter(wallSpecies({ random }), { x: 589, y: 1080 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const log = transitions(critter, surfaces, bounds, 120);
+
+  assert.ok(busiestWindow(log) <= 4, `${busiestWindow(log)} transitions en 2 s`);
+  assert.ok(log.filter((e) => e.to === State.FALL).length < 30);
+});
+
+test('fenêtres au hasard : jamais de clignotement grimper / plafond / chute (#25)', () => {
+  const bounds = { x: 0, y: 0, width: 1920, height: 1080 };
+  let worst = 0;
+  for (let trial = 0; trial < 40; trial++) {
+    let seed = trial * 7919 + 13;
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const windows = Array.from({ length: Math.floor(random() * 4) }, (_, i) => {
+      const width = 200 + Math.floor(random() * 1200);
+      const height = 150 + Math.floor(random() * 800);
+      const snap = random() < 0.4;
+      return {
+        id: `w${i}`,
+        x: Math.floor(random() * (1920 - width)),
+        y: snap ? 1080 - height + Math.floor(random() * 8 - 4) : Math.floor(random() * (1080 - height)),
+        width,
+        height,
+      };
+    });
+    const surfaces = computeSurfaces({ monitors: [bounds], windows });
+    const critter = new Critter(wallSpecies({ random }), { x: 200 + random() * 1500, y: 1080 });
+    critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+    critter.state = State.IDLE;
+    critter.stateTimer = 0;
+    worst = Math.max(worst, busiestWindow(transitions(critter, surfaces, bounds, 60)));
+  }
+  assert.ok(worst <= 4, `${worst} transitions en 2 s`);
+});
+
+test("un critter qui tombe d'un plafond ne ré-accroche aucun mur avant d'avoir atterri (#25)", () => {
+  const surfaces = {
+    segments: [
+      { type: 'ground', y: 500, x1: 0, x2: 1000, surfaceId: 'g' },
+      { type: 'ceiling', y: 100, x1: 200, x2: 400, surfaceId: 'c' },
+    ],
+    walls: [{ side: 'left', x: 200, y1: 100, y2: 500, surfaceId: 'c' }],
+  };
+  const critter = new Critter(wallSpecies({ random: fixedRandom(0.9) }), { x: 200, y: 100 });
+  critter.currentSurface = surfaces.segments[1];
+  critter.facing = -1;
+  critter.state = State.CEILING;
+  critter._noGrab = true;
+  critter.stateTimer = 10;
+
+  const seen = new Set();
+  for (let i = 0; i < 600 && critter.state !== State.IDLE; i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: { x: 0, y: 0, width: 1000, height: 500 } });
+    seen.add(critter.state);
+  }
+
+  assert.ok(seen.has(State.FALL));
+  assert.ok(!seen.has(State.CLIMB), 'pas de ré-accroche en tombant');
+  assert.equal(critter.state, State.IDLE);
+  assert.equal(critter._noGrab, false, 'atterri : le blocage est levé');
+});
+
+test("un plafond trop court n'est pas accroché : le critter continue de monter (#25)", () => {
+  const surfaces = {
+    segments: [
+      { type: 'ground', y: 500, x1: 0, x2: 1000, surfaceId: 'g' },
+      { type: 'ceiling', y: 300, x1: 180, x2: 200, surfaceId: 'c' }, // 20 px: no room to walk
+      { type: 'ceiling', y: 0, x1: 0, x2: 1000, surfaceId: 'top' },
+    ],
+    walls: [{ side: 'left', x: 200, y1: 0, y2: 500, surfaceId: 'c' }],
+  };
+  const critter = new Critter(wallSpecies({ random: fixedRandom(0.9) }), { x: 200, y: 500 });
+  critter.currentSurface = surfaces.walls[0];
+  critter.state = State.CLIMB;
+
+  for (let i = 0; i < 20 * 60 && critter.state === State.CLIMB; i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: { x: 0, y: 0, width: 1000, height: 500 } });
+  }
+
+  assert.equal(critter.state, State.CEILING);
+  assert.equal(critter.currentSurface.surfaceId, 'top', 'passé sous le plafond trop court, accroché au suivant');
+  assert.equal(critter.y, 0);
+});
+
+test("SEEK_WALL : le critter traverse l'écran jusqu'au mur au lieu de renoncer au centre (#25)", () => {
+  const bounds = { x: 0, y: 0, width: 2000, height: 600 };
+  const surfaces = computeSurfaces({ monitors: [bounds], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.5),
+      walkWeight: 0, sleepWeight: 0, washWeight: 0, followWeight: 0, greetWeight: 0,
+      climbSeekWeight: 1000,
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]),
+    },
+    { x: 1000, y: 600 },
+  );
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  const log = transitions(critter, surfaces, bounds, 90);
+
+  assert.equal(log[0].to, State.SEEK_WALL);
+  assert.equal(log[1].to, State.CLIMB, 'après SEEK_WALL, directement au mur');
+});

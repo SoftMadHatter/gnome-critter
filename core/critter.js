@@ -15,6 +15,7 @@ import {
   findWallById,
   findWallNear,
   findCeilingAbove,
+  ceilingRun,
   findReachableWall,
   findDropEdges,
   findLedgeAtWallTop,
@@ -204,6 +205,7 @@ const DEFAULT_CONFIG = {
   exploreWeight: 6, // walking to the end of a surface and stepping off (ledge -> ground, one screen -> the next)
   dropMaxHeight: 500,
   climbApproachDistance: 6, // distance below which it's considered to have "reached" the wall
+  ceilingMinRun: 32, // a ceiling with less room to walk than this isn't latched onto
   seekFocusWeight: 10,
   seekFocusDuration: [3, 6],
   seekFocusMaxDistance: 600,
@@ -318,6 +320,8 @@ export class Critter {
     this.walkTargetX = null;
     this._dropDir = null; // set while walking to an edge to step off (`explore`)
     this.wallSide = null; // 'left' | 'right' during CLIMB
+    /** True after leaving a ceiling: the fall grabs no wall until landing (otherwise it could climb back up and cycle). */
+    this._noGrab = false;
     this._dragTarget = null;
     /** Last special activity chosen by _tickWaiting ('sleep'/'wash'/
      * 'follow', never 'walk'): used as an anti-repetition memory. */
@@ -936,6 +940,7 @@ export class Critter {
       this.y = landing.y;
       this.vy = 0;
       this.currentSurface = landing;
+      this._noGrab = false;
       const groundless = this._groundlessRoamState();
       if (this.life.hibernating) {
         this.state = State.HIBERNATE;
@@ -955,7 +960,7 @@ export class Critter {
     }
 
     if (this.supports(Locomotion.WALL)) {
-      const wall = findWallNear(surfaces.walls, this.x, Math.min(this.y, nextY), Math.max(this.y, nextY));
+      const wall = this._noGrab ? null : findWallNear(surfaces.walls, this.x, Math.min(this.y, nextY), Math.max(this.y, nextY));
       if (wall) {
         this.x = wall.x; // flush against the wall, not just "close enough"
         this.y = clamp(nextY, wall.y1, wall.y2);
@@ -1242,10 +1247,14 @@ export class Critter {
         this.state = State.GREET;
         this.stateTimer = randRange(this.config.greetDuration, this.config.random);
         return;
-      case 'climb':
+      case 'climb': {
+        // Long enough to get there: the nearest reachable wall can be far away.
+        const wall = findReachableWall(surfaces.walls, this.x, this.y);
+        const travel = wall ? (Math.abs(wall.x - this.x) / this.config.walkSpeed) * 1.5 + 2 : 0;
         this.state = State.SEEK_WALL;
-        this.stateTimer = randRange(this.config.climbSeekDuration, this.config.random);
+        this.stateTimer = Math.max(randRange(this.config.climbSeekDuration, this.config.random), travel);
         return;
+      }
       case 'explore': {
         const edge = this._dropEdges[Math.floor(this.config.random() * this._dropEdges.length) % this._dropEdges.length];
         this.walkTargetX = edge.x;
@@ -2242,12 +2251,16 @@ export class Critter {
 
     if (this.supports(Locomotion.CEILING)) {
       const ceiling = findCeilingAbove(surfaces.segments, wall.x, prevY, prevY - this.y);
-      if (ceiling) {
+      // A ceiling ending right at the wall has no room to walk on: it would
+      // drop the critter at once, so it isn't latched onto.
+      const room = ceiling ? ceilingRun(ceiling, wall.x) : null;
+      if (ceiling && room.run >= this.config.ceilingMinRun) {
         this.y = ceiling.y;
         this.currentSurface = ceiling;
-        // Just climbed this wall: head back toward the opposite edge rather
-        // than continuing outward, where it would immediately fall again.
-        this.facing = wall.side === 'left' ? 1 : -1;
+        // Heads toward the inside of the overhang (where there is room);
+        // falling off it, no wall is grabbed before landing.
+        this.facing = room.dir;
+        this._noGrab = true;
         this._enterState(State.CEILING);
         return;
       }
@@ -2596,6 +2609,7 @@ export class Critter {
   }
 
   _enterState(state) {
+    if (state !== State.FALL && state !== State.CLIMB && state !== State.CEILING) this._noGrab = false;
     this._dropDir = null;
     this._reliefTarget = null;
     this._releaseFood();

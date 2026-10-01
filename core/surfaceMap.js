@@ -364,6 +364,17 @@ export function findCeilingAbove(segments, x, fromY, maxDistance, allowedTypes =
   return best;
 }
 
+/**
+ * Room to walk along a ceiling segment from `x`: the direction with the
+ * most room (toward the inside of the segment) and how far it goes.
+ * @returns {{dir: -1|1, run: number}}
+ */
+export function ceilingRun(segment, x) {
+  const left = x - segment.x1;
+  const right = segment.x2 - x;
+  return right >= left ? { dir: 1, run: right } : { dir: -1, run: left };
+}
+
 /** True if the point is inside one of the monitors (edges included). */
 export function isInsideAnyMonitor(monitors, x, y) {
   return monitors.some((m) => x >= m.x && x <= m.x + m.width && y >= m.y && y <= m.y + m.height);
