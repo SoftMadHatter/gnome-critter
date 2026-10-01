@@ -63,22 +63,42 @@ function readMix(settings, packs) {
 }
 
 /**
- * One species picker + count per `critter-mix` entry, plus a header button
- * to add another species. Rebuilds its rows on every change (add/remove/
- * pick another already-used species) rather than trying to patch them in
- * place -- simpler, and this list is short.
+ * One species picker + count per `critter-mix` entry, followed by an "add a
+ * species" row, in a list of their own (rebuilt on every add/remove).
  * @param {Adw.PreferencesGroup} group
  * @param {Gio.Settings} settings
  * @param {{id: string, label: string}[]} packs installed packs, from listPacks()
  */
 function buildMixRows(group, settings, packs) {
   const mix = readMix(settings, packs);
-  const rows = [];
+  const list = new Gtk.ListBox({ selection_mode: Gtk.SelectionMode.NONE, css_classes: ['boxed-list'] });
+  group.add(list);
 
   const writeMix = () => settings.set_string('critter-mix', JSON.stringify(mix));
 
+  const addRow = () => {
+    const onAdd = () => {
+      const used = new Set(mix.map((e) => e.pack));
+      const next = packs.find((p) => !used.has(p.id)) ?? packs[0];
+      if (!next) return;
+      mix.push({ pack: next.id, count: 1 });
+      writeMix();
+      render();
+    };
+    if (typeof Adw.ButtonRow === 'function') {
+      const row = new Adw.ButtonRow({ title: _('Ajouter une espèce'), start_icon_name: 'list-add-symbolic' });
+      row.connect('activated', onAdd);
+      return row;
+    }
+    // libadwaita < 1.6: an activatable row does the same job.
+    const row = new Adw.ActionRow({ title: _('Ajouter une espèce'), activatable: true });
+    row.add_prefix(new Gtk.Image({ icon_name: 'list-add-symbolic' }));
+    row.connect('activated', onAdd);
+    return row;
+  };
+
   const render = () => {
-    for (const row of rows.splice(0)) group.remove(row);
+    for (let child = list.get_first_child(); child; child = list.get_first_child()) list.remove(child);
     mix.forEach((entry, index) => {
       const packRow = new Adw.ComboRow({
         title: _('Animal'),
@@ -93,8 +113,7 @@ function buildMixRows(group, settings, packs) {
           writeMix();
         }
       });
-      group.add(packRow);
-      rows.push(packRow);
+      list.append(packRow);
 
       const countRow = new Adw.SpinRow({
         title: _("Nombre d'animaux"),
@@ -119,26 +138,10 @@ function buildMixRows(group, settings, packs) {
         });
         countRow.add_suffix(removeButton);
       }
-      group.add(countRow);
-      rows.push(countRow);
+      list.append(countRow);
     });
+    list.append(addRow());
   };
-
-  const addButton = new Gtk.Button({
-    icon_name: 'list-add-symbolic',
-    valign: Gtk.Align.CENTER,
-    css_classes: ['flat'],
-    tooltip_text: _('Ajouter une espèce'),
-  });
-  addButton.connect('clicked', () => {
-    const used = new Set(mix.map((e) => e.pack));
-    const next = packs.find((p) => !used.has(p.id)) ?? packs[0];
-    if (!next) return;
-    mix.push({ pack: next.id, count: 1 });
-    writeMix();
-    render();
-  });
-  group.set_header_suffix(addButton);
 
   render();
 }
@@ -162,6 +165,9 @@ export default class CritterPreferences extends ExtensionPreferences {
       description: _('Les changements sont appliqués tout de suite. 10 animaux au total, tous ensemble.'),
     });
     generalPage.add(group);
+    // Not in the species group: its rows would sit above the species list.
+    const generalGroup = new Adw.PreferencesGroup();
+    generalPage.add(generalGroup);
 
     const lifePage = new Adw.PreferencesPage({ title: _('Besoins et vie'), icon_name: 'emblem-favorite-symbolic' });
     const lifeGroup = new Adw.PreferencesGroup({ title: _('Besoins et croissance') });
@@ -174,7 +180,7 @@ export default class CritterPreferences extends ExtensionPreferences {
 
     const soundsRow = new Adw.SwitchRow({ title: _('Sons activés') });
     settings.bind('sounds-enabled', soundsRow, 'active', 0);
-    group.add(soundsRow);
+    generalGroup.add(soundsRow);
 
     const difficulties = [
       ['relaxed', N_('Détendue')],
@@ -207,7 +213,7 @@ export default class CritterPreferences extends ExtensionPreferences {
       subtitle: _('Humeur et menu des animaux.'),
     });
     settings.bind('show-indicator', indicatorRow, 'active', 0);
-    group.add(indicatorRow);
+    generalGroup.add(indicatorRow);
 
     const autonomies = [
       ['auto', N_('Auto (suit la croissance)')],
