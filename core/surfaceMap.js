@@ -8,8 +8,8 @@
 //
 // Deliberately simplified model for v1: only horizontal segments
 // (ground/ledges/ceiling) and vertical ones (walls). No slopes, no
-// windows overlapping in depth (z-order is ignored for surface
-// computation, only the "visible" foreground serves as a ledge).
+// windows overlapping in depth beyond hiding: a window's surfaces are
+// cut where a window in front covers them, and by the monitors' bounds.
 
 /**
  * @typedef {Object} Rect
@@ -44,8 +44,42 @@
  * @property {string|number} surfaceId
  */
 
+/** Pieces of [a, b] left once the `cuts` intervals are removed. */
+function subtractIntervals(a, b, cuts) {
+  let pieces = [[a, b]];
+  for (const [c1, c2] of cuts) {
+    const next = [];
+    for (const [p1, p2] of pieces) {
+      if (c2 <= p1 || c1 >= p2) {
+        next.push([p1, p2]);
+        continue;
+      }
+      if (c1 > p1) next.push([p1, c1]);
+      if (c2 < p2) next.push([c2, p2]);
+    }
+    pieces = next;
+  }
+  return pieces.filter(([p1, p2]) => p2 > p1);
+}
+
+/** Parts of [a, b] lying inside the union of the `keeps` intervals (touching parts merged). */
+function intersectIntervals(a, b, keeps) {
+  const parts = keeps
+    .map(([k1, k2]) => [Math.max(a, k1), Math.min(b, k2)])
+    .filter(([p1, p2]) => p2 > p1)
+    .sort((p, q) => p[0] - q[0]);
+  const merged = [];
+  for (const part of parts) {
+    const last = merged[merged.length - 1];
+    if (last && part[0] <= last[1]) last[1] = Math.max(last[1], part[1]);
+    else merged.push([...part]);
+  }
+  return merged;
+}
+
 /**
- * @param {Environment} environment
+ * @param {Environment} environment `windows` ordered from back to front
+ *   (stacking order): a window hides the surfaces of those behind it.
  * @returns {{segments: Segment[], walls: Wall[]}}
  */
 export function computeSurfaces(environment) {
@@ -56,77 +90,76 @@ export function computeSurfaces(environment) {
   const windows = environment.windows ?? [];
   const waterZones = environment.waterZones ?? [];
 
+  const pushSegments = (type, y, x1, x2, cuts, keeps, surfaceId) => {
+    let pieces = subtractIntervals(x1, x2, cuts);
+    if (keeps) pieces = pieces.flatMap(([p1, p2]) => intersectIntervals(p1, p2, keeps));
+    for (const [p1, p2] of pieces) segments.push({ type, y, x1: p1, x2: p2, surfaceId });
+  };
+  const pushWalls = (side, x, y1, y2, cuts, keeps, surfaceId) => {
+    let pieces = subtractIntervals(y1, y2, cuts);
+    if (keeps) pieces = pieces.flatMap(([p1, p2]) => intersectIntervals(p1, p2, keeps));
+    for (const [p1, p2] of pieces) walls.push({ side, x, y1: p1, y2: p2, surfaceId });
+  };
+  // x-ranges of the rects strictly crossing the horizontal line `y`.
+  const spansAtY = (rects, y) =>
+    rects.filter((r) => r.y < y && y < r.y + r.height).map((r) => [r.x, r.x + r.width]);
+  // y-ranges of the rects strictly crossing the vertical line `x`.
+  const spansAtX = (rects, x) =>
+    rects.filter((r) => r.x < x && x < r.x + r.width).map((r) => [r.y, r.y + r.height]);
+
   for (const [i, monitor] of monitors.entries()) {
     const surfaceId = `monitor:${i}`;
-    // Ground = bottom of the monitor.
-    segments.push({
-      type: 'ground',
-      y: monitor.y + monitor.height,
-      x1: monitor.x,
-      x2: monitor.x + monitor.width,
-      surfaceId,
-    });
-    // Ceiling = top of the monitor (walkable only by species that can
-    // walk on ceilings).
-    segments.push({
-      type: 'ceiling',
-      y: monitor.y,
-      x1: monitor.x,
-      x2: monitor.x + monitor.width,
-      surfaceId,
-    });
-    // Walls = left/right edges of the monitor.
-    walls.push({
-      side: 'left',
-      x: monitor.x,
-      y1: monitor.y,
-      y2: monitor.y + monitor.height,
-      surfaceId,
-    });
-    walls.push({
-      side: 'right',
-      x: monitor.x + monitor.width,
-      y1: monitor.y,
-      y2: monitor.y + monitor.height,
-      surfaceId,
-    });
+    const others = monitors.filter((_, j) => j !== i);
+    const right = monitor.x + monitor.width;
+    const bottom = monitor.y + monitor.height;
+    // Ground = bottom of the monitor, ceiling = top (walkable only by
+    // species that can walk on ceilings). Parts covered by another
+    // monitor (different sizes/offsets) aren't a surface at all.
+    pushSegments('ground', bottom, monitor.x, right, spansAtY(others, bottom), null, surfaceId);
+    pushSegments('ceiling', monitor.y, monitor.x, right, spansAtY(others, monitor.y), null, surfaceId);
+    // Walls = left/right edges of the monitor, except where another
+    // monitor continues on the other side (the desktop goes on there).
+    const touching = (x, side) =>
+      others
+        .filter((o) => (side === 'left' ? o.x + o.width === x : o.x === x))
+        .map((o) => [o.y, o.y + o.height]);
+    pushWalls(
+      'left', monitor.x, monitor.y, bottom,
+      [...spansAtX(others, monitor.x), ...touching(monitor.x, 'left')], null, surfaceId,
+    );
+    pushWalls(
+      'right', right, monitor.y, bottom,
+      [...spansAtX(others, right), ...touching(right, 'right')], null, surfaceId,
+    );
   }
 
-  for (const win of windows) {
+  for (const [k, win] of windows.entries()) {
+    // Only the visible parts count: not hidden by a window in front, and
+    // within the monitors (nothing to walk on over the dead space
+    // around/between screens).
+    const above = windows.slice(k + 1);
+    const keepsX = monitors.length > 0
+      ? monitors.filter((m) => m.y <= win.y && win.y <= m.y + m.height).map((m) => [m.x, m.x + m.width])
+      : null;
+    const bottom = win.y + win.height;
+    const right = win.x + win.width;
+    const keepsXBottom = monitors.length > 0
+      ? monitors.filter((m) => m.y <= bottom && bottom <= m.y + m.height).map((m) => [m.x, m.x + m.width])
+      : null;
     // Ledge = top of the window (the title bar is included in win.y on
     // the extension side: it's given the frame rect, decorations included).
-    segments.push({
-      type: 'shelf',
-      y: win.y,
-      x1: win.x,
-      x2: win.x + win.width,
-      surfaceId: win.id,
-    });
+    pushSegments('shelf', win.y, win.x, right, spansAtY(above, win.y), keepsX, win.id);
     // Underside = bottom of the window, walkable only by species that
     // can walk on ceilings (same 'ceiling' type as a monitor's ceiling:
     // the animal hangs upside down there by climbing up one of the
     // window's walls, see Critter._tickClimb).
-    segments.push({
-      type: 'ceiling',
-      y: win.y + win.height,
-      x1: win.x,
-      x2: win.x + win.width,
-      surfaceId: win.id,
-    });
-    walls.push({
-      side: 'left',
-      x: win.x,
-      y1: win.y,
-      y2: win.y + win.height,
-      surfaceId: win.id,
-    });
-    walls.push({
-      side: 'right',
-      x: win.x + win.width,
-      y1: win.y,
-      y2: win.y + win.height,
-      surfaceId: win.id,
-    });
+    pushSegments('ceiling', bottom, win.x, right, spansAtY(above, bottom), keepsXBottom, win.id);
+    for (const [side, x] of [['left', win.x], ['right', right]]) {
+      const keepsY = monitors.length > 0
+        ? monitors.filter((m) => m.x <= x && x <= m.x + m.width).map((m) => [m.y, m.y + m.height])
+        : null;
+      pushWalls(side, x, win.y, bottom, spansAtX(above, x), keepsY, win.id);
+    }
   }
 
   for (const [i, zone] of waterZones.entries()) {
@@ -181,15 +214,66 @@ export function isOnSegment(segment, x, y, epsilon = 2) {
  * Finds, in the list of segments freshly recomputed this tick, the
  * segment that still matches `surfaceId`/`type` (used to detect that a
  * window under the animal's feet has been closed/moved/resized since the
- * tick it landed there: a stored segment can go stale).
+ * tick it landed there: a stored segment can go stale). A surface partly
+ * hidden comes in several pieces: with `x`, the piece closest to it is
+ * returned, otherwise the first.
  */
-export function findSegmentById(segments, surfaceId, type) {
-  return segments.find((s) => s.surfaceId === surfaceId && s.type === type) ?? null;
+export function findSegmentById(segments, surfaceId, type, x) {
+  const matches = segments.filter((s) => s.surfaceId === surfaceId && s.type === type);
+  return closestPiece(matches, x, (s) => [s.x1, s.x2]);
 }
 
-/** Equivalent of {@link findSegmentById} for walls (CLIMB state). */
-export function findWallById(walls, surfaceId, side) {
-  return walls.find((w) => w.surfaceId === surfaceId && w.side === side) ?? null;
+/** Equivalent of {@link findSegmentById} for walls (CLIMB state); `y` picks the piece. */
+export function findWallById(walls, surfaceId, side, y) {
+  const matches = walls.filter((w) => w.surfaceId === surfaceId && w.side === side);
+  return closestPiece(matches, y, (w) => [w.y1, w.y2]);
+}
+
+function closestPiece(pieces, coord, range) {
+  if (pieces.length === 0) return null;
+  if (coord === undefined) return pieces[0];
+  const distance = (p) => {
+    const [a, b] = range(p);
+    return coord < a ? a - coord : coord > b ? coord - b : 0;
+  };
+  return pieces.reduce((best, p) => (distance(p) < distance(best) ? p : best));
+}
+
+/** How far past a surface's end a critter steps off it (and where we probe for what's below). */
+export const DROP_PROBE = 6;
+
+/**
+ * Ends of `surface` (the segment under the animal's feet at height `y`)
+ * from which one can step off and land on another surface at most
+ * `maxDrop` below: ledge -> ground, or one monitor's ground -> the lower
+ * ground of its neighbour. Nothing is returned for an end that opens onto
+ * the void (monitor outer edge) or onto something higher.
+ * @returns {{x:number, dir:-1|1, landing:Segment}[]} `x` is the end itself, `dir` the way off
+ */
+export function findDropEdges(segments, surface, y, maxDrop, allowedTypes) {
+  const edges = [];
+  for (const [x, dir] of [[surface.x1, -1], [surface.x2, 1]]) {
+    const landing = findSurfaceBelow(segments, x + dir * DROP_PROBE, y + 1, maxDrop, allowedTypes);
+    if (landing) edges.push({ x, dir, landing });
+  }
+  return edges;
+}
+
+/**
+ * Ground/ledge segment that starts or ends right at the top of `wall`
+ * (within `epsilon`): what an animal reaching the top of the wall can step
+ * onto instead of hanging there (the exposed edge of a monitor next to a
+ * higher one, a window's ledge...).
+ * @returns {{segment:Segment, dir:-1|1}|null} `dir` points into the segment
+ */
+export function findLedgeAtWallTop(segments, wall, epsilon = 4) {
+  for (const seg of segments) {
+    if (seg.type !== 'ground' && seg.type !== 'shelf') continue;
+    if (Math.abs(seg.y - wall.y1) > epsilon) continue;
+    if (Math.abs(seg.x1 - wall.x) <= epsilon) return { segment: seg, dir: 1 };
+    if (Math.abs(seg.x2 - wall.x) <= epsilon) return { segment: seg, dir: -1 };
+  }
+  return null;
 }
 
 /**

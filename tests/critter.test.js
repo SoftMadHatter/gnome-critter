@@ -225,7 +225,26 @@ test('un critter accroché sous une fenêtre retombe si elle est fermée', () =>
   assert.equal(snapshot.state, State.FALL);
 });
 
-test("un critter WALL sans CEILING reste accroché en haut du mur sans planter ni osciller", () => {
+test("un critter WALL sans CEILING reste accroché en haut d'un mur sans rebord voisin, sans planter ni osciller", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter(
+    {
+      random: fixedRandom(0.9),
+      supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]),
+    },
+    { x: 0, y: 250 },
+  );
+
+  let snapshot;
+  for (let i = 0; i < 600; i++) {
+    snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+  }
+
+  assert.equal(snapshot.state, State.IDLE);
+  assert.equal(critter.currentSurface, null);
+});
+
+test("un critter WALL qui atteint le haut du mur d'une fenêtre passe sur son rebord", () => {
   const win = { id: 'w1', x: 400, y: 200, width: 200, height: 100 };
   const surfaces = computeSurfaces({ monitors: [monitor], windows: [win] });
   const critter = new Critter(
@@ -239,10 +258,13 @@ test("un critter WALL sans CEILING reste accroché en haut du mur sans planter n
   let snapshot;
   for (let i = 0; i < 120; i++) {
     snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+    if (critter.currentSurface?.type === 'shelf') break;
   }
 
-  assert.equal(snapshot.state, State.IDLE);
-  assert.equal(critter.currentSurface, null);
+  assert.equal(critter.currentSurface.surfaceId, 'w1');
+  assert.equal(critter.currentSurface.type, 'shelf');
+  assert.equal(snapshot.y, 200);
+  assert.ok(snapshot.x > 400 && snapshot.x < 600);
 });
 
 test('interact() associe chaque geste à sa réaction thématique', () => {
@@ -2871,4 +2893,79 @@ test('titre : seulement un titre gagné, sauvegardé et relu', () => {
   assert.ok(back.stats.marks instanceof Set);
   back.setTitle(null);
   assert.equal(back.title, null);
+});
+
+// --- Changer de surface à pied (#21) -----------------------------------------
+
+// Two screens at different levels: the left one is lower (its ground at 800),
+// the right one higher (its ground at 500), like a laptop next to a monitor.
+const lowScreen = { x: 0, y: 300, width: 1000, height: 500 };
+const highScreen = { x: 1000, y: 0, width: 1000, height: 500 };
+const bounds = { x: 0, y: 0, width: 2000, height: 800 };
+
+test("explore : du bord de l'écran haut, le critter descend sur le sol de l'écran bas", () => {
+  const surfaces = computeSurfaces({ monitors: [lowScreen, highScreen], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 300 }, { x: 1100, y: 500 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground' && s.y === 500);
+  critter._dropEdges = [{ x: 1000, dir: -1 }];
+  critter.walkTargetX = 1000;
+  critter._dropDir = -1;
+  critter.state = State.WALK;
+  critter.stateTimer = 10;
+
+  for (let i = 0; i < 600 && !(critter.state === State.IDLE && critter.y === 800); i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: bounds });
+  }
+
+  assert.equal(critter.y, 800);
+  assert.equal(critter.currentSurface.surfaceId, 'monitor:0');
+  assert.ok(critter.x < 1000);
+});
+
+test("explore : un critter posé sur un sol qui a un bord ouvert peut choisir de descendre", () => {
+  const surfaces = computeSurfaces({ monitors: [lowScreen, highScreen], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), exploreWeight: 1e9 }, { x: 1500, y: 500 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground' && s.y === 500);
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  critter.tick(1 / 60, surfaces, { worldBounds: bounds });
+
+  assert.equal(critter.state, State.WALK);
+  assert.equal(critter.walkTargetX, 1000);
+  assert.equal(critter._dropDir, -1);
+});
+
+test("explore : pas de candidat quand aucun bord ne donne sur une surface plus basse", () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), exploreWeight: 1e9 }, { x: 500, y: monitor.height });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  critter.state = State.IDLE;
+  critter.stateTimer = 0;
+
+  critter.tick(1 / 60, surfaces, { worldBounds: monitor });
+
+  assert.equal(critter._dropEdges.length, 0);
+  assert.equal(critter._dropDir, null);
+});
+
+test("un critter qui grimpe le mur exposé de l'écran bas arrive sur le sol de l'écran haut", () => {
+  const surfaces = computeSurfaces({ monitors: [lowScreen, highScreen], windows: [] });
+  const critter = new Critter(
+    { random: fixedRandom(0.9), supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.WALL]) },
+    { x: 1000, y: 700 },
+  );
+  const wall = surfaces.walls.find((w) => w.surfaceId === 'monitor:0' && w.side === 'right');
+  assert.deepEqual([wall.y1, wall.y2], [500, 800], 'seule la partie exposée reste');
+  critter.currentSurface = wall;
+  critter.state = State.CLIMB;
+
+  for (let i = 0; i < 1200 && critter.state === State.CLIMB; i++) {
+    critter.tick(1 / 60, surfaces, { worldBounds: bounds });
+  }
+
+  assert.equal(critter.currentSurface.surfaceId, 'monitor:1');
+  assert.equal(critter.currentSurface.type, 'ground');
+  assert.equal(critter.y, 500);
+  assert.ok(critter.x > 1000);
 });

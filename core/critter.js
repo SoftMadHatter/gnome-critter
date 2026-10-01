@@ -16,6 +16,9 @@ import {
   findWallNear,
   findCeilingAbove,
   findReachableWall,
+  findDropEdges,
+  findLedgeAtWallTop,
+  DROP_PROBE,
   findReachableShelf,
   isInsideAnyMonitor,
   respawnPoint,
@@ -198,6 +201,8 @@ const DEFAULT_CONFIG = {
   climbSeekWeight: 10,
   climbSeekDuration: [3, 6],
   climbSeekMaxDistance: 600,
+  exploreWeight: 6, // walking to the end of a surface and stepping off (ledge -> ground, one screen -> the next)
+  dropMaxHeight: 500,
   climbApproachDistance: 6, // distance below which it's considered to have "reached" the wall
   seekFocusWeight: 10,
   seekFocusDuration: [3, 6],
@@ -311,6 +316,7 @@ export class Critter {
     this.stateTimer = 0;
     this.currentSurface = null;
     this.walkTargetX = null;
+    this._dropDir = null; // set while walking to an edge to step off (`explore`)
     this.wallSide = null; // 'left' | 'right' during CLIMB
     this._dragTarget = null;
     /** Last special activity chosen by _tickWaiting ('sleep'/'wash'/
@@ -902,8 +908,8 @@ export class Critter {
   _resyncCurrentSurface(surfaces) {
     const surface = this.currentSurface;
     const fresh = surface.side
-      ? findWallById(surfaces.walls, surface.surfaceId, surface.side)
-      : findSegmentById(surfaces.segments, surface.surfaceId, surface.type);
+      ? findWallById(surfaces.walls, surface.surfaceId, surface.side, this.y)
+      : findSegmentById(surfaces.segments, surface.surfaceId, surface.type, this.x);
 
     if (!fresh) {
       this._enterState(State.FALL);
@@ -1026,6 +1032,14 @@ export class Critter {
         const proximity = clamp(1 - distance / this.config.climbSeekMaxDistance, 0.15, 1);
         candidates.push({ value: 'climb', weight: this.config.climbSeekWeight * proximity });
       }
+    }
+
+    this._dropEdges = [];
+    if (this.supports(Locomotion.GROUND) && this.currentSurface && isOnSegment(this.currentSurface, this.x, this.y, 4)) {
+      this._dropEdges = findDropEdges(
+        surfaces.segments, this.currentSurface, this.y, this.config.dropMaxHeight, new Set(['ground', 'shelf']),
+      );
+      if (this._dropEdges.length > 0) candidates.push({ value: 'explore', weight: this.config.exploreWeight });
     }
 
     if (this.currentSurface && options.focusedWindow) {
@@ -1232,6 +1246,15 @@ export class Critter {
         this.state = State.SEEK_WALL;
         this.stateTimer = randRange(this.config.climbSeekDuration, this.config.random);
         return;
+      case 'explore': {
+        const edge = this._dropEdges[Math.floor(this.config.random() * this._dropEdges.length) % this._dropEdges.length];
+        this.walkTargetX = edge.x;
+        this._dropDir = edge.dir;
+        this.facing = sign(edge.x - this.x) || edge.dir;
+        this.state = State.WALK;
+        this.stateTimer = Math.abs(edge.x - this.x) / this.config.walkSpeed * 1.5 + 2;
+        return;
+      }
       case 'seekFocus':
         this.state = State.SEEK_FOCUS;
         this.stateTimer = randRange(this.config.seekFocusDuration, this.config.random);
@@ -2176,7 +2199,7 @@ export class Critter {
 
     const dir = sign(this.walkTargetX - this.x);
     if (dir === 0 || this.stateTimer <= 0) {
-      this._enterState(State.IDLE);
+      this._endWalk();
       return;
     }
 
@@ -2187,9 +2210,19 @@ export class Critter {
       this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
     }
 
-    if (Math.abs(this.walkTargetX - this.x) < 1) {
-      this._enterState(State.IDLE);
+    if (Math.abs(this.walkTargetX - this.x) < 1) this._endWalk();
+  }
+
+  /** End of a walk: idles, or steps off the edge it was heading for (`explore`) and falls. */
+  _endWalk() {
+    const dir = this._dropDir;
+    if (dir && Math.abs(this.walkTargetX - this.x) < 1) {
+      this.x = this.walkTargetX + dir * DROP_PROBE;
+      this.facing = dir;
+      this._enterState(State.FALL);
+      return;
     }
+    this._enterState(State.IDLE);
   }
 
   _tickClimb(dt, surfaces) {
@@ -2221,6 +2254,17 @@ export class Critter {
     }
 
     if (this.y <= wall.y1) {
+      // A ledge/ground starting right at the top (the exposed edge of a
+      // monitor next to a higher one, a window's ledge): steps onto it.
+      const ledge = findLedgeAtWallTop(surfaces.segments, wall);
+      if (ledge) {
+        this.currentSurface = ledge.segment;
+        this.x = wall.x + ledge.dir * DROP_PROBE / 2;
+        this.y = ledge.segment.y;
+        this.facing = ledge.dir;
+        this._enterState(State.IDLE);
+        return;
+      }
       // Nothing to grip at the top: stay latched there, motionless, rather
       // than "standing" on a wall (which has no valid x1/x2 for the
       // surface check of the IDLE/WALK states).
@@ -2447,7 +2491,7 @@ export class Critter {
     let target = this._flyTarget;
     if (target?.segment) {
       const seg = target.segment;
-      const fresh = findSegmentById(surfaces.segments ?? [], seg.surfaceId, seg.type);
+      const fresh = findSegmentById(surfaces.segments ?? [], seg.surfaceId, seg.type, (seg.x1 + seg.x2) / 2);
       if (!fresh || fresh.y !== seg.y || fresh.x1 !== seg.x1 || fresh.x2 !== seg.x2) target = null;
     }
     if (target && this.state !== State.DIVE && this.config.random() < this.config.flyRetargetChance * dt) {
@@ -2552,6 +2596,7 @@ export class Critter {
   }
 
   _enterState(state) {
+    this._dropDir = null;
     this._reliefTarget = null;
     this._releaseFood();
     this._playTarget = null;

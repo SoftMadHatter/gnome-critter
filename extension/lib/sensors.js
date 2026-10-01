@@ -28,7 +28,8 @@ export function getWindows() {
   const windows = [];
   const workspace = global.workspace_manager.get_active_workspace();
 
-  for (const win of workspace.list_windows()) {
+  const stacked = global.display.sort_windows_by_stacking(workspace.list_windows());
+  for (const win of stacked) {
     if (win.minimized) continue;
     if (win.get_window_type() !== Meta.WindowType.NORMAL) continue;
     if (!win.showing_on_its_workspace()) continue;

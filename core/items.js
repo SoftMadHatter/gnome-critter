@@ -243,7 +243,7 @@ export function tickItem(item, dt, surfaces, worldBounds, ctx = {}) {
       item.vx *= Math.max(0, 1 - toy.friction * dt);
       if (Math.abs(item.vx) < 4) item.vx = 0;
     }
-    const fresh = findSegmentById(segments, item.surface.surfaceId, item.surface.type);
+    const fresh = findSegmentById(segments, item.surface.surfaceId, item.surface.type, item.x);
     if (fresh && isOnSegment(fresh, item.x, item.y, 4)) {
       item.surface = fresh;
       item.y = fresh.y;

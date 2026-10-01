@@ -8,6 +8,10 @@ import {
   findCeilingAbove,
   findReachableWall,
   findReachableShelf,
+  findSegmentById,
+  findDropEdges,
+  findLedgeAtWallTop,
+  findWallById,
   groundPoint,
 } from '../core/surfaceMap.js';
 
@@ -175,4 +179,113 @@ test('groundPoint : deux écrans de hauteurs différentes, prend le plus proche'
   const right = { x: 800, y: 100, width: 800, height: 400 };
   assert.deepEqual(groundPoint([left, right], 300, 20), { x: 300, y: 600 });
   assert.deepEqual(groundPoint([left, right], 1200, 120), { x: 1200, y: 500 });
+});
+
+// --- Hidden / out-of-screen surfaces (#23) ----------------------------------
+
+const span = (list) => list.map((s) => [s.x1, s.x2]);
+
+test('computeSurfaces : le sol du petit écran ne traverse pas le grand écran voisin', () => {
+  const big = { x: 0, y: 0, width: 1000, height: 800 };
+  const small = { x: 1000, y: 0, width: 800, height: 500 };
+  const { segments } = computeSurfaces({ monitors: [big, small], windows: [] });
+  const ground = segments.filter((s) => s.type === 'ground');
+  assert.deepEqual(span(ground.filter((s) => s.y === 800)), [[0, 1000]]);
+  assert.deepEqual(span(ground.filter((s) => s.y === 500)), [[1000, 1800]]);
+
+  // Small screen *below* the big one's bottom edge: the big one's ground is cut.
+  const tall = { x: 0, y: 0, width: 1000, height: 400 };
+  const wide = { x: 500, y: 0, width: 1000, height: 800 };
+  const r = computeSurfaces({ monitors: [tall, wide], windows: [] });
+  assert.deepEqual(span(r.segments.filter((s) => s.type === 'ground' && s.y === 400)), [[0, 500]]);
+});
+
+test('computeSurfaces : deux écrans alignés gardent un sol continu, sans mur commun', () => {
+  const left = { x: 0, y: 0, width: 1000, height: 600 };
+  const right = { x: 1000, y: 0, width: 1000, height: 600 };
+  const { segments, walls } = computeSurfaces({ monitors: [left, right], windows: [] });
+  assert.equal(segments.filter((s) => s.type === 'ground').length, 2);
+  assert.deepEqual(walls.map((w) => [w.side, w.x]).sort(), [['left', 0], ['right', 2000]]);
+});
+
+test('computeSurfaces : mur partiellement mitoyen, seule la partie exposée reste', () => {
+  const left = { x: 0, y: 0, width: 1000, height: 600 };
+  const right = { x: 1000, y: 200, width: 1000, height: 400 };
+  const { walls } = computeSurfaces({ monitors: [left, right], windows: [] });
+  const leftRight = walls.filter((w) => w.surfaceId === 'monitor:0' && w.side === 'right');
+  assert.deepEqual(leftRight.map((w) => [w.y1, w.y2]), [[0, 200]]);
+});
+
+test('computeSurfaces : le rebord d\'une fenêtre est coupé là où une fenêtre devant le cache', () => {
+  const monitors = [{ x: 0, y: 0, width: 2000, height: 1000 }];
+  const back = { id: 'back', x: 100, y: 300, width: 600, height: 400 };
+  const front = { id: 'front', x: 400, y: 200, width: 600, height: 400 };
+  const { segments, walls } = computeSurfaces({ monitors, windows: [back, front] });
+  const shelf = (id) => segments.filter((s) => s.type === 'shelf' && s.surfaceId === id);
+  assert.deepEqual(span(shelf('back')), [[100, 400]]);
+  assert.deepEqual(span(shelf('front')), [[400, 1000]]);
+  // Back window's right wall (x=700) is behind the front window for y in [300, 600].
+  const wall = walls.filter((w) => w.surfaceId === 'back' && w.side === 'right');
+  assert.deepEqual(wall.map((w) => [w.y1, w.y2]), [[600, 700]]);
+  // Order matters: swapped, it's the other way around.
+  const swapped = computeSurfaces({ monitors, windows: [front, back] });
+  assert.deepEqual(span(swapped.segments.filter((s) => s.type === 'shelf' && s.surfaceId === 'back')), [[100, 700]]);
+});
+
+test('computeSurfaces : une fenêtre qui déborde de l\'écran est restreinte aux moniteurs', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 800 }];
+  const win = { id: 'w', x: 800, y: 300, width: 600, height: 300 };
+  const { segments, walls } = computeSurfaces({ monitors, windows: [win] });
+  assert.deepEqual(span(segments.filter((s) => s.type === 'shelf')), [[800, 1000]]);
+  assert.deepEqual(walls.filter((w) => w.surfaceId === 'w').map((w) => w.side), ['left']);
+});
+
+test('findSegmentById / findWallById : choisit le morceau le plus proche de la coordonnée', () => {
+  const monitors = [{ x: 0, y: 0, width: 2000, height: 1000 }];
+  const back = { id: 'back', x: 100, y: 300, width: 800, height: 400 };
+  const front = { id: 'front', x: 400, y: 200, width: 200, height: 400 };
+  const { segments, walls } = computeSurfaces({ monitors, windows: [back, front] });
+  assert.equal(findSegmentById(segments, 'back', 'shelf', 800).x1, 600);
+  assert.equal(findSegmentById(segments, 'back', 'shelf', 200).x2, 400);
+  assert.equal(findSegmentById(segments, 'back', 'shelf').x1, 100);
+  assert.equal(findSegmentById(segments, 'nope', 'shelf', 0), null);
+  assert.ok(findWallById(walls, 'back', 'left', 650));
+});
+
+// --- Stepping off / over (#21) ----------------------------------------------
+
+const GROUND_SHELF = new Set(['ground', 'shelf']);
+
+test('findDropEdges : rebord de fenêtre -> sol en dessous des deux côtés', () => {
+  const { segments } = computeSurfaces({
+    monitors: [{ x: 0, y: 0, width: 1000, height: 800 }],
+    windows: [{ id: 'w', x: 300, y: 400, width: 200, height: 200 }],
+  });
+  const shelf = segments.find((s) => s.type === 'shelf');
+  const edges = findDropEdges(segments, shelf, 400, 500, GROUND_SHELF);
+  assert.deepEqual(edges.map((e) => [e.x, e.dir, e.landing.type]), [[300, -1, 'ground'], [500, 1, 'ground']]);
+  assert.deepEqual(findDropEdges(segments, shelf, 400, 100, GROUND_SHELF), [], 'trop haut pour maxDrop');
+});
+
+test("findDropEdges : le sol de l'écran haut descend vers l'écran bas, pas dans le vide", () => {
+  const low = { x: 0, y: 300, width: 1000, height: 500 };
+  const high = { x: 1000, y: 0, width: 1000, height: 500 };
+  const { segments } = computeSurfaces({ monitors: [low, high], windows: [] });
+  const highGround = segments.find((s) => s.type === 'ground' && s.y === 500);
+  const edges = findDropEdges(segments, highGround, 500, 500, GROUND_SHELF);
+  assert.deepEqual(edges.map((e) => [e.x, e.dir, e.landing.y]), [[1000, -1, 800]]);
+  // The low ground has nothing lower: its right end faces a higher surface.
+  const lowGround = segments.find((s) => s.type === 'ground' && s.y === 800);
+  assert.deepEqual(findDropEdges(segments, lowGround, 800, 500, GROUND_SHELF), []);
+});
+
+test('findLedgeAtWallTop : sol voisin au sommet du mur exposé, null pour un mur flottant', () => {
+  const low = { x: 0, y: 300, width: 1000, height: 500 };
+  const high = { x: 1000, y: 0, width: 1000, height: 500 };
+  const { segments, walls } = computeSurfaces({ monitors: [low, high], windows: [] });
+  const wall = walls.find((w) => w.surfaceId === 'monitor:0' && w.side === 'right');
+  const found = findLedgeAtWallTop(segments, wall);
+  assert.equal(found.segment.surfaceId, 'monitor:1');
+  assert.equal(found.dir, 1);
+  assert.equal(findLedgeAtWallTop(segments, { x: 123, y1: 50, y2: 90 }), null);
 });
