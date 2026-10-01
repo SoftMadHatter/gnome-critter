@@ -13,6 +13,7 @@ import {
   findLedgeAtWallTop,
   findWallById,
   groundPoint,
+  ceilingRun,
 } from '../core/surfaceMap.js';
 
 test('computeSurfaces génère sol, plafond et murs pour chaque moniteur', () => {
@@ -288,4 +289,12 @@ test('findLedgeAtWallTop : sol voisin au sommet du mur exposé, null pour un mur
   assert.equal(found.segment.surfaceId, 'monitor:1');
   assert.equal(found.dir, 1);
   assert.equal(findLedgeAtWallTop(segments, { x: 123, y1: 50, y2: 90 }), null);
+});
+
+test('ceilingRun : va vers le côté où il reste le plus de place', () => {
+  const seg = { type: 'ceiling', y: 100, x1: 200, x2: 600 };
+  assert.deepEqual(ceilingRun(seg, 200), { dir: 1, run: 400 });
+  assert.deepEqual(ceilingRun(seg, 600), { dir: -1, run: 400 });
+  assert.deepEqual(ceilingRun(seg, 250), { dir: 1, run: 350 });
+  assert.deepEqual(ceilingRun(seg, 580), { dir: -1, run: 380 });
 });
