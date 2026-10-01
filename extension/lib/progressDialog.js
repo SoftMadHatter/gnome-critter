@@ -6,6 +6,7 @@
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
@@ -73,10 +74,7 @@ export const ProgressDialog = GObject.registerClass(
     }
 
     _row(text, style = '') {
-      const label = new St.Label({ text, style });
-      label.clutter_text.line_wrap = true;
-      this._list.add_child(label);
-      return label;
+      return this._line(this._list, text, style);
     }
 
     _fillAchievements() {
@@ -126,7 +124,10 @@ export const ProgressDialog = GObject.registerClass(
 
     _line(box, text, style = '') {
       const label = new St.Label({ text, style });
+      // Without these, Clutter ellipsizes long text instead of wrapping it.
+      label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
       label.clutter_text.line_wrap = true;
+      label.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
       box.add_child(label);
       return label;
     }

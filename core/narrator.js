@@ -16,7 +16,12 @@ export const NARRATOR = N_('Le Comité');
 export const SOBER_OPENERS = [N_('Nouveau succès !'), N_('Succès débloqué.'), N_('Le Comité prend note.')];
 export const TROLL_OPENERS = [
   N_('Nouveau succès !'),
-  N_('Bêtise débloquée !'),
+  N_('Succès douteux débloqué.'),
+  N_('Succès… discutable.'),
+  N_('Succès homologué, sous réserve.'),
+  N_("Le Comité n'a rien vu venir."),
+  N_('Succès non contractuel.'),
+  N_('Exploit (?) débloqué.'),
   N_('Attention, succès en approche.'),
   N_('Le Comité a tout vu.'),
 ];
@@ -90,19 +95,21 @@ export function rewardLabel(reward) {
  */
 export function announceUnlock({ def, who = null, outcome = {}, random = Math.random }) {
   const title = _(NARRATOR);
+  const why = def.description ? fmt(_('Condition : {condition}.'), { condition: def.description.replace(/\.$/, '') }) : null;
+  // One line per piece of information: the opening and subject, then (mischief) the Committee's comment, the condition, the reward, the closing line.
   if (!def.troll) {
     const coins = def.reward?.coins ?? 0;
     const reward = fmt(_('Récompense : {reward}.'), { reward: coins > 0 ? coinsText(coins) : _('la gloire') });
-    return { title, body: [_(pick(SOBER_OPENERS, random)), subject(who, def.name), reward].join(' ') };
+    return { title, body: [`${_(pick(SOBER_OPENERS, random))} ${subject(who, def.name)}`, why, reward].filter(Boolean).join('\n') };
   }
   const parts = [
-    _(pick(TROLL_OPENERS, random)),
-    subject(who, def.name),
+    `${_(pick(TROLL_OPENERS, random))} ${subject(who, def.name)}`,
     def.quip,
+    why,
     fmt(_('Récompense : {reward}'), { reward: rewardText(def.reward, outcome) }),
     translated(pick(TROLL_CLOSERS, random)),
   ];
-  return { title, body: parts.filter(Boolean).join(' ') };
+  return { title, body: parts.filter(Boolean).join('\n') };
 }
 
 /**
@@ -128,7 +135,7 @@ export function announceBurst({ who = null, defs, coins = 0 }) {
   ];
   const trolls = defs.filter((def) => def.troll).length;
   if (trolls > 0) {
-    parts.push(fmt(ngettext('Dont {n} bêtise. Le Comité ne dira rien.', 'Dont {n} bêtises. Le Comité ne dira rien.', trolls), { n: trolls }));
+    parts.push(fmt(ngettext('Dont {n} exploit douteux. Le Comité ne dira rien.', 'Dont {n} exploits douteux. Le Comité ne dira rien.', trolls), { n: trolls }));
   }
   if (coins > 0) parts.push(fmt(_('+{coins}.'), { coins: coinsText(coins) }));
   return { title: _(NARRATOR), body: parts.join(' ') };

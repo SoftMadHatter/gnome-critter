@@ -478,7 +478,7 @@ export class Manager {
       this._announceEntry(line, announceBurst({ who, defs, coins }));
     } else {
       defs.forEach((def, i) => {
-        const line = def.troll ? _('{name} : bêtise « {achievement} ».') : _('{name} : succès « {achievement} ».');
+        const line = def.troll ? _('{name} : exploit douteux « {achievement} ».') : _('{name} : succès « {achievement} ».');
         this._announceEntry(fmt(line, { name: subject, achievement: def.name }), announceUnlock({ def, who, outcome: outcomes[i] }));
       });
     }
