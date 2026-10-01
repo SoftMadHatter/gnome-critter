@@ -76,6 +76,14 @@ test('contrôles : aucune erreur de structure sur les vrais packs', () => {
   }
 });
 
+test('contrôles : aucun titre de succès genré dans les vrais packs ni dans la bibliothèque', () => {
+  for (const id of readdirSync(join(ROOT, 'packs'))) {
+    const meta = JSON.parse(readFileSync(join(ROOT, 'packs', id, 'pack.json'), 'utf8'));
+    const gendered = checkPack(preparePack(id, meta, new Set())).filter((issue) => issue.message.startsWith('titre genré'));
+    assert.deepEqual(gendered, [], `${id} : ${gendered.map((e) => e.message).join(' ; ')}`);
+  }
+});
+
 test('contrôles de traduction : catalogue', () => {
   const catalog = parsePo([
     'msgid "Fermer"', 'msgstr "Close"', '',

@@ -2733,8 +2733,8 @@ msgstr ""
 
 #. achievement: tickles
 #: core/achievementLibrary.js
-msgid "martyr des chatouilles"
-msgstr "tickle martyr"
+msgid "supplice des chatouilles"
+msgstr "tickle torture"
 
 #. achievement: drags
 #: core/achievementLibrary.js

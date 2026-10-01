@@ -254,7 +254,7 @@ export const LIBRARY = Object.freeze([
   {
     series: 'tickles', troll: true, category: 'care', stat: 'tickles', tiers: [50, 250],
     names: ['Chatouilleux', 'Supplice des plumes'],
-    description: 'Être chatouillé {n} fois', title: 'martyr des chatouilles',
+    description: 'Être chatouillé {n} fois', title: 'supplice des chatouilles',
     quips: [
       "Cinquante chatouilles. Il rit, mais à l'intérieur, il prépare sa vengeance.",
       "Deux cent cinquante chatouilles. Le Comité a prévenu une association. Elle n'a pas rappelé.",
