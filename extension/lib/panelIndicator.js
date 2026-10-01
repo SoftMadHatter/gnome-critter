@@ -1,8 +1,9 @@
 // Top-bar icon: critters' mood at a glance, and a short menu organized as
 // "card + quick actions":
 //   critter selector (if there are several), card (name, gauges),
-//   four quick-action buttons, then expandable rows (More…,
-//   Desktop…, Coins) and "Settings…".
+//   four quick-action buttons, then rows opening pages (drill-down, so the
+//   menu stays short on a small screen): Place…, the critter's own page,
+//   Progress, Shop, Desktop; and "Settings…".
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -12,11 +13,10 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import { isBowlFood } from '../core/items.js';
 import { _, N_, ngettext, fmt } from '../core/i18n.js';
-import { foodLabel, toyLabel, bedLabel, bowlLabel, lifeSummary, BED_LABELS, BOWL_LABELS } from '../core/labels.js';
-import { buildCritterActions } from './critterActions.js';
-import { buttonRow, collapseRows, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
+import { lifeSummary } from '../core/labels.js';
+import { buildCritterActions, buildDropActions } from './critterActions.js';
+import { Pager, buttonRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
 
 const GAUGES = [
   ['satiety', N_('Satiété')],
@@ -66,10 +66,7 @@ export const CritterIndicator = GObject.registerClass(
         this._vacation.setToggleState(settings.get_boolean('vacation-mode'));
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
-        if (!open) {
-          collapseRows(this.menu); // reopens clean
-          return;
-        }
+        if (!open) return;
         this._owner.noteMenuOpen(); // the Committee is counting (see the player's blunders)
         this._laser.setToggleState(this._owner.isLaser());
         this._tidy.setSensitive(this._owner.hasToys());
@@ -95,6 +92,8 @@ export const CritterIndicator = GObject.registerClass(
 
     _buildMenu() {
       const critters = this._critters();
+      this._pager = new Pager(this.menu);
+      const root = this._pager.root.content;
 
       // Critter selector (a single critter: no selector).
       this._selector = null;
@@ -102,12 +101,12 @@ export const CritterIndicator = GObject.registerClass(
         this._selector = buttonRow(
           critters.map((critter, index) => ({ label: critter.name ?? `#${index + 1}`, onClick: () => this._select(index) })),
         );
-        this.menu.addMenuItem(this._selector.item);
+        root.addMenuItem(this._selector.item);
       }
 
       // Card: name, state, gauges in two columns.
       this._title = new St.Label({ text: '', style: 'font-weight: bold;' });
-      this.menu.addMenuItem(staticItem(this._title));
+      root.addMenuItem(staticItem(this._title));
       this._gauges = {};
       for (let i = 0; i < GAUGES.length; i += 2) {
         const cells = GAUGES.slice(i, i + 2).map(([key, label]) => {
@@ -115,7 +114,7 @@ export const CritterIndicator = GObject.registerClass(
           this._gauges[key] = cell;
           return cell;
         });
-        this.menu.addMenuItem(gaugeRow(cells[0], cells[1]));
+        root.addMenuItem(gaugeRow(cells[0], cells[1]));
       }
 
       // Quick actions: they don't close the menu, they can be chained.
@@ -126,20 +125,24 @@ export const CritterIndicator = GObject.registerClass(
         { label: _('Brosser'), onClick: () => this._owner.brush(this._critter()) },
         { label: _('Câlin'), onClick: () => this._owner.pet(this._critter()) },
       ]);
-      this.menu.addMenuItem(this._quick.item);
+      root.addMenuItem(this._quick.item);
 
-      // Expandable rows: accordion (one open at a time per level).
-      this._more = expandableRow(this.menu, _('Plus…'));
-      this._desk = expandableRow(this.menu, _('Bureau…'));
-      this._progress = expandableRow(this.menu, _('Pièces'));
-      this._buildDesk(this._desk.section);
-      this._shop = expandableRow(this._progress.section, _('Boutique'));
+      // Pages: objects to place (at the cursor), the chosen critter, progress, shop, desktop.
+      this._place = this._pager.row(this._pager.root, _('Poser…'));
+      buildDropActions(this._pager, this._place, this._owner);
+      this._me = this._pager.row(this._pager.root, _('Sans nom'));
+      this._progress = this._pager.row(this._pager.root, _('Progrès'));
+      this._achievements = this._progress.section.addAction(_('Succès'), () => this._owner.openProgress(this._critter(), 'achievements'));
+      this._progress.section.addAction(_('Statistiques'), () => this._owner.openProgress(this._critter(), 'stats'));
       this._journal = this._progress.section.addAction(_('Journal'), () => this._owner.openProgress(this._critter(), 'journal'));
+      this._shop = this._pager.row(this._pager.root, _('Boutique'));
+      this._desk = this._pager.row(this._pager.root, _('Bureau'));
+      this._buildDesk(this._desk.section);
 
-      this.menu.addAction(_('Réglages…'), () => this._owner.openSettings());
+      root.addAction(_('Réglages…'), () => this._owner.openSettings());
     }
 
-    /** "Desktop…": things that concern every critter; objects fall at the cursor's position. */
+    /** "Desktop": things that concern every critter and the desktop's objects. */
     _buildDesk(section) {
       this._vacation = new PopupMenu.PopupSwitchMenuItem(_('Mode vacances'), this._settings.get_boolean('vacation-mode'));
       this._vacation.connect('toggled', (_item, state) => this._settings.set_boolean('vacation-mode', state));
@@ -147,27 +150,7 @@ export const CritterIndicator = GObject.registerClass(
       this._laser = new PopupMenu.PopupSwitchMenuItem(_('Pointeur laser'), this._owner.isLaser());
       this._laser.connect('toggled', (_item, state) => this._owner.setLaser(state));
       section.addMenuItem(this._laser);
-
-      const foods = this._owner.foods();
-      if (foods.length > 0) {
-        const feed = expandableRow(section, _('Poser de la nourriture'));
-        for (const kind of foods) feed.section.addAction(foodLabel(kind), () => this._owner.dropFood(kind));
-      }
-      const bowlFoods = foods.filter(isBowlFood); // floating food doesn't go in a bowl
-      if (bowlFoods.length > 0) {
-        const bowl = expandableRow(section, _('Remplir une gamelle'));
-        for (const kind of bowlFoods) bowl.section.addAction(foodLabel(kind, 5), () => this._owner.fillBowl(kind));
-        const bowls = expandableRow(section, _('Poser une gamelle'));
-        for (const model of Object.keys(BOWL_LABELS)) bowls.section.addAction(bowlLabel(model), () => this._owner.dropBowl(null, model));
-      }
-      const beds = expandableRow(section, _('Poser un lit'));
-      for (const model of Object.keys(BED_LABELS)) beds.section.addAction(bedLabel(model), () => this._owner.dropBed(null, model));
-      section.addAction(_('Poser une litière'), () => this._owner.dropLitter());
       section.addAction(_('Nettoyer les traces'), () => this._owner.cleanAll());
-      if (this._owner.preyKinds().length > 0) section.addAction(_('Lâcher une proie'), () => this._owner.dropPrey());
-      if (this._owner.plantKinds().length > 0) section.addAction(_('Poser une plante'), () => this._owner.dropPlant());
-      const toys = expandableRow(section, _('Poser un jouet'));
-      for (const kind of this._owner.toyKinds()) toys.section.addAction(toyLabel(kind), () => this._owner.dropToy(kind));
       this._tidy = section.addAction(_('Ranger les jouets'), () => this._owner.clearToys());
       section.addAction(_('Retirer les objets'), () => this._owner.clearItems());
     }
@@ -180,20 +163,16 @@ export const CritterIndicator = GObject.registerClass(
       this.refresh();
     }
 
-    /** "More…": the chosen critter's actions, plus its achievements and statistics. */
+    /** The chosen critter's page: its actions (the progress page covers achievements and statistics). */
     _rebuildCritterSection() {
-      const section = this._more.section;
-      section.removeAll();
-      this._actions = buildCritterActions(section, this._critter(), this._owner);
-      // The detail opens in a separate window: the menu only shows the achievement count.
-      this._achievements = section.addAction(_('Succès'), () => this._owner.openProgress(this._critter(), 'achievements'));
-      section.addAction(_('Statistiques'), () => this._owner.openProgress(this._critter(), 'stats'));
+      this._pager.clearPage(this._me.page);
+      this._actions = buildCritterActions(this._pager, this._me.page, this._critter(), this._owner, { drops: false, brush: false });
     }
 
-    /** Rebuilds achievements, statistics, shop, and log (on menu open or after a purchase). */
+    /** Rebuilds achievements, shop, and log rows (on menu open or after a purchase). */
     _rebuildProgress() {
       const player = this._owner.getPlayer();
-      this._progress.setTitle(fmt(_('Pièces : {coins}'), { coins: player.coins }));
+      this._shop.setPageTitle(fmt(_('Pièces : {coins}'), { coins: player.coins }));
 
       const critter = this._critter();
       const { done, total } = this._owner.achievementSummary(critter);
@@ -219,6 +198,7 @@ export const CritterIndicator = GObject.registerClass(
       const unread = this._owner.unreadCount();
       this._badge.text = String(unread);
       this._badge.visible = unread > 0;
+      this._progress.setTitle(unread > 0 ? `${_('Progrès')} ●` : _('Progrès'));
       this._journal.label.text = unread > 0
         ? fmt(ngettext('Journal ({count} non lu)', 'Journal ({count} non lus)', unread), { count: unread })
         : _('Journal');
@@ -240,6 +220,8 @@ export const CritterIndicator = GObject.registerClass(
           button.style = index === this._selected ? 'font-weight: bold;' : '';
         });
       }
+      this._me.setTitle(critter.name ?? _('Sans nom'));
+      this._me.setPageTitle(critter.name ?? _('Sans nom'));
       const title = this._owner.titleOf(critter);
       this._title.text = `${critter.name ?? _('Sans nom')}${title ? `, ${title}` : ''} — ${lifeSummary(critter.life)}`;
       for (const [key] of GAUGES) this._gauges[key].update(critter.needs.values[key]);
