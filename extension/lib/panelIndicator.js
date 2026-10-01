@@ -16,7 +16,7 @@ import { isBowlFood } from '../core/items.js';
 import { _, N_, ngettext, fmt } from '../core/i18n.js';
 import { foodLabel, toyLabel, bedLabel, bowlLabel, lifeSummary, BED_LABELS, BOWL_LABELS } from '../core/labels.js';
 import { buildCritterActions } from './critterActions.js';
-import { buttonRow, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
+import { buttonRow, collapseRows, expandableRow, gaugeCell, gaugeRow, setEnabled, staticItem } from './menuWidgets.js';
 
 const GAUGES = [
   ['satiety', N_('Satiété')],
@@ -50,7 +50,6 @@ export const CritterIndicator = GObject.registerClass(
       this._settings = settings;
       this._selected = 0;
       this._actions = null;
-      this._sections = [];
 
       this._icon = new St.Icon({ icon_name: 'face-smile-symbolic', style_class: 'system-status-icon' });
       // Badge with the number of unread log announcements (hidden at 0).
@@ -67,7 +66,10 @@ export const CritterIndicator = GObject.registerClass(
         this._vacation.setToggleState(settings.get_boolean('vacation-mode'));
       });
       this.menu.connect('open-state-changed', (_menu, open) => {
-        if (!open) return;
+        if (!open) {
+          collapseRows(this.menu); // reopens clean
+          return;
+        }
         this._owner.noteMenuOpen(); // the Committee is counting (see the player's blunders)
         this._laser.setToggleState(this._owner.isLaser());
         this._tidy.setSensitive(this._owner.hasToys());
@@ -126,11 +128,10 @@ export const CritterIndicator = GObject.registerClass(
       ]);
       this.menu.addMenuItem(this._quick.item);
 
-      // Expandable rows: only one open at a time.
-      this._more = expandableRow(this.menu, _('Plus…'), (open) => this._toggle(this._more, open));
-      this._desk = expandableRow(this.menu, _('Bureau…'), (open) => this._toggle(this._desk, open));
-      this._progress = expandableRow(this.menu, _('Pièces'), (open) => this._toggle(this._progress, open));
-      this._sections = [this._more, this._desk, this._progress];
+      // Expandable rows: accordion (one open at a time per level).
+      this._more = expandableRow(this.menu, _('Plus…'));
+      this._desk = expandableRow(this.menu, _('Bureau…'));
+      this._progress = expandableRow(this.menu, _('Pièces'));
       this._buildDesk(this._desk.section);
       this._shop = expandableRow(this._progress.section, _('Boutique'));
       this._journal = this._progress.section.addAction(_('Journal'), () => this._owner.openProgress(this._critter(), 'journal'));
@@ -169,10 +170,6 @@ export const CritterIndicator = GObject.registerClass(
       for (const kind of this._owner.toyKinds()) toys.section.addAction(toyLabel(kind), () => this._owner.dropToy(kind));
       this._tidy = section.addAction(_('Ranger les jouets'), () => this._owner.clearToys());
       section.addAction(_('Retirer les objets'), () => this._owner.clearItems());
-    }
-
-    _toggle(row, open) {
-      for (const other of this._sections) other.setOpen(other === row && open);
     }
 
     _select(index) {

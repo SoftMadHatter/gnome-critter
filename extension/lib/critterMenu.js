@@ -9,6 +9,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import { buildCritterActions } from './critterActions.js';
+import { collapseRows } from './menuWidgets.js';
 import { _ } from '../core/i18n.js';
 import { lifeSummary } from '../core/labels.js';
 
@@ -31,6 +32,9 @@ export class CritterMenu {
     this.menu.actor.hide();
     this._manager = new PopupMenu.PopupMenuManager(this._anchor);
     this._manager.addMenu(this.menu);
+    this.menu.connect('open-state-changed', (_menu, open) => {
+      if (!open) collapseRows(this.menu); // reopens clean
+    });
 
     this._header = new PopupMenu.PopupMenuItem('', { reactive: false, can_focus: false });
     this.menu.addMenuItem(this._header);

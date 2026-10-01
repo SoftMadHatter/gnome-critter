@@ -101,25 +101,35 @@ const ToggleMenuItem = GObject.registerClass(
   },
 );
 
+/** Expandable rows per menu or section (the parent), for the accordion: opening one closes its siblings. */
+const ROWS = new WeakMap();
+
+/** Indentation of an opened section: a thin bar on its left, cascading with the nesting. */
+const SECTION_STYLE = 'margin-left: 12px; padding-left: 6px; border-left-width: 2px; border-left-color: rgba(255,255,255,0.18);';
+
 /**
  * Expandable row: the whole line (label and arrow) is clickable and
- * expands a section. Replaces PopupSubMenuMenuItem, which doesn't fit in
- * these menus: nested in a section it only reacted to its arrow and
- * opened empty. The section can hold other expandable rows; its plain
- * items close the menu on click, as usual.
+ * expands an indented section. Replaces PopupSubMenuMenuItem, which
+ * doesn't fit in these menus: nested in a section it only reacted to its
+ * arrow and opened empty. The section can hold other expandable rows; its
+ * plain items close the menu on click, as usual.
+ * Accordion at every level: opening a row closes its siblings (same
+ * menu or section), and closing a row closes the rows nested in it.
  * @param {PopupMenu.PopupMenuBase} menu the menu or section receiving the row
  * @param {string} title
- * @param {((open: boolean) => void)|null} [onToggle] called with the desired
- *   state (accordion handled by the caller); by default the row opens and closes on its own
  */
-export function expandableRow(menu, title, onToggle = null) {
+export function expandableRow(menu, title) {
   let open = false;
   let visible = true;
-  const header = new ToggleMenuItem(title, () => (onToggle ? onToggle(!open) : row.setOpen(!open)));
+  const header = new ToggleMenuItem(title, () => row.setOpen(!open));
   menu.addMenuItem(header);
   const section = new PopupMenu.PopupMenuSection();
+  section.actor.style = SECTION_STYLE;
   section.actor.hide();
   menu.addMenuItem(section);
+
+  const siblings = ROWS.get(menu) ?? [];
+  ROWS.set(menu, siblings);
 
   const apply = () => {
     header.actor.visible = visible;
@@ -138,6 +148,11 @@ export function expandableRow(menu, title, onToggle = null) {
     setOpen(value) {
       open = value;
       apply();
+      if (value) {
+        for (const other of siblings) if (other !== row) other.setOpen(false);
+      } else {
+        collapseRows(section);
+      }
     },
     /** Hides or shows the whole row (e.g. actions pointless for an egg). */
     setVisible(value) {
@@ -145,5 +160,16 @@ export function expandableRow(menu, title, onToggle = null) {
       apply();
     },
   };
+  siblings.push(row);
+  // Rows rebuilt (`removeAll`) must not linger among the siblings.
+  header.connect('destroy', () => {
+    const index = siblings.indexOf(row);
+    if (index >= 0) siblings.splice(index, 1);
+  });
   return row;
+}
+
+/** Closes every expandable row of a menu or section (and, through them, their nested rows). */
+export function collapseRows(menu) {
+  for (const row of ROWS.get(menu) ?? []) row.setOpen(false);
 }
