@@ -2699,7 +2699,7 @@ msgstr ""
 
 #. achievement: tickles
 #: core/achievementLibrary.js
-msgid "martyr des chatouilles"
+msgid "supplice des chatouilles"
 msgstr ""
 
 #. achievement: drags

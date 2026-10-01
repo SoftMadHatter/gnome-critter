@@ -39,10 +39,10 @@
         "Premier puceron",
         "Terreur des pucerons",
         "Fléau des pucerons",
-        "Ami des jardiniers"
+        "Providence des jardiniers"
       ],
       "description": "Attraper {n} puceron{s}",
-      "title": "ami des jardiniers",
+      "title": "providence des jardiniers",
       "requires": { "can": "hunt" }
     },
     {
@@ -106,7 +106,7 @@
       ],
       "achievements": {
         "small-but-strong": { "name": "Small but mighty", "description": "Play 20 times" },
-        "hunts": { "names": [ "First aphid", "Terror of aphids", "Scourge of aphids", "Gardener's friend" ], "description": "Catch {n} aphid{s}", "title": "gardener's friend" },
+        "hunts": { "names": [ "First aphid", "Terror of aphids", "Scourge of aphids", "Gardeners' godsend" ], "description": "Catch {n} aphid{s}", "title": "gardeners' godsend" },
         "bug-unbreakable": { "name": "Indestructible", "description": "Fall 50 times", "quip": "Fifty falls and not a scratch. It's almost insulting.", "title": "immortal cockroach" }
       }
     }
