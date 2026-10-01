@@ -7,7 +7,7 @@ import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { ACCESSORIES, accessoryPlacement } from '../core/accessories.js';
+import { ACCESSORIES, accessoryPlacement, anchorForState } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
 
 /**
@@ -28,7 +28,7 @@ export function loadAccessoryImages(dir) {
 export class AccessoryActor {
   /**
    * @param {Record<string, St.ImageContent>} images
-   * @param {{head: {x:number, y:number}}} anchors
+   * @param {{head: {x:number, y:number}, states: Record<string, any>}} anchors
    */
   constructor(images, anchors) {
     this._images = images;
@@ -45,9 +45,11 @@ export class AccessoryActor {
    * @param {{x:number, y:number, width:number, height:number}} box the sprite's on-screen rectangle
    * @param {number} facing 1 (right) or -1 (left)
    * @param {boolean} visible false when the sprite is hidden
+   * @param {string} state the critter's state (the head is elsewhere in some poses)
    */
-  update(id, box, facing, visible) {
-    const image = id && visible ? this._images[id] : null;
+  update(id, box, facing, visible, state) {
+    const anchor = anchorForState(this._anchors, state);
+    const image = id && visible && anchor ? this._images[id] : null;
     if (!image) {
       if (this.actor.visible) this.actor.hide();
       this._id = null;
@@ -57,10 +59,11 @@ export class AccessoryActor {
       this._id = id;
       this.actor.content = image;
     }
-    const { x, y, size } = accessoryPlacement(id, box, this._anchors.head, facing);
+    const { x, y, size } = accessoryPlacement(id, box, anchor, facing, anchor.rotation);
     this.actor.set_size(size, size);
     this.actor.set_position(x, y);
     this.actor.scale_x = facing < 0 ? -1 : 1;
+    this.actor.rotation_angle_z = anchor.rotation * (facing < 0 ? -1 : 1);
     if (!this.actor.visible) this.actor.show();
   }
 

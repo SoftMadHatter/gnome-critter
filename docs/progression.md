@@ -141,6 +141,14 @@ direction and the stage's scale, and disappears in the egg. The head's
 anchor point is configurable per pack: `"anchors": { "head": { "x": 0.78,
 "y": 0.2 } }` (fractions of the sprite facing right).
 
+In poses where the head is elsewhere (sleeping curled up, climbing seen
+from behind, upside down on the ceiling), `anchors.states` gives a point
+per state (the animation name): `"states": { "sleep": { "x": 0.62, "y":
+0.4 }, "ceiling": { "x": 0.8, "y": 0.8, "rotation": 180 } }`. `rotation`
+is 0 (default) or 180 (head upside down: the accessory hangs below the
+point, rotated); `false` instead of a point hides the accessory in that
+state. States not listed use `head`.
+
 Premium foods cost coins on every gift: fish 3, meat 2, wet food 2 (x5 to
 fill a bowl). Kibble, seeds, mealworms, apple, plankton, flakes, toys,
 bowls, and beds stay free.

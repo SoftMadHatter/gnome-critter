@@ -92,34 +92,62 @@ export const ACCESSORY_LAYOUT = Object.freeze({
  * @param {{x:number, y:number, width:number, height:number}} box the sprite's rectangle
  * @param {{x:number, y:number}} head head anchor (fractions, sprite facing right)
  * @param {number} facing 1 (right) or -1 (left)
+ * @param {number} [rotation] 180 when the head is upside down: the accessory hangs below the point
  * @returns {{x:number, y:number, size:number}}
  */
-export function accessoryPlacement(id, box, head, facing) {
+export function accessoryPlacement(id, box, head, facing, rotation = 0) {
   const layout = ACCESSORY_LAYOUT[id] ?? {};
   const size = Math.max(6, Math.round((box.width / 2) * (layout.scale ?? 1)));
   const ax = box.x + (facing >= 0 ? head.x : 1 - head.x) * box.width;
   const ay = box.y + head.y * box.height + (layout.offset ?? 0) * size;
-  return { x: Math.round(ax - size / 2), y: Math.round(ay - size), size };
+  const offset = (layout.offset ?? 0) * size;
+  const top = rotation === 180 ? box.y + head.y * box.height - offset : ay - size;
+  return { x: Math.round(ax - size / 2), y: Math.round(top), size };
 }
 
 const DEFAULT_HEAD_ANCHOR = { x: 0.72, y: 0.2 };
+const ROTATIONS = [0, 180];
+
+const isFraction = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
+const isPoint = (v) => Boolean(v) && isFraction(v.x) && isFraction(v.y);
 
 /**
  * Validates the `anchors` section of a pack: the head point (fractions of
- * the sprite's size, sprite facing right), where a hat sits.
- * @returns {{anchors: {head: {x:number, y:number}}, ignored: string[]}}
+ * the sprite's size, sprite facing right), where a hat sits, and the
+ * optional `states` overrides for poses where the head is elsewhere
+ * (sleep, climb, ceiling...). A state entry is a point, optionally with a
+ * `rotation` (0 or 180 degrees: upside down, drawn below the point), or `false` to hide the accessory.
+ * @returns {{anchors: {head: {x:number, y:number}, states: Record<string, {x:number, y:number, rotation:number}|false>}, ignored: string[]}}
  */
 export function anchorsOverrides(raw) {
-  const anchors = { head: { ...DEFAULT_HEAD_ANCHOR } };
+  const anchors = { head: { ...DEFAULT_HEAD_ANCHOR }, states: {} };
   const ignored = [];
   for (const [key, value] of Object.entries(raw ?? {})) {
-    const ok =
-      key === 'head' &&
-      value &&
-      Number.isFinite(value.x) && value.x >= 0 && value.x <= 1 &&
-      Number.isFinite(value.y) && value.y >= 0 && value.y <= 1;
-    if (ok) anchors.head = { x: value.x, y: value.y };
-    else ignored.push(key);
+    if (key === 'head' && isPoint(value)) {
+      anchors.head = { x: value.x, y: value.y };
+    } else if (key === 'states' && value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [state, entry] of Object.entries(value)) {
+        if (!/^[a-z][A-Za-z]*$/.test(state)) ignored.push(`states.${state}`);
+        else if (entry === false) anchors.states[state] = false;
+        else if (isPoint(entry) && (entry.rotation === undefined || ROTATIONS.includes(entry.rotation))) {
+          anchors.states[state] = { x: entry.x, y: entry.y, rotation: entry.rotation ?? 0 };
+        } else ignored.push(`states.${state}`);
+      }
+    } else {
+      ignored.push(key);
+    }
   }
   return { anchors, ignored };
+}
+
+/**
+ * Where the accessory sits in a given state.
+ * @param {{head: {x:number, y:number}, states: Record<string, any>}} anchors result of anchorsOverrides
+ * @param {string} state
+ * @returns {{x:number, y:number, rotation:number}|null} null when the accessory is hidden
+ */
+export function anchorForState(anchors, state) {
+  const entry = anchors.states?.[state];
+  if (entry === false) return null;
+  return entry ?? { ...anchors.head, rotation: 0 };
 }

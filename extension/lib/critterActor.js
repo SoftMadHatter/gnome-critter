@@ -180,6 +180,7 @@ export class CritterActor {
       },
       snapshot.facing ?? this.critter.facing,
       this.actor.visible,
+      snapshot.state,
     );
   }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shopList, equippable, inSeason, anchorsOverrides, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
+import { shopList, equippable, inSeason, anchorsOverrides, anchorForState, accessoryPlacement, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
 import { Life } from '../core/life.js';
 import { Critter } from '../core/critter.js';
 
@@ -32,11 +32,37 @@ test('prix : accessoires et aliments premium', () => {
 });
 
 test('anchorsOverrides : défaut, valeurs valides, invalides signalées', () => {
-  assert.deepEqual(anchorsOverrides(undefined), { anchors: { head: { x: 0.72, y: 0.2 } }, ignored: [] });
+  assert.deepEqual(anchorsOverrides(undefined), { anchors: { head: { x: 0.72, y: 0.2 }, states: {} }, ignored: [] });
   assert.deepEqual(anchorsOverrides({ head: { x: 0.5, y: 0.1 } }).anchors.head, { x: 0.5, y: 0.1 });
   const bad = anchorsOverrides({ head: { x: 2, y: 0 }, tail: { x: 0, y: 0 } });
   assert.deepEqual(bad.ignored, ['head', 'tail']);
   assert.deepEqual(bad.anchors.head, { x: 0.72, y: 0.2 });
+});
+
+test('anchorsOverrides : ancres par état, masquage, rotation, repli sur la tête', () => {
+  const { anchors, ignored } = anchorsOverrides({
+    head: { x: 0.5, y: 0.1 },
+    states: { sleep: { x: 0.6, y: 0.4 }, ceiling: { x: 0.8, y: 0.8, rotation: 180 }, climb: false },
+  });
+  assert.deepEqual(ignored, []);
+  assert.deepEqual(anchorForState(anchors, 'sleep'), { x: 0.6, y: 0.4, rotation: 0 });
+  assert.deepEqual(anchorForState(anchors, 'ceiling'), { x: 0.8, y: 0.8, rotation: 180 });
+  assert.equal(anchorForState(anchors, 'climb'), null);
+  assert.deepEqual(anchorForState(anchors, 'walk'), { x: 0.5, y: 0.1, rotation: 0 });
+  const bad = anchorsOverrides({ states: { sleep: { x: 2, y: 0 }, walk: { x: 0, y: 0, rotation: 90 }, 'bad key': false, idle: true } });
+  assert.deepEqual(bad.ignored, ['states.sleep', 'states.walk', 'states.bad key', 'states.idle']);
+  assert.deepEqual(bad.anchors.states, {});
+  assert.deepEqual(anchorsOverrides({ states: [] }).ignored, ['states']);
+});
+
+test('accessoryPlacement : tête à l\'envers, l\'accessoire pend sous le point', () => {
+  const box = { x: 0, y: 0, width: 32, height: 32 };
+  const up = accessoryPlacement('crown', box, { x: 0.5, y: 0.5 }, 1);
+  const down = accessoryPlacement('crown', box, { x: 0.5, y: 0.5 }, 1, 180);
+  assert.equal(up.y + up.size, 16);
+  assert.equal(down.y, 16);
+  const bow = accessoryPlacement('bow', box, { x: 0.5, y: 0.5 }, 1, 180);
+  assert.ok(bow.y < 16, 'un nœud (offset) recouvre le point');
 });
 
 test('anniversaire : signalé à chaque année de vie, fêté pendant un jour', () => {

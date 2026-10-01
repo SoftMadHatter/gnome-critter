@@ -60,7 +60,12 @@
     }
   ],
   "anchors": {
-    "head": { "x": 0.83, "y": 0.5 }
+    "head": { "x": 0.83, "y": 0.5 },
+    "states": {
+      "sleep": { "x": 0.82, "y": 0.55 },
+      "climb": { "x": 0.5, "y": 0.12 },
+      "ceiling": { "x": 0.82, "y": 0.75, "rotation": 180 }
+    }
   },
   "tricks": [
     "roll"

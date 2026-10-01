@@ -88,7 +88,12 @@
     }
   ],
   "anchors": {
-    "head": { "x": 0.78, "y": 0.2 }
+    "head": { "x": 0.78, "y": 0.2 },
+    "states": {
+      "sleep": { "x": 0.62, "y": 0.52 },
+      "climb": { "x": 0.5, "y": 0.1 },
+      "ceiling": { "x": 0.8, "y": 0.8, "rotation": 180 }
+    }
   },
   "tricks": [
     "sit",

@@ -4,7 +4,7 @@
 // accessory placed on the head (accessoryPlacement).
 
 import { shiftPixels } from '../../core/colorShift.js';
-import { accessoryPlacement } from '../../core/accessories.js';
+import { accessoryPlacement, anchorForState } from '../../core/accessories.js';
 import { stagesOverrides, Life } from '../../core/life.js';
 
 const images = new Map();
@@ -147,16 +147,18 @@ export class SpritePlayer {
     ctx.drawImage(this.sheet, frame * frameSize, 0, frameSize, frameSize, x, y, width, height);
     ctx.restore();
     if (this.accessory && accessory) {
-      const head = this.options.head ?? { x: 0.72, y: 0.2 };
-      const place = accessoryPlacement(accessory, this.box, head, facing);
+      const anchors = this.options.anchors ?? { head: { x: 0.72, y: 0.2 }, states: {} };
+      const anchor = anchorForState(anchors, this.options.name);
+      if (!anchor) return;
+      const place = accessoryPlacement(accessory, this.box, anchor, facing, anchor.rotation);
+      const cx = place.x + place.size / 2;
+      const cy = place.y + place.size / 2;
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      if (facing < 0) {
-        ctx.translate(place.x + place.size / 2, 0);
-        ctx.scale(-1, 1);
-        ctx.translate(-(place.x + place.size / 2), 0);
-      }
-      ctx.drawImage(this.accessory, place.x, place.y, place.size, place.size);
+      ctx.translate(cx, cy);
+      if (facing < 0) ctx.scale(-1, 1);
+      ctx.rotate((anchor.rotation * Math.PI) / 180);
+      ctx.drawImage(this.accessory, -place.size / 2, -place.size / 2, place.size, place.size);
       ctx.restore();
     }
   }

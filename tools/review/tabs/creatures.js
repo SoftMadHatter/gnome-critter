@@ -39,7 +39,11 @@ function packSheet(pack) {
     ['Apparence', appearance.enabled
       ? `teinte ${appearance.hueRange.join(' à ')}°${appearance.colorizeGrays ? `, gris colorisés (saturation ${appearance.graySaturation})` : ''}`
       : 'désactivée'],
-    ['Ancrage de la tête', `x ${anchorsOverrides(meta.anchors).anchors.head.x}, y ${anchorsOverrides(meta.anchors).anchors.head.y}`],
+    ['Ancrage de la tête', (() => {
+      const { head, states } = anchorsOverrides(meta.anchors).anchors;
+      const byState = Object.entries(states).map(([name, a]) => (a ? `${name} : x ${a.x}, y ${a.y}${a.rotation ? `, ${a.rotation}°` : ''}` : `${name} : masqué`));
+      return [`x ${head.x}, y ${head.y}`, ...byState].join(' — ');
+    })()],
     ['Animations / réactions', `${Object.keys(meta.animations ?? {}).length} / ${Object.keys(meta.reactions ?? {}).length}`],
   ];
   return table([['', (r) => h('b', {}, r[0]), 'nowrap'], ['', (r) => r[1]]], rows);
@@ -48,7 +52,7 @@ function packSheet(pack) {
 export function render(root, { pack, state, setState }) {
   const meta = pack.meta;
   const appearance = appearanceOverrides(meta.appearance).config;
-  const head = anchorsOverrides(meta.anchors).anchors.head;
+  const anchors = anchorsOverrides(meta.anchors).anchors;
   const animations = Object.keys(meta.animations ?? {});
   const reactions = Object.keys(meta.reactions ?? {});
   const options = {
@@ -85,7 +89,7 @@ export function render(root, { pack, state, setState }) {
   const contact = h('div');
   const redraw = () => {
     save();
-    const player = new SpritePlayer({ pack, ...options, color: color(), head, padding: 0.6 });
+    const player = new SpritePlayer({ pack, ...options, color: color(), anchors, padding: 0.6 });
     const info = h('p', { class: 'muted' });
     player.ready.then(() => {
       const a = player.animation;
@@ -98,7 +102,7 @@ export function render(root, { pack, state, setState }) {
   };
   const renderContact = () => {
     const card = (name) => {
-      const player = new SpritePlayer({ pack, ...options, name, zoom: 2, color: color(), head, padding: 0.3 });
+      const player = new SpritePlayer({ pack, ...options, name, zoom: 2, color: color(), anchors, padding: 0.3 });
       return h('div', { class: 'card' }, player.canvas, h('div', { class: 'label' }, name));
     };
     const sheets = options.stage === 'egg'
