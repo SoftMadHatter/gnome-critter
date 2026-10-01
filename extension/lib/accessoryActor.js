@@ -1,13 +1,14 @@
 // A worn accessory (hat, bow tie, glasses...): a small non-reactive actor
-// placed on the critter's head, anchored via the pack's `anchors.head`
-// section. Added to uiGroup without addChrome: it lets clicks through.
+// placed on the critter's head, face or neck (per accessory), anchored via
+// the pack's `anchors` section, frame by frame. Added to uiGroup without
+// addChrome: it lets clicks through.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { ACCESSORIES, accessoryPlacement, anchorForState } from '../core/accessories.js';
+import { ACCESSORIES, accessoryPlacement, accessorySlot, anchorFor } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
 
 /**
@@ -28,7 +29,7 @@ export function loadAccessoryImages(dir) {
 export class AccessoryActor {
   /**
    * @param {Record<string, St.ImageContent>} images
-   * @param {{head: {x:number, y:number}, states: Record<string, any>}} anchors
+   * @param {ReturnType<typeof import('../core/accessories.js').anchorsOverrides>['anchors']} anchors
    */
   constructor(images, anchors) {
     this._images = images;
@@ -45,10 +46,11 @@ export class AccessoryActor {
    * @param {{x:number, y:number, width:number, height:number}} box the sprite's on-screen rectangle
    * @param {number} facing 1 (right) or -1 (left)
    * @param {boolean} visible false when the sprite is hidden
-   * @param {string} state the critter's state (the head is elsewhere in some poses)
+   * @param {{animation?: string, reaction?: string, frame: number}} pose the animation or reaction on screen and its frame
+   * @param {string} stage life stage
    */
-  update(id, box, facing, visible, state) {
-    const anchor = anchorForState(this._anchors, state);
+  update(id, box, facing, visible, pose, stage) {
+    const anchor = id ? anchorFor(this._anchors, { ...pose, stage, slot: accessorySlot(id) }) : null;
     const image = id && visible && anchor ? this._images[id] : null;
     if (!image) {
       if (this.actor.visible) this.actor.hide();

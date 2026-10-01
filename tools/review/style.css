@@ -147,3 +147,11 @@ details > summary { cursor: pointer; margin: 6px 0; }
 .warning-text { color: var(--warning); }
 canvas { image-rendering: auto; }
 canvas.pixel { image-rendering: pixelated; }
+
+/* Anchors tab */
+.anchor-stage { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.anchor-marker {
+  display: none; position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border: 2px solid #e22; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1px #fff;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }

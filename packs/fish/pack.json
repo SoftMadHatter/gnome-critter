@@ -63,7 +63,11 @@
     }
   ],
   "anchors": {
-    "head": { "x": 0.78, "y": 0.28 }
+    "head": { "x": 0.78, "y": 0.28 },
+    "slots": { "face": { "dx": 0, "dy": 0.12 }, "neck": { "dx": -0.04, "dy": 0.25 } },
+    "animations": {
+      "idle": [0.528, 0.333]
+    }
   },
   "tricks": [
     "flip"

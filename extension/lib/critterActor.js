@@ -63,6 +63,7 @@ export class CritterActor {
     this._night = false;
     this._nightEffect = null;
     this._accessory = null;
+    this._pose = { animation: 'idle', frame: 0 }; // animation or reaction on screen: the head moves with its frames
     this._nameTag = new NameTag();
     this._bubble = Object.keys(bubbleIcons).length > 0 ? new ThoughtBubble(bubbleIcons) : null;
     this._menu = menuOwner ? new CritterMenu(critter, pack, menuOwner) : null;
@@ -180,7 +181,8 @@ export class CritterActor {
       },
       snapshot.facing ?? this.critter.facing,
       this.actor.visible,
-      snapshot.state,
+      this._pose,
+      snapshot.stage,
     );
   }
 
@@ -313,6 +315,7 @@ export class CritterActor {
       }
       if (this._reaction) {
         this.actor.content = frames[this._reaction.index];
+        this._pose = { reaction: this._reaction.name, frame: this._reaction.index };
         this.syncPosition();
         return;
       }
@@ -365,7 +368,9 @@ export class CritterActor {
       }
     }
 
-    this.actor.content = frames[Math.min(this._frameIndex, frames.length - 1)];
+    const frame = Math.min(this._frameIndex, frames.length - 1);
+    this.actor.content = frames[frame];
+    this._pose = { animation: key, frame };
   }
 
   destroy() {

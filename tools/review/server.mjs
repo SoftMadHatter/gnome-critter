@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Review tool (dev): a local, read-only mini server that serves the
-// tools/review/ page and the game's sources, and notifies the page when a
+// Review tool (dev): a local mini server that serves the tools/review/
+// page and the game's sources (read-only, except POST /api/anchors/<pack>
+// which rewrites a pack's "anchors" section), and notifies the page when a
 // file changes (it reloads itself). No dependencies, listening only on
 // 127.0.0.1. Launched by scripts/review.sh (see docs/dev-workflow.md).
 
@@ -11,6 +12,7 @@ import { dirname, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolvePath, HOME } from './paths.mjs';
+import { saveAnchors } from './anchorsFile.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WATCHED = ['core', 'packs', 'po', 'extension', 'tools/review'];
@@ -65,10 +67,40 @@ function send(res, status, body, type = 'text/plain; charset=utf-8') {
 
 const json = (res, data) => send(res, 200, JSON.stringify(data), TYPES['.json']);
 
+/** Request body, capped (a pack's anchors are a few tens of kB at most). */
+async function readBody(req, limit = 1_000_000) {
+  let size = 0;
+  const chunks = [];
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > limit) throw new Error('Body too large.');
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** The only write: a pack's anchors. Local page only (Host and Origin checked, JSON content type: no cross-site form). */
+async function handleAnchors(req, res, pack) {
+  const local = `127.0.0.1:${PORT}`;
+  const origin = req.headers.origin;
+  if (req.headers.host !== local || (origin && origin !== `http://${local}`)) return send(res, 403, 'Forbidden.');
+  if (!String(req.headers['content-type']).startsWith('application/json')) return send(res, 415, 'JSON expected.');
+  let body;
+  try {
+    body = JSON.parse(await readBody(req));
+  } catch {
+    return send(res, 400, 'Invalid JSON.');
+  }
+  const problems = await saveAnchors(ROOT, pack, body);
+  return problems.length > 0 ? send(res, 422, problems.join('\n')) : json(res, { saved: true });
+}
+
 async function handle(req, res) {
-  if (req.method !== 'GET') return send(res, 405, 'Read only.');
   const url = new URL(req.url, 'http://127.0.0.1');
   const path = url.pathname;
+  const anchors = path.match(/^\/api\/anchors\/([a-z0-9-]+)$/);
+  if (req.method === 'POST' && anchors) return handleAnchors(req, res, anchors[1]);
+  if (req.method !== 'GET') return send(res, 405, 'Read only.');
 
   if (path === '/') {
     res.writeHead(302, { Location: HOME });

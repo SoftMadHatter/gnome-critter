@@ -136,18 +136,42 @@ Tray icon menu, "Shop": party hat (20 coins), bow tie (15), glasses (30),
 crown (80), plus **free seasonal** accessories (Santa hat in December,
 witch hat in October). Trophies and ridiculous accessories can't be bought
 (see Rewards). Once bought, an accessory is worn via "Accessories" in the
-critter menu (middle click). It sits on the head, follows the walking
-direction and the stage's scale, and disappears in the egg. The head's
-anchor point is configurable per pack: `"anchors": { "head": { "x": 0.78,
-"y": 0.2 } }` (fractions of the sprite facing right).
+critter menu (middle click). It follows the walking direction and the
+stage's scale, and disappears in the egg.
 
-In poses where the head is elsewhere (sleeping curled up, climbing seen
-from behind, upside down on the ceiling), `anchors.states` gives a point
-per state (the animation name): `"states": { "sleep": { "x": 0.62, "y":
-0.4 }, "ceiling": { "x": 0.8, "y": 0.8, "rotation": 180 } }`. `rotation`
-is 0 (default) or 180 (head upside down: the accessory hangs below the
-point, rotated); `false` instead of a point hides the accessory in that
-state. States not listed use `head`.
+Where it sits depends on the animation. The head moves while an animation
+plays (and is elsewhere when sleeping curled up, climbing seen from behind,
+or upside down on the ceiling), so the pack gives the **head point frame
+by frame** in `anchors` (fractions of the sprite facing right), edited
+with the review tool's "Anchors" tab:
+
+```jsonc
+"anchors": {
+  "head": { "x": 0.78, "y": 0.2 },       // fallback: top of the head
+  "slots": {                              // offsets from the head point
+    "face": { "dx": 0, "dy": 0.12 },     // glasses
+    "neck": { "dx": -0.04, "dy": 0.25 }  // medal, bow
+  },
+  "animations": {                         // key = animation name
+    "walk": [[0.78, 0.2], [0.79, 0.18], [0.78, 0.21]],  // one point per frame
+    "sleep": [0.62, 0.52],                                // one point: every frame
+    "ceiling": { "rotation": 180, "points": [0.8, 0.8] }, // upside down
+    "climb": false                                        // hidden (or `false` for one frame)
+  },
+  "reactions": { "petted": [[0.7, 0.3], [0.7, 0.32]] },   // key = reaction name
+  "stageFit": { "baby": { "scale": 0.75 } }               // a stage drawn smaller
+}
+```
+
+Each accessory has a slot: on top of the head (hats, crown, halo, cone,
+laurel), on the face (glasses) or on the neck (medal, bow), at the slot's
+offset from the head point. `rotation` is 0 (default) or 180 (head upside
+down: offsets flip, the accessory hangs below the point and is rotated).
+For an animation without an entry, the `head` fallback is used. The
+animation or reaction really playing counts (a reaction interrupts the
+state's animation). Young and senior critters use the adult's points; the
+baby, drawn smaller, scales them around the bottom center of the frame
+(`stageFit`).
 
 Premium foods cost coins on every gift: fish 3, meat 2, wet food 2 (x5 to
 fill a bowl). Kibble, seeds, mealworms, apple, plankton, flakes, toys,

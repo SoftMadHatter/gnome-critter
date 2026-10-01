@@ -71,8 +71,8 @@
   ],
   "anchors": {
     "head": { "x": 0.72, "y": 0.17 },
-    "states": {
-      "sleep": { "x": 0.68, "y": 0.4 }
+    "animations": {
+      "sleep": [0.68, 0.4]
     }
   },
   "tricks": [

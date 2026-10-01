@@ -151,8 +151,8 @@ reactions.
 Optional sections described in `docs/progression.md`: the species'
 achievements (templates that add to, replace, or remove entries from the
 shared library), the species' tricks, the head anchor point for
-accessories, with optional per-state points (`anchors.states`, see
-`docs/progression.md`) for poses where the head is elsewhere. Optional animations `trick_sit`, `trick_roll`, `trick_flip`
+accessories, then frame by frame for each animation and reaction, with the
+face and neck slots (`anchors`, see `docs/progression.md`). Optional animations `trick_sit`, `trick_roll`, `trick_flip`
 (one per trick declared) and `gift`.
 
 ## Names (`names`)

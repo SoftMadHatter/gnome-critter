@@ -131,15 +131,17 @@ two cats and a bird appear right away.
 
 ## Review tool (achievements, titles, rewards, creatures, objects)
 
-A local, **read-only** page to review the game's content the way the engine
-computes it, without launching GNOME Shell:
+A local page to review the game's content the way the engine
+computes it, without launching GNOME Shell (read-only, except the
+**Anchors** tab, which writes a pack's `anchors` section):
 
 ```bash
 scripts/review.sh --open        # http://127.0.0.1:8765/ ; --port N for another port
 ```
 
 The mini server (`tools/review/server.mjs`, Node, no dependencies) only
-listens on 127.0.0.1, only answers reads (GET), and only serves `core/`,
+listens on 127.0.0.1, only answers reads (GET) — plus `POST /api/anchors/<pack>`, which rewrites
+only the `"anchors"` block of `packs/<pack>/pack.json` (local page only) — and only serves `core/`,
 `packs/`, `po/`, `extension/lib/`, `extension/assets/`, and `tools/review/`.
 The page loads the core modules directly (`buildAchievements`,
 `achievementView`, the Committee, the loot boxes, `shiftPixels`…): what it
@@ -172,8 +174,18 @@ Tabs:
 - **The Committee**: announcements for an achievement (several draws),
   streaks, trophy, opening and closing lines, comments sorted by length.
 - **Creatures**: the pack's sheet, an animation player (stage, speed, size,
-  smoothing, flipping, colors, accessory on the head), a sheet of every
+  smoothing, flipping, colors, accessory, following the head frame by frame), a sheet of every
   animation for a stage.
+- **Anchors**: sets where the head is, frame by frame, so accessories
+  follow it. Pick an animation or reaction, click the head on each frame
+  (←/→ to move between frames; "next after click" advances by itself),
+  copy a point to every frame when the head barely moves, hide a frame,
+  flip to 180° for an upside-down head. Three witness accessories (crown,
+  glasses, medal; or just one) show the result next to an animated
+  preview. The pack settings tune the face and neck slots and the baby's
+  scale (the other stages are checked with the stage choice). The draft
+  stays in the browser until "Save to pack.json" rewrites only the
+  `anchors` block (the diff shows in git).
 - **Objects**: every sprite in the catalog, at display size and double.
 - **Checks**: structural errors (the rules from `tests/packs.test.js`) and
   text to review (typography, duplicates, lengths, gendered titles,
@@ -183,7 +195,7 @@ Tabs:
     the French;
   - checks on each pack's `translations` section.
 
-Limits: no writing (fixes are made in the editor); it's not GNOME Shell's
+Limits: no writing but the anchors (other fixes are made in the editor); it's not GNOME Shell's
 actual rendering (menus, notifications, HiDPI, Clutter filters): sprites
 are replayed in a browser canvas. For a headless capture (`chromium
 --headless`), add `?noreload` to the address: without it, the reload stream
