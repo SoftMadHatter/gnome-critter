@@ -23,7 +23,7 @@ export function draftFromPack(pack) {
         const p = entry.points.length === 1 ? entry.points[0] : entry.points[i];
         return p ? [p.x, p.y] : false;
       });
-      entries[key(kind, name)] = { rotation: entry.rotation, width: entry.width, points };
+      entries[key(kind, name)] = { rotation: entry.rotation, width: entry.width, hide: entry.hide, points };
     }
   }
   // What the editor doesn't edit (generated points, stages) is carried through untouched.
@@ -47,9 +47,10 @@ export function generatedAt(anchors, kind, name, frame, stage = 'adult') {
   if (!found) return null;
   const { entry } = found;
   const p = entry.points[Math.min(frame, entry.points.length - 1)];
-  return { point: p ? [p.x, p.y] : false, rotation: entry.rotation, width: entry.width };
+  return { point: p ? [p.x, p.y] : false, rotation: entry.rotation, width: entry.width, hide: entry.hide };
 }
 
+const sameHide = (a, b) => (a ?? []).join() === (b ?? []).join();
 const near = (a, b) => (a === false || b === false ? a === b : Math.abs(a[0] - b[0]) < 0.0006 && Math.abs(a[1] - b[1]) < 0.0006);
 
 /**
@@ -69,11 +70,12 @@ export function draftToRaw(pack, draft) {
     });
     const points = filled.map((p) => (p ? [round(p[0]), round(p[1])] : false));
     const base = generatedAt(gen, kind, name, 0);
-    if (base && (base.rotation ?? 0) === (entry.rotation ?? 0) && (base.width ?? null) === (entry.width ?? null) && points.every((p, i) => near(p, generatedAt(gen, kind, name, i).point))) return null;
+    if (base && (base.rotation ?? 0) === (entry.rotation ?? 0) && (base.width ?? null) === (entry.width ?? null) && sameHide(entry.hide, base.hide) && points.every((p, i) => near(p, generatedAt(gen, kind, name, i).point))) return null;
     const same = points.every((p) => p && p[0] === points[0][0] && p[1] === points[0][1]);
     let value = same ? points[0] : points;
     if (points.every((p) => p === false)) value = false;
-    return entry.rotation || entry.width ? { ...(entry.rotation ? { rotation: entry.rotation } : {}), ...(entry.width ? { width: entry.width } : {}), points: value } : value;
+    const extras = { ...(entry.rotation ? { rotation: entry.rotation } : {}), ...(entry.width ? { width: entry.width } : {}), ...(entry.hide?.length ? { hide: entry.hide } : {}) };
+    return Object.keys(extras).length > 0 ? { ...extras, points: value } : value;
   };
   const out = { head: { x: round(draft.head.x), y: round(draft.head.y) }, headWidth: round(draft.headWidth), slots: {}, ...draft.extra };
   const layout = Object.fromEntries(Object.entries(draft.layout ?? {}).filter(([, o]) => Object.keys(o).length > 0)
@@ -86,7 +88,7 @@ export function draftToRaw(pack, draft) {
       const entry = draft.entries[key(kind, name)];
       if (!entry) continue;
       const g = generatedAt(gen, kind, name, 0);
-      const changed = entry.points.some((p) => p !== null) || (entry.rotation ?? 0) !== (g?.rotation ?? 0) || (entry.width ?? null) !== (g?.width ?? null);
+      const changed = entry.points.some((p) => p !== null) || (entry.rotation ?? 0) !== (g?.rotation ?? 0) || (entry.width ?? null) !== (g?.width ?? null) || !sameHide(entry.hide, g?.hide);
       if (!changed) continue;
       const value = compact(entry, kind, name);
       if (value !== null) rows[name] = value;

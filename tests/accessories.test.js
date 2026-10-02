@@ -247,3 +247,15 @@ test('layout : surcharges par pack validées, fusionnées avec le code', () => {
   const small = accessoryPlacement('bow', box, anchor, 1, 0, layoutFor('bow', anchors));
   assert.ok(small.size < accessoryPlacement('bow', box, anchor, 1).size, 'le span du pack réduit le nœud');
 });
+
+test('hide : le visage et le cou disparaissent de dos, pas le dessus', () => {
+  const { anchors, ignored } = anchorsOverrides({
+    base: { animations: { climb: { hide: ['face', 'neck'], points: [0.5, 0.1] }, walk: [0.5, 0.2] } },
+  });
+  assert.deepEqual(ignored, []);
+  assert.equal(anchorFor(anchors, { animation: 'climb', slot: 'face' }), null);
+  assert.equal(anchorFor(anchors, { animation: 'climb', slot: 'neck' }), null);
+  assert.ok(anchorFor(anchors, { animation: 'climb', slot: 'top' }));
+  assert.ok(anchorFor(anchors, { animation: 'walk', slot: 'face' }));
+  assert.deepEqual(anchorsOverrides({ base: { animations: { climb: { hide: ['back'], points: [0.5, 0.1] } } } }).ignored, ['base.animations.climb']);
+});

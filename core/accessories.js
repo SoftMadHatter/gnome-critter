@@ -163,26 +163,30 @@ export function accessoryPlacement(id, box, anchor, facing, rotation = 0, layout
 /**
  * One animation's entry: a point `[x, y]` (all frames), a list with one
  * point or `false` (hidden) per frame, `false` (hidden everywhere), or
- * `{ rotation, width, points }` where `points` is either of the first two
- * forms, `rotation` 0 or 180 and `width` the head width on these frames
- * (when it differs from the stage's, e.g. a sleeping baby drawn smaller).
- * @returns {{rotation: number, width: number|null, points: ({x:number, y:number}|null)[]}|null} null if invalid
+ * `{ rotation, width, hide, points }` where `points` is either of the first two
+ * forms, `rotation` 0 or 180, `width` the head width on these frames
+ * (when it differs from the stage's, e.g. a sleeping baby drawn smaller) and
+ * `hide` the slots not shown (`["face", "neck"]` seen from behind).
+ * @returns {{rotation: number, width: number|null, hide: string[], points: ({x:number, y:number}|null)[]}|null} null if invalid
  */
 function parseEntry(raw) {
   let rotation = 0;
   let width = null;
+  let hide = [];
   let list = raw;
   if (isObject(raw)) {
     if (raw.rotation !== undefined && !ROTATIONS.includes(raw.rotation)) return null;
     if (raw.width !== undefined && !isWidth(raw.width)) return null;
+    if (raw.hide !== undefined && !(Array.isArray(raw.hide) && raw.hide.every((slot) => SLOTS.includes(slot)))) return null;
     rotation = raw.rotation ?? 0;
     width = raw.width ?? null;
+    hide = raw.hide ?? [];
     list = raw.points;
   }
-  if (list === false) return { rotation, width, points: [null] };
-  if (isPair(list)) return { rotation, width, points: [toPoint(list)] };
+  if (list === false) return { rotation, width, hide, points: [null] };
+  if (isPair(list)) return { rotation, width, hide, points: [toPoint(list)] };
   if (Array.isArray(list) && list.length > 0 && list.every((v) => v === false || isPair(v))) {
-    return { rotation, width, points: list.map((v) => (v === false ? null : toPoint(v))) };
+    return { rotation, width, hide, points: list.map((v) => (v === false ? null : toPoint(v))) };
   }
   return null;
 }
@@ -346,6 +350,7 @@ export function anchorFor(anchors, { animation, reaction, frame = 0, stage = 'ad
   let headWidth = anchors.stages[stage]?.headWidth ?? anchors.headWidth;
   if (found) {
     const { entry } = found;
+    if (entry.hide.includes(slot)) return null;
     ({ rotation } = entry);
     headWidth = entry.width ?? headWidth;
     point = entry.points[Math.min(Math.max(frame, 0), entry.points.length - 1)];

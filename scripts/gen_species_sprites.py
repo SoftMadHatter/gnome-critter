@@ -999,8 +999,8 @@ def head_width(sheets):
 def anchor_tables(sheets, spec, stage_width):
     """`{animations, reactions}` of generated head points for one stage (the egg shows no accessory).
 
-    One point per frame; a single point when they are all equal; `{rotation, width, points}` when the head is
-    upside down or its width differs from the stage's (a sheet drawn smaller as a whole)."""
+    One point per frame; a single point when they are all equal; `{rotation, width, hide, points}` when the head is
+    upside down, its width differs from the stage's (a sheet drawn smaller as a whole) or no face shows."""
     out = {"animations": {}, "reactions": {}}
     sources = {
         "animations": {state: sheet for state, (sheet, _) in spec["states"].items()},
@@ -1030,6 +1030,8 @@ def anchor_tables(sheets, spec, stage_width):
             width = round(sum(widths) / len(widths), 3)
             if abs(width - stage_width) > 0.002:
                 entry["width"] = width
+            if all(h is None or h.eye is None for h in heads):
+                entry["hide"] = ["face", "neck"]  # seen from behind: no face to put glasses on, no chest
             out[table][name] = {**entry, "points": points} if entry else points
     return out
 

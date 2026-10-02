@@ -28,7 +28,7 @@ test('brouillon : seules les retouches sont éditables, le généré est conserv
 
 test('généré : point, rotation et stade lus sans les retouches', () => {
   const gen = generatedAnchors(draftFromPack(pack(raw)));
-  assert.deepEqual(generatedAt(gen, 'animation', 'walk', 1), { point: [0.5, 0.25], rotation: 0, width: null });
+  assert.deepEqual(generatedAt(gen, 'animation', 'walk', 1), { point: [0.5, 0.25], rotation: 0, width: null, hide: [] });
   assert.equal(generatedAt(gen, 'animation', 'ceiling', 0).rotation, 180);
   assert.deepEqual(generatedAt(gen, 'reaction', 'petted', 1).point, [0.4, 0.4]);
   assert.deepEqual(generatedAt(gen, 'animation', 'walk', 2, 'baby').point, [0.6, 0.6]);
@@ -104,4 +104,18 @@ test('largeur de tête par stade et par animation', () => {
   // The width of one animation alone is a touch-up whose points stay the generated ones.
   draft.entries['animation:walk'] = { rotation: 0, width: 0.3, points: [null, null, null] };
   assert.deepEqual(draftToRaw(pack(raw), draft).animations.walk, { width: 0.3, points: [[0.5, 0.2], [0.5, 0.25], [0.5, 0.3]] });
+});
+
+test('vue de dos : hide généré conservé par la retouche, modifiable', () => {
+  const back = { ...raw, base: { ...raw.base, animations: { ...raw.base.animations, climb: { hide: ['face', 'neck'], points: [[0.5, 0.1], [0.5, 0.12]] } } } };
+  const climbMeta = { ...meta, animations: { ...meta.animations, climb: { frames: 2 } } };
+  const p = { raw: { anchors: back }, meta: climbMeta };
+  const draft = draftFromPack(p);
+  assert.deepEqual(generatedAt(generatedAnchors(draft), 'animation', 'climb', 0).hide, ['face', 'neck']);
+  // Touching one frame up keeps the generated hide.
+  draft.entries['animation:climb'] = { rotation: 0, width: null, hide: ['face', 'neck'], points: [[0.4, 0.1], null] };
+  assert.deepEqual(draftToRaw(p, draft).animations.climb, { hide: ['face', 'neck'], points: [[0.4, 0.1], [0.5, 0.12]] });
+  // Showing the face again is a touch-up even if the points are the generated ones.
+  draft.entries['animation:climb'] = { rotation: 0, width: null, hide: [], points: [null, null] };
+  assert.deepEqual(draftToRaw(p, draft).animations.climb, [[0.5, 0.1], [0.5, 0.12]]);
 });

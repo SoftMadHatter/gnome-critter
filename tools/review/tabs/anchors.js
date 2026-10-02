@@ -66,7 +66,7 @@ export function render(root, { pack, state, setState }) {
   const entry = () => {
     if (!draft.entries[id]) {
       const g = generatedHere(0);
-      draft.entries[id] = { rotation: g?.rotation ?? 0, width: g?.width ?? null, points: Array(def.frames).fill(null) };
+      draft.entries[id] = { rotation: g?.rotation ?? 0, width: g?.width ?? null, hide: [...(g?.hide ?? [])], points: Array(def.frames).fill(null) };
     }
     return draft.entries[id];
   };
@@ -226,6 +226,10 @@ export function render(root, { pack, state, setState }) {
         field('Tête à l’envers (180°)', h('input', {
           type: 'checkbox', checked: (draft.entries[id]?.rotation ?? generatedHere(0)?.rotation ?? 0) === 180,
           onchange: (e) => { entry().rotation = e.target.checked ? 180 : 0; persist(); redraw(); },
+        })),
+        field('Vue de dos (sans visage ni cou)', h('input', {
+          type: 'checkbox', checked: (draft.entries[id]?.hide ?? generatedHere(0)?.hide ?? []).length > 0,
+          onchange: (e) => { entry().hide = e.target.checked ? ['face', 'neck'] : []; persist(); redraw(); },
         })),
         editable ? numberField('Largeur de tête (animation)', () => draft.entries[id]?.width ?? generatedHere(0)?.width ?? draft.headWidth, (v) => {
           entry().width = v === draft.headWidth ? null : v;

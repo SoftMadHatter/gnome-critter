@@ -165,6 +165,7 @@ stage); the review tool's "Anchors" tab only holds the touch-ups
       "walk": [[0.75, 0.156], [0.75, 0.188]],
       "sleep": [0.688, 0.469],                                         // one point: every frame
       "ceiling": { "rotation": 180, "points": [[0.75, 0.844]] }       // upside down
+      "climb": { "hide": ["face", "neck"], "points": [0.5, 0.062] }   // seen from behind: only hats show
     },
     "reactions": { "petted": [[0.75, 0.219], [0.75, 0.188]] }          // key = reaction name
   },
