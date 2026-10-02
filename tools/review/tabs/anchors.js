@@ -6,14 +6,12 @@
 
 import { h, select, field, toast } from '../dom.js';
 import { SpritePlayer } from '../sprites.js';
-import { anchorsOverrides, accessoryLabel } from '../../../core/accessories.js';
+import { ACCESSORIES, accessoryLabel, anchorsOverrides } from '../../../core/accessories.js';
+import { DRAFT_VERSION, round, key, draftFromPack, draftToRaw, generatedAnchors, generatedAt } from '../anchorsDraft.js';
 import { STAGES } from '../../../core/life.js';
 import { stageLabel } from '../../../core/labels.js';
 
-const WITNESSES = ['crown', 'glasses', 'medal', 'bow'];
-const DEFAULT_HEAD = { x: 0.72, y: 0.2 };
-const round = (v) => Math.round(v * 1000) / 1000;
-const key = (kind, name) => `${kind}:${name}`;
+const WITNESSES = ['crown', 'glasses', 'medal', 'bow']; // worn together by default; any accessory can be picked alone
 
 /** Draft of a pack: kept in memory and in localStorage. */
 const drafts = new Map();
@@ -21,7 +19,8 @@ const storageKey = (id) => `anchors-draft:${id}`;
 
 function readStored(id) {
   try {
-    return JSON.parse(localStorage.getItem(storageKey(id)));
+    const draft = JSON.parse(localStorage.getItem(storageKey(id)));
+    return draft?.version === DRAFT_VERSION ? draft : null;
   } catch {
     return null;
   }
@@ -34,54 +33,6 @@ function store(id, draft) {
   } catch {
     // private window or blocked storage: the draft just stays in memory
   }
-}
-
-/** Draft from the pack's current section: `entries[kind:name] = { rotation, points: ([x, y] | false | null)[] }`, one per frame, null = not set. */
-function draftFromPack(pack) {
-  const { anchors } = anchorsOverrides(pack.raw.anchors);
-  const entries = {};
-  for (const [kind, table, defs] of [['animation', anchors.animations, pack.meta.animations], ['reaction', anchors.reactions, pack.meta.reactions]]) {
-    for (const [name, entry] of Object.entries(table)) {
-      const count = defs?.[name]?.frames ?? entry.points.length;
-      const points = Array.from({ length: count }, (_, i) => {
-        const p = entry.points.length === 1 ? entry.points[0] : entry.points[i];
-        return p ? [p.x, p.y] : false;
-      });
-      entries[key(kind, name)] = { rotation: entry.rotation, points };
-    }
-  }
-  return { head: { ...anchors.head }, slots: structuredClone(anchors.slots), babyScale: anchors.stageFit.baby?.scale ?? null, entries };
-}
-
-/** The `anchors` section to write: unset frames take the nearest set one (before, else after), then the head. */
-function draftToRaw(pack, draft) {
-  const filled = (points) => {
-    return points.map((p, i) => {
-      if (p !== null) return p;
-      for (let j = i - 1; j >= 0; j--) if (points[j] !== null) return points[j];
-      for (let j = i + 1; j < points.length; j++) if (points[j] !== null) return points[j];
-      return [draft.head.x, draft.head.y];
-    });
-  };
-  const compact = (entry) => {
-    const points = filled(entry.points).map((p) => (p ? [round(p[0]), round(p[1])] : false));
-    const same = points.every((p) => p && p[0] === points[0][0] && p[1] === points[0][1]);
-    let value = same ? points[0] : points;
-    if (points.every((p) => p === false)) value = false;
-    return entry.rotation ? { rotation: entry.rotation, points: value } : value;
-  };
-  const out = { head: { x: round(draft.head.x), y: round(draft.head.y) }, slots: {} };
-  for (const [slot, d] of Object.entries(draft.slots)) out.slots[slot] = { dx: round(d.dx), dy: round(d.dy) };
-  if (draft.babyScale && draft.babyScale !== 1) out.stageFit = { baby: { scale: round(draft.babyScale) } };
-  for (const [kind, table, defs] of [['animation', 'animations', pack.meta.animations], ['reaction', 'reactions', pack.meta.reactions]]) {
-    const rows = {};
-    for (const name of Object.keys(defs ?? {})) {
-      const entry = draft.entries[key(kind, name)];
-      if (entry && entry.points.some((p) => p !== null)) rows[name] = compact(entry);
-    }
-    if (Object.keys(rows).length > 0) out[table] = rows;
-  }
-  return out;
 }
 
 export function render(root, { pack, state, setState }) {
@@ -98,13 +49,23 @@ export function render(root, { pack, state, setState }) {
     stage: STAGES.includes(state.stage) ? state.stage : 'adult',
     frame: Math.max(0, Number(state.frame) || 0),
     advance: state.next !== '0',
-    witness: WITNESSES.includes(state.wit) ? state.wit : '',
+    witness: state.wit in ACCESSORIES ? state.wit : '',
   };
   current.kind = wanted.startsWith('r:') && reactions.includes(current.name) ? 'reaction' : 'animation';
   const def = (current.kind === 'reaction' ? meta.reactions : meta.animations)[current.name];
   current.frame = Math.min(current.frame, def.frames - 1);
   const id = key(current.kind, current.name);
-  const entry = () => (draft.entries[id] ??= { rotation: 0, points: Array(def.frames).fill(null) });
+  const generated = generatedAnchors(draft);
+  const generatedHere = (frame, stg = 'adult') => generatedAt(generated, current.kind, current.name, frame, stg);
+  const entry = () => {
+    if (!draft.entries[id]) {
+      const g = generatedHere(0);
+      draft.entries[id] = { rotation: g?.rotation ?? 0, width: g?.width ?? null, points: Array(def.frames).fill(null) };
+    }
+    return draft.entries[id];
+  };
+  // The point a frame really has: the touch-up if any, else the generated one.
+  const effective = (frame) => draft.entries[id]?.points[frame] ?? generatedHere(frame)?.point ?? null;
 
   const persist = () => store(pack.id, draft);
   const go = (patch) => setState({
@@ -119,7 +80,8 @@ export function render(root, { pack, state, setState }) {
   const progress = (kind, nm) => {
     const e = draft.entries[key(kind, nm)];
     const total = (kind === 'reaction' ? meta.reactions : meta.animations)[nm].frames;
-    return e ? `${e.points.filter((p) => p !== null).length}/${total}` : `0/${total}`;
+    const touched = e ? e.points.filter((p) => p !== null).length : 0;
+    return touched > 0 ? `${touched}/${total} retouchées` : 'généré';
   };
 
   // Stage: the points are edited on the adult; the other stages only show the result.
@@ -138,14 +100,20 @@ export function render(root, { pack, state, setState }) {
       smooth: meta.smooth === true, accessory: current.witness || WITNESSES, anchors,
     });
     const marker = h('div', { class: 'anchor-marker' });
+    const genMarker = h('div', { class: 'anchor-marker generated' });
     const frameEntry = draft.entries[id]?.points[current.frame];
-    player.ready.then(() => {
-      if (!player.box || !frameEntry) return;
+    const genHere = generatedHere(current.frame, current.stage)?.point;
+    const place = (el, p) => {
       const rect = player.canvas.getBoundingClientRect();
       const k = rect.width / player.canvas.width;
-      marker.style.left = `${(player.box.x + frameEntry[0] * player.box.width) * k}px`;
-      marker.style.top = `${(player.box.y + frameEntry[1] * player.box.height) * k}px`;
-      marker.style.display = 'block';
+      el.style.left = `${(player.box.x + p[0] * player.box.width) * k}px`;
+      el.style.top = `${(player.box.y + p[1] * player.box.height) * k}px`;
+      el.style.display = 'block';
+    };
+    player.ready.then(() => {
+      if (!player.box) return;
+      if (genHere) place(genMarker, genHere);
+      if (editable && frameEntry) place(marker, frameEntry);
     });
     player.canvas.style.cursor = editable ? 'crosshair' : 'not-allowed';
     player.canvas.addEventListener('click', (ev) => {
@@ -160,12 +128,17 @@ export function render(root, { pack, state, setState }) {
       go({});
     });
     stage.replaceChildren(
-      h('div', { style: { position: 'relative', display: 'inline-block' } }, player.canvas, marker),
+      h('div', { style: { position: 'relative', display: 'inline-block' } }, player.canvas, genMarker, marker),
       h('div', {}, h('div', { class: 'muted' }, 'Aperçu animé'), live.canvas),
     );
+    const touched = frameEntry !== undefined && frameEntry !== null;
+    const status = frameEntry === false ? 'masquée par une retouche'
+      : touched ? 'retouchée (rouge) ; le point généré est le cercle gris'
+        : genHere === undefined ? 'sans point généré : repli du pack'
+          : genHere === false ? 'masquée (générée)' : 'point généré (cercle gris)';
     info.textContent = editable
-      ? `Image ${current.frame + 1} / ${def.frames} — clique sur le haut de la tête (point d’ancrage des chapeaux). ${progress(current.kind, current.name)} images réglées${draft.entries[id]?.points[current.frame] === null || !draft.entries[id] ? ' ; cette image n’est pas réglée (elle prend sa voisine, sinon le repli).' : '.'}`
-      : 'Les points se règlent sur l’adulte ; ici seul le curseur « échelle bébé » agit.';
+      ? `Image ${current.frame + 1} / ${def.frames} — ${status}. Clique sur le haut de la tête pour la retoucher (point d’ancrage des chapeaux).`
+      : 'Les retouches se font sur l’adulte ; les autres stades montrent les points générés par le script (scripts/gen_species_sprites.py).';
   };
 
   const numberField = (label, get, set, { min = 0, max = 1, step = 0.005 } = {}) => field(label, h('input', {
@@ -209,33 +182,33 @@ export function render(root, { pack, state, setState }) {
         h('optgroup', { label: 'États' }, animations.map((a) => h('option', { value: a, selected: current.kind === 'animation' && a === current.name }, optionLabel('animation', a)))),
         h('optgroup', { label: 'Réactions' }, reactions.map((a) => h('option', { value: `r:${a}`, selected: current.kind === 'reaction' && a === current.name }, optionLabel('reaction', a)))))),
         field('Stade', select(['adult', 'young', 'senior', 'baby'].map((s) => [s, stageLabel(s)]), current.stage, (v) => { current.stage = v; go({}); })),
-        field('Témoin', select([['', 'Tous'], ...WITNESSES.map((w) => [w, accessoryLabel(w)])], current.witness, (v) => { current.witness = v; go({}); })),
+        field('Témoin', select([['', 'Quatre ensemble'], ...Object.keys(ACCESSORIES).map((w) => [w, accessoryLabel(w)])], current.witness, (v) => { current.witness = v; go({}); })),
         frameButton('◀', -1), frameButton('▶', 1),
         field('Suivante après clic', h('input', { type: 'checkbox', checked: current.advance, onchange: (e) => { current.advance = e.target.checked; go({}); } })),
         field('Tête à l’envers (180°)', h('input', {
-          type: 'checkbox', checked: (draft.entries[id]?.rotation ?? 0) === 180,
+          type: 'checkbox', checked: (draft.entries[id]?.rotation ?? generatedHere(0)?.rotation ?? 0) === 180,
           onchange: (e) => { entry().rotation = e.target.checked ? 180 : 0; persist(); redraw(); },
         }))),
       h('div', { class: 'controls' },
         h('button', { onclick: () => { entry().points[current.frame] = false; persist(); go({}); } }, 'Masquer sur cette image'),
-        h('button', { onclick: () => { entry().points[current.frame] = null; persist(); go({}); } }, 'Effacer cette image'),
+        h('button', { onclick: () => { if (draft.entries[id]) draft.entries[id].points[current.frame] = null; persist(); go({}); } }, 'Revenir au point généré'),
         h('button', {
           onclick: () => {
-            const p = entry().points[current.frame];
-            if (p !== null) entry().points.fill(p, 0, def.frames);
+            const p = effective(current.frame);
+            if (p) entry().points.fill(p, 0, def.frames);
             persist();
             go({});
           },
         }, 'Copier sur toutes les images'),
         h('button', {
           onclick: () => {
-            const before = entry().points[current.frame - 1];
-            if (current.frame > 0 && before !== null) entry().points[current.frame] = before;
+            const before = current.frame > 0 ? effective(current.frame - 1) : null;
+            if (before) entry().points[current.frame] = before;
             persist();
             go({});
           },
         }, 'Reprendre l’image précédente'),
-        h('button', { onclick: () => { delete draft.entries[id]; persist(); go({}); } }, 'Tout effacer (animation)')),
+        h('button', { onclick: () => { delete draft.entries[id]; persist(); go({}); } }, 'Revenir au généré (animation)')),
       info,
       stage),
     h('section', { class: 'panel' },
@@ -243,12 +216,14 @@ export function render(root, { pack, state, setState }) {
       h('div', { class: 'controls' },
         numberField('Repli x', () => draft.head.x, (v) => { draft.head.x = v; }),
         numberField('Repli y', () => draft.head.y, (v) => { draft.head.y = v; }),
-        numberField('Visage dx', () => draft.slots.face.dx, (v) => { draft.slots.face.dx = v; }, { min: -1 }),
-        numberField('Visage dy', () => draft.slots.face.dy, (v) => { draft.slots.face.dy = v; }, { min: -1 }),
-        numberField('Cou dx', () => draft.slots.neck.dx, (v) => { draft.slots.neck.dx = v; }, { min: -1 }),
-        numberField('Cou dy', () => draft.slots.neck.dy, (v) => { draft.slots.neck.dy = v; }, { min: -1 }),
-        numberField('Échelle bébé', () => draft.babyScale ?? 1, (v) => { draft.babyScale = v; }, { min: 0.3, max: 1.5, step: 0.01 })),
-      h('p', { class: 'muted' }, 'Visage et cou : décalages depuis le point de tête, en fraction du sprite. Échelle bébé : les points sont rapprochés du bas-centre du cadre.'),
+        numberField('Largeur de tête', () => draft.headWidth, (v) => { draft.headWidth = v; }, { min: 0.05, max: 1, step: 0.005 }),
+        numberField('Dessus dx', () => draft.slots.top.dx, (v) => { draft.slots.top.dx = v; }, { min: -3, max: 3 }),
+        numberField('Dessus dy', () => draft.slots.top.dy, (v) => { draft.slots.top.dy = v; }, { min: -3, max: 3 }),
+        numberField('Visage dx', () => draft.slots.face.dx, (v) => { draft.slots.face.dx = v; }, { min: -3, max: 3 }),
+        numberField('Visage dy', () => draft.slots.face.dy, (v) => { draft.slots.face.dy = v; }, { min: -3, max: 3 }),
+        numberField('Cou dx', () => draft.slots.neck.dx, (v) => { draft.slots.neck.dx = v; }, { min: -3, max: 3 }),
+        numberField('Cou dy', () => draft.slots.neck.dy, (v) => { draft.slots.neck.dy = v; }, { min: -3, max: 3 })),
+      h('p', { class: 'muted' }, 'Largeur de tête : en fraction du sprite, elle dimensionne les accessoires. Dessus, visage et cou : décalages depuis le point de tête, en largeurs de tête (dessus : enfoncement du chapeau).'),
       h('div', { class: 'controls' },
         h('button', { class: 'primary', onclick: save }, 'Enregistrer dans pack.json'),
         h('button', { onclick: () => { drafts.delete(pack.id); store(pack.id, null); go({}); } }, 'Abandonner le brouillon'),

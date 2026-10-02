@@ -63,3 +63,42 @@ test('saveAnchors : écrit, refuse un pack inconnu ou des données invalides san
   assert.deepEqual(await saveAnchors(root, 'nope', {}), ['unknown pack']);
   assert.deepEqual(await saveAnchors(root, '../x', {}), ['invalid pack']);
 });
+
+test('formatAnchors : points générés et stades sur plusieurs lignes', () => {
+  const text = formatAnchors({
+    headWidth: 0.375,
+    base: { animations: { walk: [[0.1, 0.2], [0.2, 0.3], false] }, reactions: { petted: [0.5, 0.5] } },
+    stages: { baby: { headWidth: 0.4, base: { animations: { sleep: { width: 0.3, points: [0.6, 0.6] } } } } },
+  });
+  assert.equal(text, `  "anchors": {
+    "headWidth": 0.375,
+    "base": {
+      "animations": {
+        "walk": [[0.1, 0.2], [0.2, 0.3], false]
+      },
+      "reactions": {
+        "petted": [0.5, 0.5]
+      }
+    },
+    "stages": {
+      "baby": {
+        "headWidth": 0.4,
+        "base": {
+          "animations": {
+            "sleep": { "width": 0.3, "points": [0.6, 0.6] }
+          }
+        }
+      }
+    }
+  }`);
+  assert.doesNotThrow(() => JSON.parse(replaceAnchors(PACK, JSON.parse('{"head":{"x":0.5,"y":0.5},"stages":{"baby":{"headWidth":0.4}}}'))));
+});
+
+test('anchorsProblems : tables générées et stades vérifiés comme les retouches', () => {
+  const meta = JSON.parse(PACK);
+  assert.deepEqual(anchorsProblems({
+    base: { animations: { walk: [[0.1, 0.1], [0.2, 0.2], [0.3, 0.3]] }, reactions: { petted: [0.5, 0.5] } },
+    stages: { baby: { headWidth: 0.4, base: { animations: { walk: [[0.1, 0.1], [0.2, 0.2]] } } } },
+  }, meta), ['stages.baby.base.animations.walk: 2 points for 3 frames']);
+  assert.deepEqual(anchorsProblems({ base: { animations: { fly: [0.5, 0.5] } } }, meta), ['unknown base.animations.fly']);
+});

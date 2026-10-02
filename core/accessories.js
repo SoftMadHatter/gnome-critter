@@ -2,6 +2,7 @@
 // head anchor points declared by packs. Pure module.
 
 import { _, N_ } from './i18n.js';
+import { ACCESSORY_GRID, ACCESSORY_METRICS } from './accessoryMetrics.js';
 
 /**
  * `months`: months (1-12) during which the accessory is free and available; without `months`, bought at `price`.
@@ -71,40 +72,29 @@ export function equippable(date, owned) {
 }
 
 /**
- * Placement of an accessory on the head. `offset`: downward shift, as a
- * fraction of its size (hats rest on the anchor; items on the `face` and
- * `neck` slots are centered on theirs, the halo floats above, the cone of
- * shame wraps around the head); `scale`: relative size (1 = half the
- * sprite's width); `slot`: where it is worn, see SLOTS (default `top`).
+ * How an accessory sits, in head widths (the critter's head, so a bow stays
+ * small on a small head):
+ * - `slot`: where it is worn, see SLOTS (default `top`).
+ * - `span`: width of the drawn part (not of the image) in head widths.
+ * - `at`: the point of the drawn part, as fractions of its box, that lands on
+ *   the slot's point (default: bottom center for `top`, center otherwise).
+ * - `shift`: extra downward shift of that point, in head widths (the halo
+ *   floats above, the cone of shame wraps around the neck).
  */
 export const ACCESSORY_LAYOUT = Object.freeze({
-  glasses: { slot: 'face', offset: 0.5 },
-  bow: { slot: 'neck', offset: 0.5 },
-  medal: { slot: 'neck', offset: 0.5 },
-  laurel: { offset: 0.3 },
-  halo: { offset: -0.35 },
-  cone: { offset: 0.85, scale: 1.6 },
+  partyhat: { span: 0.9 },
+  crown: { span: 0.95 },
+  santa: { span: 1.15 },
+  witch: { span: 1.4 },
+  foilhat: { span: 1 },
+  laurel: { span: 1.05, shift: 0.4 },
+  halo: { span: 0.8, shift: -0.47 },
+  cone: { span: 1.5, shift: 1.75 },
+  sock: { span: 1 },
+  glasses: { slot: 'face', span: 0.9 },
+  bow: { slot: 'neck', span: 0.5 },
+  medal: { slot: 'neck', span: 0.4, at: [0.5, 0.15] },
 });
-
-/**
- * Square where to draw an accessory on a sprite displayed in `box` (same
- * computation for the extension and the review tool).
- * @param {string} id
- * @param {{x:number, y:number, width:number, height:number}} box the sprite's rectangle
- * @param {{x:number, y:number}} head head anchor (fractions, sprite facing right)
- * @param {number} facing 1 (right) or -1 (left)
- * @param {number} [rotation] 180 when the head is upside down: the accessory hangs below the point
- * @returns {{x:number, y:number, size:number}}
- */
-export function accessoryPlacement(id, box, head, facing, rotation = 0) {
-  const layout = ACCESSORY_LAYOUT[id] ?? {};
-  const size = Math.max(6, Math.round((box.width / 2) * (layout.scale ?? 1)));
-  const ax = box.x + (facing >= 0 ? head.x : 1 - head.x) * box.width;
-  const ay = box.y + head.y * box.height + (layout.offset ?? 0) * size;
-  const offset = (layout.offset ?? 0) * size;
-  const top = rotation === 180 ? box.y + head.y * box.height - offset : ay - size;
-  return { x: Math.round(ax - size / 2), y: Math.round(top), size };
-}
 
 /** Where on the head an accessory is worn: the top (hats), the face (glasses), the neck (medal, bow). */
 export const SLOTS = Object.freeze(['top', 'face', 'neck']);
@@ -114,34 +104,76 @@ export function accessorySlot(id) {
 }
 
 const DEFAULT_HEAD_ANCHOR = { x: 0.72, y: 0.2 };
-// Offsets from the head point (fractions of the sprite, sprite facing right).
-const DEFAULT_SLOTS = Object.freeze({ face: { dx: 0, dy: 0.12 }, neck: { dx: -0.04, dy: 0.25 } });
+const DEFAULT_HEAD_WIDTH = 0.375;
+// Offsets from the head point, in head widths (sprite facing right): `top` sinks hats into the head.
+const DEFAULT_SLOTS = Object.freeze({ top: { dx: 0, dy: 0 }, face: { dx: 0, dy: 0.35 }, neck: { dx: -0.1, dy: 0.85 } });
 const ROTATIONS = [0, 180];
 const NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
 const STAGE_FIT = ['baby', 'young', 'senior'];
 
 const isFraction = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
+const isWidth = (v) => Number.isFinite(v) && v > 0 && v <= 1;
 const isPair = (v) => Array.isArray(v) && v.length === 2 && isFraction(v[0]) && isFraction(v[1]);
+const isObject = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 const toPoint = (v) => ({ x: v[0], y: v[1] });
+
+/**
+ * Size and position of an accessory on the sprite displayed in `box`: the
+ * square its image is drawn in. Same computation for the extension and the
+ * review tool.
+ * @param {string} id
+ * @param {{x:number, y:number, width:number, height:number}} box the sprite's rectangle
+ * @param {{x:number, y:number, headWidth?:number}} anchor slot point (fractions, sprite facing right) and head width
+ * @param {number} facing 1 (right) or -1 (left)
+ * @param {number} [rotation] 180 when the head is upside down: the accessory hangs below the point
+ * @returns {{x:number, y:number, size:number}}
+ */
+export function accessoryPlacement(id, box, anchor, facing, rotation = 0) {
+  const layout = ACCESSORY_LAYOUT[id] ?? {};
+  const m = ACCESSORY_METRICS[id] ?? { x0: 0, y0: 0, x1: ACCESSORY_GRID, y1: ACCESSORY_GRID };
+  const head = (anchor.headWidth ?? DEFAULT_HEAD_WIDTH) * box.width;
+  const size = Math.max(6, Math.round((head * (layout.span ?? 1)) / ((m.x1 - m.x0) / ACCESSORY_GRID)));
+  const at = layout.at ?? ((layout.slot ?? 'top') === 'top' ? [0.5, 1] : [0.5, 0.5]);
+  // Where the point lands in the image, once mirrored (facing left) and turned (upside down).
+  let ix = (m.x0 + at[0] * (m.x1 - m.x0)) / ACCESSORY_GRID;
+  let iy = (m.y0 + at[1] * (m.y1 - m.y0)) / ACCESSORY_GRID;
+  if (facing < 0) ix = 1 - ix;
+  let py = box.y + anchor.y * box.height;
+  const shift = (layout.shift ?? 0) * head;
+  if (rotation === 180) {
+    ix = 1 - ix;
+    iy = 1 - iy;
+    py -= shift;
+  } else {
+    py += shift;
+  }
+  const px = box.x + (facing >= 0 ? anchor.x : 1 - anchor.x) * box.width;
+  return { x: Math.round(px - ix * size), y: Math.round(py - iy * size), size };
+}
 
 /**
  * One animation's entry: a point `[x, y]` (all frames), a list with one
  * point or `false` (hidden) per frame, `false` (hidden everywhere), or
- * `{ rotation, points }` where `points` is either of the first two forms.
- * @returns {{rotation: number, points: ({x:number, y:number}|null)[]}|null} null if invalid
+ * `{ rotation, width, points }` where `points` is either of the first two
+ * forms, `rotation` 0 or 180 and `width` the head width on these frames
+ * (when it differs from the stage's, e.g. a sleeping baby drawn smaller).
+ * @returns {{rotation: number, width: number|null, points: ({x:number, y:number}|null)[]}|null} null if invalid
  */
 function parseEntry(raw) {
   let rotation = 0;
+  let width = null;
   let list = raw;
-  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+  if (isObject(raw)) {
     if (raw.rotation !== undefined && !ROTATIONS.includes(raw.rotation)) return null;
+    if (raw.width !== undefined && !isWidth(raw.width)) return null;
     rotation = raw.rotation ?? 0;
+    width = raw.width ?? null;
     list = raw.points;
   }
-  if (list === false) return { rotation, points: [null] };
-  if (isPair(list)) return { rotation, points: [toPoint(list)] };
+  if (list === false) return { rotation, width, points: [null] };
+  if (isPair(list)) return { rotation, width, points: [toPoint(list)] };
   if (Array.isArray(list) && list.length > 0 && list.every((v) => v === false || isPair(v))) {
-    return { rotation, points: list.map((v) => (v === false ? null : toPoint(v))) };
+    return { rotation, width, points: list.map((v) => (v === false ? null : toPoint(v))) };
   }
   return null;
 }
@@ -156,37 +188,73 @@ function parseTable(raw, prefix, ignored) {
   return table;
 }
 
+/** `{animations, reactions}` out of a raw object holding one or both tables. */
+function parseTables(raw, prefix, ignored) {
+  const out = { animations: {}, reactions: {} };
+  for (const [key, value] of Object.entries(raw)) {
+    if ((key === 'animations' || key === 'reactions') && isObject(value)) out[key] = parseTable(value, `${prefix}${key}`, ignored);
+    else ignored.push(`${prefix}${key}`);
+  }
+  return out;
+}
+
+function parseStage(raw, prefix, ignored) {
+  const stage = { headWidth: null, animations: {}, reactions: {}, base: { animations: {}, reactions: {} } };
+  for (const [key, value] of Object.entries(raw)) {
+    if (key === 'headWidth' && isWidth(value)) stage.headWidth = value;
+    else if ((key === 'animations' || key === 'reactions') && isObject(value)) stage[key] = parseTable(value, `${prefix}${key}`, ignored);
+    else if (key === 'base' && isObject(value)) stage.base = parseTables(value, `${prefix}base.`, ignored);
+    else ignored.push(`${prefix}${key}`);
+  }
+  return stage;
+}
+
 /**
  * Validates the `anchors` section of a pack: where accessories sit.
- * - `head`: the top of the head, in fractions of the sprite's size, sprite facing right.
- * - `animations` / `reactions`: the head point per animation (or reaction),
- *   one per frame (see parseEntry), since the head moves while it plays.
- * - `slots`: `face` and `neck` offsets from the head point (`dx`, `dy`).
- * - `stageFit`: for a stage drawn smaller than the adult (`{ "baby": { "scale": 0.75 } }`),
+ * - `head`: the top of the head, in fractions of the sprite's size, sprite facing right (fallback).
+ * - `headWidth`: width of the head, in fractions of the sprite's width (accessories are sized on it).
+ * - `base`: `{ animations, reactions }` generated by the sprite script (scripts/gen_species_sprites.py).
+ * - `animations` / `reactions`: manual touch-ups of the head point per animation (or reaction), one
+ *   per frame (see parseEntry), which take precedence over `base`.
+ * - `slots`: `top`, `face` and `neck` offsets from the head point (`dx`, `dy`), in head widths.
+ * - `stages`: for a stage drawn differently from the adult (`baby`, `young`, `senior`),
+ *   `{ headWidth, base, animations, reactions }`; whatever it doesn't define comes from the adult.
+ * - `stageFit`: without `stages`, a stage drawn smaller (`{ "baby": { "scale": 0.75 } }`):
  *   points are scaled around the bottom center of the frame.
- * @returns {{anchors: {head: {x:number, y:number}, slots: Record<string, {dx:number, dy:number}>, animations: Record<string, any>, reactions: Record<string, any>, stageFit: Record<string, {scale:number}>}, ignored: string[]}}
+ * @returns {{anchors: {head: {x:number, y:number}, headWidth: number, slots: Record<string, {dx:number, dy:number}>, animations: Record<string, any>, reactions: Record<string, any>, base: {animations: Record<string, any>, reactions: Record<string, any>}, stages: Record<string, any>, stageFit: Record<string, {scale:number}>}, ignored: string[]}}
  */
 export function anchorsOverrides(raw) {
   const anchors = {
     head: { ...DEFAULT_HEAD_ANCHOR },
-    slots: { face: { ...DEFAULT_SLOTS.face }, neck: { ...DEFAULT_SLOTS.neck } },
+    headWidth: DEFAULT_HEAD_WIDTH,
+    slots: Object.fromEntries(Object.entries(DEFAULT_SLOTS).map(([slot, d]) => [slot, { ...d }])),
     animations: {},
     reactions: {},
+    base: { animations: {}, reactions: {} },
+    stages: {},
     stageFit: {},
   };
   const ignored = [];
-  const isObject = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
   for (const [key, value] of Object.entries(raw ?? {})) {
     if (key === 'head' && isFraction(value?.x) && isFraction(value?.y)) {
       anchors.head = { x: value.x, y: value.y };
+    } else if (key === 'headWidth' && isWidth(value)) {
+      anchors.headWidth = value;
     } else if (key === 'slots' && isObject(value)) {
       for (const [slot, d] of Object.entries(value)) {
-        if (slot in DEFAULT_SLOTS && Number.isFinite(d?.dx) && Number.isFinite(d?.dy) && Math.abs(d.dx) <= 1 && Math.abs(d.dy) <= 1) {
+        if (slot in DEFAULT_SLOTS && Number.isFinite(d?.dx) && Number.isFinite(d?.dy) && Math.abs(d.dx) <= 3 && Math.abs(d.dy) <= 3) {
           anchors.slots[slot] = { dx: d.dx, dy: d.dy };
         } else ignored.push(`slots.${slot}`);
       }
     } else if ((key === 'animations' || key === 'reactions') && isObject(value)) {
       anchors[key] = parseTable(value, key, ignored);
+    } else if (key === 'base' && isObject(value)) {
+      anchors.base = parseTables(value, 'base.', ignored);
+    } else if (key === 'stages' && isObject(value)) {
+      for (const [stage, block] of Object.entries(value)) {
+        if (STAGE_FIT.includes(stage) && isObject(block)) anchors.stages[stage] = parseStage(block, `stages.${stage}.`, ignored);
+        else ignored.push(`stages.${stage}`);
+      }
     } else if (key === 'stageFit' && isObject(value)) {
       for (const [stage, fit] of Object.entries(value)) {
         if (STAGE_FIT.includes(stage) && Number.isFinite(fit?.scale) && fit.scale > 0 && fit.scale <= 1.5) {
@@ -201,32 +269,61 @@ export function anchorsOverrides(raw) {
 }
 
 /**
- * Where an accessory sits on the critter for the frame being displayed.
+ * The entry that decides an animation's (or reaction's) head points for a stage, and where it comes from.
+ * Lookup order: the stage's touch-ups, the stage's generated points, the adult's touch-ups, the adult's
+ * generated points.
+ * @param {ReturnType<typeof anchorsOverrides>['anchors']} anchors
+ * @param {{animation?: string, reaction?: string, stage?: string}} pose
+ * @returns {{entry: {rotation:number, width:number|null, points:({x:number,y:number}|null)[]}, source: 'touch-up'|'generated', stage: boolean}|null}
+ *   `stage`: true when the entry is the stage's own (not the adult's)
+ */
+export function anchorEntry(anchors, { animation, reaction, stage = 'adult' } = {}) {
+  const kind = reaction ? 'reactions' : 'animations';
+  const name = reaction ?? animation;
+  const own = anchors.stages[stage];
+  const layers = [
+    [own?.[kind], 'touch-up', true],
+    [own?.base[kind], 'generated', true],
+    [anchors[kind], 'touch-up', false],
+    [anchors.base[kind], 'generated', false],
+  ];
+  for (const [table, source, isStage] of layers) {
+    if (table?.[name]) return { entry: table[name], source, stage: isStage };
+  }
+  return null;
+}
+
+/**
+ * Where an accessory sits on the critter for the frame being displayed (see anchorEntry for the lookup
+ * order; without any entry, the `head` fallback).
  * @param {ReturnType<typeof anchorsOverrides>['anchors']} anchors
  * @param {{animation?: string, reaction?: string, frame?: number, stage?: string, slot?: string}} pose
  *   the animation or reaction ACTUALLY playing (not the critter's state), its frame index, the life stage
- * @returns {{x:number, y:number, rotation:number}|null} fractions of the sprite (facing right), null when hidden
+ * @returns {{x:number, y:number, rotation:number, headWidth:number}|null} point in fractions of the sprite (facing right), head width in fractions of its width; null when hidden
  */
 export function anchorFor(anchors, { animation, reaction, frame = 0, stage = 'adult', slot = 'top' } = {}) {
-  const entry = reaction ? anchors.reactions[reaction] : anchors.animations[animation];
+  const found = anchorEntry(anchors, { animation, reaction, stage });
   let point = anchors.head;
   let rotation = 0;
-  if (entry) {
+  let headWidth = anchors.stages[stage]?.headWidth ?? anchors.headWidth;
+  if (found) {
+    const { entry } = found;
     ({ rotation } = entry);
-    const pts = entry.points;
-    point = pts[Math.min(Math.max(frame, 0), pts.length - 1)];
+    headWidth = entry.width ?? headWidth;
+    point = entry.points[Math.min(Math.max(frame, 0), entry.points.length - 1)];
     if (!point) return null;
   }
-  const scale = anchors.stageFit[stage]?.scale ?? 1;
+  const scale = found?.stage ? 1 : anchors.stageFit[stage]?.scale ?? 1;
   let { x, y } = point;
   const offset = anchors.slots[slot];
   if (offset) {
-    x += offset.dx;
-    y += offset.dy * (rotation === 180 ? -1 : 1);
+    x += offset.dx * headWidth;
+    y += offset.dy * headWidth * (rotation === 180 ? -1 : 1);
   }
   if (scale !== 1) {
     x = 0.5 + (x - 0.5) * scale;
     y = 1 + (y - 1) * scale;
+    headWidth *= scale;
   }
-  return { x, y, rotation };
+  return { x, y, rotation, headWidth };
 }

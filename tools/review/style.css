@@ -154,4 +154,5 @@ canvas.pixel { image-rendering: pixelated; }
   display: none; position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
   border: 2px solid #e22; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1px #fff;
 }
+.anchor-marker.generated { border: 2px dashed #58f; width: 18px; height: 18px; margin: -9px 0 0 -9px; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }

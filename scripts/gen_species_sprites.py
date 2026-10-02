@@ -43,6 +43,28 @@ def c(r, g, b):
 # --- outils de dessin -----------------------------------------------------------
 
 
+class Head:
+    """Where a pose's head is, in grid units (0..G): `x, y` the top-centre
+    (where a hat rests), `width`, and `eye` (None when no face is visible).
+    A draw function records it on its canvas as `d.head`; `render` carries it
+    (rotated like the image) to the frame as `frame.head`."""
+
+    def __init__(self, x, y, width, eye, angle=0):
+        self.x, self.y, self.width, self.eye, self.angle = x, y, width, eye, angle
+
+    def mapped(self, fn):
+        """Same head after moving every point through `fn(x, y) -> (x, y)`."""
+        x, y = fn(self.x, self.y)
+        return Head(x, y, self.width, fn(*self.eye) if self.eye else None, self.angle)
+
+
+def rotate_point(angle, center, x, y):
+    """The image of grid point (x, y) after Canvas.rotate(angle, center) (counter-clockwise, y down)."""
+    a = math.radians(angle)
+    dx, dy = x - (center[0] + 0.5), y - (center[1] + 0.5)
+    return (center[0] + 0.5 + dx * math.cos(a) + dy * math.sin(a), center[1] + 0.5 - dx * math.sin(a) + dy * math.cos(a))
+
+
 def new_canvas():
     canvas = Canvas(G, G, S)
     return canvas, canvas
@@ -226,6 +248,7 @@ def cat_head(d, x, y, p, tilt=0, scale=1.0):
     that origin shrinks/grows with it, so a caller can grow or shrink just the
     head by picking where `(x, y)` lands (see `draw_cat`'s stage handling)."""
     X, Y = lambda dx: x + dx * scale, lambda dy: y + dy * scale  # noqa: E731
+    d.head = Head(X(6), Y(0), 12 * scale, (X(7), Y(5)))
     blob(d, (X(0), Y(0), X(12), Y(12)), CAT_BASE, CAT_DARK, CAT_LIGHT)
     if p.ears == "back":
         d.polygon([(X(1), Y(4)), (X(-2), Y(-1)), (X(6), Y(1))], fill=CAT_DARK)
@@ -295,6 +318,7 @@ def draw_cat(img, d, p, body_scale=1.0, head_scale=1.0):
 def draw_cat_sleep(img, d, p):
     blob(d, (3, 15, 27, 29), CAT_BASE, CAT_DARK, CAT_LIGHT)
     blob(d, (16, 15, 28, 27), CAT_BASE, CAT_DARK, CAT_LIGHT)
+    d.head = Head(22, 15, 12, (21.5, 21))
     d.polygon([(17, 17), (17, 12), (21, 16)], fill=CAT_BASE)
     d.polygon([(23, 16), (27, 12), (27, 18)], fill=CAT_BASE)
     d.line((20, 21, 23, 21), fill=INK)
@@ -334,6 +358,7 @@ def draw_cat_climb(img, d, p):
         d.line((11, y + b, 14, y + b + 1), fill=CAT_DARK)
         d.line((18, y + b + 1, 21, y + b), fill=CAT_DARK)
     blob(d, (10, 2 + b, 22, 13 + b), CAT_BASE, CAT_DARK, CAT_LIGHT)
+    d.head = Head(16, 2 + b, 12, None)  # seen from behind: no face
     d.polygon([(10, 5 + b), (10, -1 + b), (15, 3 + b)], fill=CAT_BASE)
     d.polygon([(17, 3 + b), (22, -1 + b), (22, 5 + b)], fill=CAT_BASE)
 
@@ -399,6 +424,7 @@ def draw_bug(img, d, p, body_scale=1.0, head_scale=1.0):
     h = p.head
     ax, ay = B((30, 25 + b))
     HX, HY = lambda dx: ax + dx * head_scale, lambda dy: ay + dy * head_scale  # noqa: E731
+    d.head = Head(HX(-4), HY(h - 9), 8 * head_scale, (HX(-4), HY(h - 6)))
     blob(d, (HX(-8), HY(h - 9), HX(0), HY(0)), c(84, 96, 74), c(58, 68, 52), c(120, 136, 104))
     eye(d, HX(-4), HY(h - 6), "open" if p.eyes == "blink" else p.eyes)
     if p.carry:
@@ -417,6 +443,7 @@ def draw_bug_climb(img, d, p):
         d.line((23, y + b, 29, y + b - swing), fill=BUG_LEG)
     blob(d, (9, 9 + b, 23, 30 + b), BUG_BASE, BUG_DARK, BUG_LIGHT)
     d.line((16, 11 + b, 16, 29 + b), fill=BUG_DARK)
+    d.head = Head(16, 2 + b, 10, None)  # seen from behind: no face
     blob(d, (11, 2 + b, 21, 11 + b), BUG_LEG, BUG_LEG, BUG_DARK)
     d.line((12, 3 + b, 9, -0 + b), fill=BUG_LEG)
     d.line((20, 3 + b, 23, 0 + b), fill=BUG_LEG)
@@ -455,6 +482,7 @@ def draw_caterpillar(img, d, p):
             d.line((x, top + 1, x, bottom - lifts[i] - 1), fill=LARVA_DARK)
     h = p.head
     top = bottom - height - 1 + h
+    d.head = Head(26, top, 8, (27, top + 3))
     blob(d, (22, top, 30, bottom), LARVA_HEAD, LARVA_HEAD_DARK, LARVA_HEAD_LIGHT)
     eye(d, 27, top + 3, "open" if p.eyes == "blink" else p.eyes)
     if p.carry:
@@ -475,6 +503,7 @@ def draw_caterpillar_climb(img, d, p):
         d.line((11 + dx, y + b, 8 + dx, y + b + 1), fill=BUG_LEG)
         d.line((21 + dx, y + b, 24 + dx, y + b + 1), fill=BUG_LEG)
         blob(d, (12 + dx, y - 3 + b, 20 + dx, y + 3 + b), LARVA_BASE, LARVA_DARK, LARVA_LIGHT)
+    d.head = Head(16, -1 + b, 8, None)
     blob(d, (12, -1 + b, 20, 5 + b), LARVA_HEAD, LARVA_HEAD_DARK, LARVA_HEAD_LIGHT)
     d.point((14, 3 + b), fill=INK)
     d.point((18, 3 + b), fill=INK)
@@ -520,6 +549,7 @@ def draw_fish(img, d, p):
         d.point((x, y + b), fill=FISH_DARK)
     d.point((26, 19 + b), fill=FISH_DARK)  # bouche
     kind = "wide" if p.eyes == "wide" else p.eyes
+    d.head = Head(23.5, 10.5 + b, 11, (23, 14 + b))
     eye(d, 23, 14 + b, kind)
     if p.mouth:
         d.rectangle((26, 17 + b, 28, 20 + b), fill=FISH_DARK)  # bouche ouverte
@@ -610,6 +640,7 @@ def draw_bird(img, d, p, body_scale=1.0, head_scale=1.0):
         hx, hy = (15, 12 + b)
     ax, ay = B((hx, hy))
     HX, HY = lambda dx: ax + dx * head_scale, lambda dy: ay + dy * head_scale  # noqa: E731
+    d.head = Head(HX(6), HY(-4), 12 * head_scale, (HX(7), HY(0)))
     blob(d, (HX(0), HY(-4), HX(12), HY(8)), BIRD_BASE, BIRD_DARK, BIRD_LIGHT)
     if p.kind == "preen":
         d.polygon([(HX(4), HY(8)), (HX(9), HY(8)), (HX(6), HY(12))], fill=BIRD_BEAK)
@@ -793,6 +824,14 @@ def _mix(color, target, amount):
     return tuple(round(color[i] + (target[i] - color[i]) * amount) for i in range(3))
 
 
+def carry(src, dst):
+    """Copies the head (and the flipped mark) of a frame onto another made from it."""
+    dst.head = getattr(src, "head", None)
+    if getattr(src, "flipped", False):
+        dst.flipped = True
+    return dst
+
+
 def tint_stage(frame, split, cfg):
     """Lightens and/or grays light pixels (dark outlines stay untouched)."""
     img = frame.copy()
@@ -810,7 +849,7 @@ def tint_stage(frame, split, cfg):
             if cfg["lighten"]:
                 color = _mix(color, (255, 255, 255), cfg["lighten"])
             px[x, y] = color + (a,)
-    return img
+    return carry(frame, img)
 
 
 def _scaled(img, factor):
@@ -827,7 +866,15 @@ def uniform_stage(frame, factor, bbox):
     content = _scaled(frame.crop(bbox), factor)
     out = Image.new("RGBA", (R, R), (0, 0, 0, 0))
     cx = (bbox[0] + bbox[2]) // 2
-    out.paste(content, (min(max(cx - content.width // 2, 0), R - content.width), bbox[3] - content.height), content)
+    left = min(max(cx - content.width // 2, 0), R - content.width)
+    top = bbox[3] - content.height
+    out.paste(content, (left, top), content)
+    carry(frame, out)
+    head = out.head
+    if head:
+        kx, ky = content.width / (bbox[2] - bbox[0]), content.height / (bbox[3] - bbox[1])
+        out.head = head.mapped(lambda x, y: ((left + (x * S - bbox[0]) * kx) / S, (top + (y * S - bbox[1]) * ky) / S))
+        out.head.width = head.width * factor
     return out
 
 
@@ -842,7 +889,7 @@ def build_stage(spec, species, poses, sheets, stage):
         alt = dict(spec, draw=spec["stage_draw"][stage])
         out = {name: [render(alt, p) for p in ps] for name, ps in poses.items()}
         for name, src in spec["flip"].items():
-            out[name] = [ImageOps.flip(f) for f in out[src]]
+            out[name] = [flip_frame(f) for f in out[src]]
         return out
     cfg = STAGE_CFG[stage]
     split = HEAD_SPLIT[species]
@@ -870,7 +917,16 @@ def build_stage(spec, species, poses, sheets, stage):
                 frames_out.append(img)
         out[name] = frames_out
     for name, src in spec["flip"].items():
-        out[name] = [ImageOps.flip(f) for f in out[src]]
+        out[name] = [flip_frame(f) for f in out[src]]
+    return out
+
+
+def flip_frame(frame):
+    """Vertical mirror (head on the ceiling): the head follows, and `flipped` marks the 180 degree anchor."""
+    out = ImageOps.flip(frame)
+    head = getattr(frame, "head", None)
+    out.head = head and head.mapped(lambda x, y: (x, G - y))
+    out.flipped = True
     return out
 
 
@@ -881,9 +937,16 @@ def render(spec, p):
         d.rectangle((3, 21, 28, 30), fill=c(100, 130, 200))
         for x in range(4, 28, 4):
             d.line((x, 21, x, 30), fill=c(70, 100, 170))
+    head = getattr(img, "head", None)
     if p.rot:
-        img.rotate(p.rot, (G / 2, G - 2 if p.pivot is None else p.pivot))
-    return img.finish(spec["out"])
+        center = (G / 2, G - 2 if p.pivot is None else p.pivot)
+        img.rotate(p.rot, center)
+        head = head and head.mapped(lambda x, y: rotate_point(p.rot, center, x, y))
+        if head:
+            head.angle = (p.rot + 180) % 360 - 180
+    frame = img.finish(spec["out"])
+    frame.head = head
+    return frame
 
 
 def render_stage(spec, p, body_scale, head_scale, split, cfg):
@@ -894,7 +957,9 @@ def render_stage(spec, p, body_scale, head_scale, split, cfg):
     unlike `render` it doesn't need to handle `p.rot`/`p.blanket`."""
     img, d = new_canvas()
     spec["draw_stage"](img, d, p, body_scale, head_scale)
-    return tint_stage(img.finish(spec["out"]), split, cfg)
+    frame = img.finish(spec["out"])
+    frame.head = getattr(img, "head", None)
+    return tint_stage(frame, split, cfg)
 
 
 def build_sheets(spec, species):
@@ -902,7 +967,7 @@ def build_sheets(spec, species):
     poses = spec["sheets"]()
     sheets = {name: [render(spec, p) for p in ps] for name, ps in poses.items()}
     for name, src in spec["flip"].items():
-        sheets[name] = [ImageOps.flip(f) for f in sheets[src]]
+        sheets[name] = [flip_frame(f) for f in sheets[src]]
     sheets["egg"] = species_egg(species, spec["out"])
     return sheets, poses
 
@@ -912,6 +977,142 @@ def save_sheet(path, frames):
     for i, f in enumerate(frames):
         sheet.paste(f, (i * R, 0))
     sheet.save(path)
+
+
+# --- accessory anchors (pack.json "anchors": see docs/pack-format.md) ----------
+
+MAX_TILT = 25  # degrees
+ANCHOR_ORDER = ["head", "headWidth", "slots", "stageFit", "base", "stages", "animations", "reactions"]
+STAGES = list(STAGE_CFG)
+
+
+def _num(v):
+    return int(v) if isinstance(v, float) and v == int(v) else v
+
+
+def head_width(sheets):
+    """The head's width (fraction of the frame) in a stage's reference animation, or None without a head."""
+    head = getattr(sheets["idle"][0], "head", None)
+    return round(head.width / G, 3) if head else None
+
+
+def anchor_tables(sheets, spec, stage_width):
+    """`{animations, reactions}` of generated head points for one stage (the egg shows no accessory).
+
+    One point per frame; a single point when they are all equal; `{rotation, width, points}` when the head is
+    upside down or its width differs from the stage's (a sheet drawn smaller as a whole)."""
+    out = {"animations": {}, "reactions": {}}
+    sources = {
+        "animations": {state: sheet for state, (sheet, _) in spec["states"].items()},
+        "reactions": {react: sheet for react, (sheet, _, _) in REACTIONS.items()},
+    }
+    for table, entries in sources.items():
+        for name, sheet in entries.items():
+            frames = sheets.get(sheet)
+            if sheet == "egg" or not frames:
+                continue
+            heads = [getattr(f, "head", None) for f in frames]
+            if not any(heads):
+                continue
+            # An accessory only turns by 0 or 180 degrees: hidden while the head is tilted further than a wobble.
+            heads = [h if h and abs(h.angle) <= MAX_TILT else None for h in heads]
+            if not any(heads):
+                out[table][name] = False
+                continue
+            clamp = lambda v: min(max(round(v / G, 3), 0), 1)  # noqa: E731
+            points = [[clamp(h.x), clamp(h.y)] if h else False for h in heads]
+            if all(p == points[0] and p for p in points):
+                points = points[0]
+            entry = {}
+            if getattr(frames[0], "flipped", False):
+                entry["rotation"] = 180
+            widths = [h.width / G for h in heads if h]
+            width = round(sum(widths) / len(widths), 3)
+            if abs(width - stage_width) > 0.002:
+                entry["width"] = width
+            out[table][name] = {**entry, "points": points} if entry else points
+    return out
+
+
+def species_anchors(spec, species, sheets, poses):
+    """Generated `base` / `stages` / `headWidth` / `slots.face` for a species whose draw functions record heads, else None."""
+    adult_width = head_width(sheets)
+    if adult_width is None:
+        return None
+    generated = {"headWidth": adult_width, "base": anchor_tables(sheets, spec, adult_width), "stages": {}}
+    head = sheets["idle"][0].head
+    if head.eye:
+        generated["face"] = {
+            "dx": round((head.eye[0] - head.x) / head.width, 3), "dy": round((head.eye[1] - head.y) / head.width, 3)}
+    for stage in STAGES:
+        stage_sheets = build_stage(spec, species, poses, sheets, stage)
+        width = head_width(stage_sheets)
+        generated["stages"][stage] = {"headWidth": width, "base": anchor_tables(stage_sheets, spec, width)}
+    return generated
+
+
+def merged_anchors(existing, generated):
+    """The pack's `anchors` with the generated parts replaced; touch-ups, `head` and `slots` are kept."""
+    out = dict(existing or {})
+    for key in ("headWidth", "base", "stages"):
+        out[key] = generated[key]
+    slots = dict(out.get("slots", {}))
+    if "face" in generated:
+        slots.setdefault("face", generated["face"])
+    # a stage block keeps its own touch-ups
+    for stage, block in (existing or {}).get("stages", {}).items():
+        for key in ("animations", "reactions"):
+            if key in block and stage in out["stages"]:
+                out["stages"][stage][key] = block[key]
+    if slots:
+        out["slots"] = slots
+    out.setdefault("head", {"x": 0.72, "y": 0.2})
+    return {key: out[key] for key in ANCHOR_ORDER if key in out} | {k: v for k, v in out.items() if k not in ANCHOR_ORDER}
+
+
+def _inline(value):
+    if isinstance(value, list):
+        return "[" + ", ".join(_inline(v) for v in value) + "]"
+    if isinstance(value, dict):
+        return "{ " + ", ".join(f"{json.dumps(k)}: {_inline(v)}" for k, v in value.items()) + " }"
+    return json.dumps(_num(value))
+
+
+def _anchor_lines(key, value, depth, comma):
+    pad = "  " * depth
+    if isinstance(value, dict) and value and (key in ("animations", "reactions", "base", "stages") or key in STAGES):
+        rows = list(value.items())
+        inner = []
+        for j, (name, entry) in enumerate(rows):
+            last = "" if j == len(rows) - 1 else ","
+            if key in ("animations", "reactions"):
+                inner.append(f"{pad}  {json.dumps(name)}: {_inline(entry)}{last}")
+            else:
+                inner += _anchor_lines(name, entry, depth + 1, last)
+        return [f"{pad}{json.dumps(key)}: {{", *inner, f"{pad}}}{comma}"]
+    return [f"{pad}{json.dumps(key)}: {_inline(value)}{comma}"]
+
+
+def format_anchors(anchors):
+    """The block's text, identical to tools/review/anchorsFile.mjs (formatAnchors)."""
+    items = list(anchors.items())
+    lines = [line for i, (k, v) in enumerate(items) for line in _anchor_lines(k, v, 2, "," if i < len(items) - 1 else "")]
+    return '  "anchors": {\n' + "\n".join(lines) + "\n  }"
+
+
+def replace_anchors_text(text, anchors):
+    """pack.json's text with its "anchors" block replaced (same as replaceAnchors in anchorsFile.mjs)."""
+    block = format_anchors(anchors)
+    m = re.search(r'^ {2}"anchors": \{', text, re.M)
+    if not m:
+        return text.rstrip()[:-1].rstrip() + ",\n" + block + "\n}\n"
+    depth, end = 0, None
+    for i in range(text.index("{", m.start()), len(text)):
+        depth += (text[i] == "{") - (text[i] == "}")
+        if depth == 0:
+            end = i + 1
+            break
+    return text[:m.start()] + block + text[end:]
 
 
 def compact_json(data):
@@ -970,7 +1171,14 @@ def write_species(name):
         for sheet_name, frames in build_stage(spec, name, poses, sheets, stage).items():
             save_sheet(stage_dir / f"{sheet_name}.png", frames)
         meta["stages"][stage] = {"scale": 1, "folder": f"sprites/{stage}"}
-    pack_path.write_text(compact_json(meta), encoding="utf-8")
+    text = compact_json(meta)
+    generated = species_anchors(spec, name, sheets, poses)
+    if generated:
+        text = replace_anchors_text(text, merged_anchors(meta.get("anchors"), generated))
+    elif meta.get("anchors"):
+        text = replace_anchors_text(text, meta["anchors"])  # same layout as the review tool's
+    json.loads(text)  # never write a broken file
+    pack_path.write_text(text, encoding="utf-8")
     for orphan in sorted(set(sheets) - used):
         print(f"  (unreferenced sheet: {orphan})")
     for stale in sorted(p.name for p in out_dir.glob("*.png") if p.stem not in sheets):

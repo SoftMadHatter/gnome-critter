@@ -40,10 +40,13 @@ function packSheet(pack) {
       ? `teinte ${appearance.hueRange.join(' à ')}°${appearance.colorizeGrays ? `, gris colorisés (saturation ${appearance.graySaturation})` : ''}`
       : 'désactivée'],
     ['Ancrage de la tête', (() => {
-      const { head, animations, reactions } = anchorsOverrides(meta.anchors).anchors;
-      const set = Object.keys(animations).length + Object.keys(reactions).length;
+      const { headWidth, base, animations, reactions, stages } = anchorsOverrides(meta.anchors).anchors;
+      const count = (tables) => Object.keys(tables.animations).length + Object.keys(tables.reactions).length;
       const total = Object.keys(meta.animations ?? {}).length + Object.keys(meta.reactions ?? {}).length;
-      return `repli x ${head.x}, y ${head.y} — ${set} / ${total} animations et réactions réglées (onglet Ancrages)`;
+      const touched = count({ animations, reactions });
+      return `tête ${Math.round(headWidth * 100)} % du sprite — ${count(base)} / ${total} animations et réactions générées`
+        + `${Object.keys(stages).length > 0 ? `, stades ${Object.keys(stages).map((n) => stageLabel(n)).join(', ')}` : ''}`
+        + `, ${touched} retouchée${touched > 1 ? 's' : ''} (onglet Ancrages)`;
     })()],
     ['Animations / réactions', `${Object.keys(meta.animations ?? {}).length} / ${Object.keys(meta.reactions ?? {}).length}`],
   ];

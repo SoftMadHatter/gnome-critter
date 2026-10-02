@@ -15,25 +15,31 @@ const inline = (value) => {
   return JSON.stringify(value);
 };
 
+const TABLES = ['animations', 'reactions'];
+const NESTED = ['base', 'stages', 'baby', 'young', 'senior'];
+
+/** The lines of `"key": value`, tables and nested blocks spread over several lines, anything else on one. */
+function entryLines(key, value, depth, comma) {
+  const pad = '  '.repeat(depth);
+  const isBlock = value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+  if (isBlock && (TABLES.includes(key) || NESTED.includes(key))) {
+    const rows = Object.entries(value);
+    const inner = rows.flatMap(([name, entry], j) => {
+      const last = j === rows.length - 1 ? '' : ',';
+      return TABLES.includes(key) ? [`${pad}  ${JSON.stringify(name)}: ${inline(entry)}${last}`] : entryLines(name, entry, depth + 1, last);
+    });
+    return [`${pad}${JSON.stringify(key)}: {`, ...inner, `${pad}}${comma}`];
+  }
+  return [`${pad}${JSON.stringify(key)}: ${inline(value)}${comma}`];
+}
+
 /**
  * The block's text, indented for a top-level key of pack.json.
  * @param {object} anchors the section, in the pack's own format (see anchorsOverrides)
  */
 export function formatAnchors(anchors) {
-  const lines = [];
   const entries = Object.entries(anchors);
-  entries.forEach(([key, value], i) => {
-    const comma = i < entries.length - 1 ? ',' : '';
-    const isTable = value && typeof value === 'object' && !Array.isArray(value) && ['animations', 'reactions'].includes(key);
-    if (isTable && Object.keys(value).length > 0) {
-      lines.push(`    ${JSON.stringify(key)}: {`);
-      const rows = Object.entries(value);
-      rows.forEach(([name, entry], j) => lines.push(`      ${JSON.stringify(name)}: ${inline(entry)}${j < rows.length - 1 ? ',' : ''}`));
-      lines.push(`    }${comma}`);
-    } else {
-      lines.push(`    ${JSON.stringify(key)}: ${inline(value)}${comma}`);
-    }
-  });
+  const lines = entries.flatMap(([key, value], i) => entryLines(key, value, 2, i < entries.length - 1 ? ',' : ''));
   return `  "anchors": {\n${lines.join('\n')}\n  }`;
 }
 
@@ -69,7 +75,8 @@ export function replaceAnchors(text, anchors) {
 
 /**
  * Problems that make an `anchors` section unfit to write (empty if fine):
- * invalid entries, unknown animations or reactions, wrong frame counts.
+ * invalid entries, unknown animations or reactions, wrong frame counts (in
+ * the touch-ups, the generated `base` and each stage's tables).
  * @param {object} raw the section as sent by the editor
  * @param {object} meta the pack's pack.json
  * @returns {string[]}
@@ -78,13 +85,21 @@ export function anchorsProblems(raw, meta) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return ['anchors must be an object'];
   const { anchors, ignored } = anchorsOverrides(raw);
   const problems = ignored.map((key) => `invalid: ${key}`);
-  for (const [table, defs] of [['animations', meta.animations ?? {}], ['reactions', meta.reactions ?? {}]]) {
-    for (const [name, entry] of Object.entries(anchors[table])) {
-      if (!defs[name]) problems.push(`unknown ${table}.${name}`);
-      else if (entry.points.length !== 1 && entry.points.length !== defs[name].frames) {
-        problems.push(`${table}.${name}: ${entry.points.length} points for ${defs[name].frames} frames`);
+  const check = (tables, prefix) => {
+    for (const [table, defs] of [['animations', meta.animations ?? {}], ['reactions', meta.reactions ?? {}]]) {
+      for (const [name, entry] of Object.entries(tables[table])) {
+        if (!defs[name]) problems.push(`unknown ${prefix}${table}.${name}`);
+        else if (entry.points.length !== 1 && entry.points.length !== defs[name].frames) {
+          problems.push(`${prefix}${table}.${name}: ${entry.points.length} points for ${defs[name].frames} frames`);
+        }
       }
     }
+  };
+  check(anchors, '');
+  check(anchors.base, 'base.');
+  for (const [stage, block] of Object.entries(anchors.stages)) {
+    check(block, `stages.${stage}.`);
+    check(block.base, `stages.${stage}.base.`);
   }
   return problems;
 }
