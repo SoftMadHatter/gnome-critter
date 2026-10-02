@@ -65,6 +65,7 @@
   "anchors": {
     "head": { "x": 0.78, "y": 0.28 },
     "headWidth": 0.344,
+    "view": "side",
     "slots": { "top": { "dx": -0.589, "dy": -0.017 }, "face": { "dx": -0.045, "dy": 0.318 }, "neck": { "dx": -0.15, "dy": 1 } },
     "base": {
       "animations": {

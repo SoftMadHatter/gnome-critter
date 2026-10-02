@@ -119,3 +119,11 @@ test('vue de dos : hide généré conservé par la retouche, modifiable', () => 
   draft.entries['animation:climb'] = { rotation: 0, width: null, hide: [], points: [null, null] };
   assert.deepEqual(draftToRaw(p, draft).animations.climb, [[0.5, 0.1], [0.5, 0.12]]);
 });
+
+test('vue : de profil écrite, de face (défaut) omise', () => {
+  const draft = draftFromPack(pack({ ...raw, view: 'side' }));
+  assert.equal(draft.view, 'side');
+  assert.equal(draftToRaw(pack(raw), draft).view, 'side');
+  draft.view = 'front';
+  assert.equal(draftToRaw(pack(raw), draft).view, undefined);
+});

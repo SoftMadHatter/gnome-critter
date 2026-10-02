@@ -692,6 +692,17 @@ def glasses():
     return d.finish(None)
 
 
+def glasses_side():
+    """Glasses seen in profile (for a critter drawn side-on): the near lens over the eye, a temple going back to the ear."""
+    d = Canvas(16, 16, 2)
+    frame = c(40, 40, 60)
+    d.stroke([(7.7, 8.2), (4.2, 7.8), (1.4, 8.4), (1.0, 10.2)], 0.8, frame)  # temple, hooked behind the ear
+    d.oval(7.6, 5.6, 14.6, 12.4, c(190, 225, 245, 170))
+    d.ellipse((7.6, 5.6, 14.0, 11.8), outline=frame, width=1.0)
+    d.stroke([(9.1, 7.6), (10.6, 6.8)], 0.4, c(250, 252, 255))
+    return d.finish(None)
+
+
 def crown():
     d = Canvas(16, 16, 2)
     d.shaded("polygon", [(2, 14), (2, 5), (5, 9), (8, 3), (11, 9), (14, 5), (14, 14)], *tones(c(245, 200, 60)))
@@ -808,7 +819,7 @@ def foilhat():
 
 
 ACCESSORY_SPRITES = {
-    "partyhat": partyhat, "bow": bow, "glasses": glasses, "crown": crown, "santa": santa, "witch": witch,
+    "partyhat": partyhat, "bow": bow, "glasses": glasses, "glasses_side": glasses_side, "crown": crown, "santa": santa, "witch": witch,
     "medal": medal, "laurel": laurel, "halo": halo, "cone": cone, "sock": sock, "foilhat": foilhat,
 }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shopList, equippable, inSeason, anchorsOverrides, anchorEntry, anchorFor, accessorySlot, accessoryPlacement, layoutFor, ACCESSORY_LAYOUT, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
+import { shopList, equippable, inSeason, anchorsOverrides, anchorEntry, anchorFor, accessorySlot, accessoryImageId, accessoryImageIds, accessoryPlacement, layoutFor, ACCESSORY_LAYOUT, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
 import { ACCESSORY_METRICS } from '../core/accessoryMetrics.js';
 import { Life } from '../core/life.js';
 import { Critter } from '../core/critter.js';
@@ -258,4 +258,29 @@ test('hide : le visage et le cou disparaissent de dos, pas le dessus', () => {
   assert.ok(anchorFor(anchors, { animation: 'climb', slot: 'top' }));
   assert.ok(anchorFor(anchors, { animation: 'walk', slot: 'face' }));
   assert.deepEqual(anchorsOverrides({ base: { animations: { climb: { hide: ['back'], points: [0.5, 0.1] } } } }).ignored, ['base.animations.climb']);
+});
+
+test('view : les lunettes de profil remplacent celles de face dans un pack vu de profil', () => {
+  const front = anchorsOverrides({}).anchors;
+  const side = anchorsOverrides({ view: 'side' }).anchors;
+  assert.equal(front.view, 'front');
+  assert.equal(accessoryImageId('glasses', front), 'glasses');
+  assert.equal(accessoryImageId('glasses', side), 'glasses_side');
+  assert.equal(accessoryImageId('crown', side), 'crown', 'pas de variante de profil : la même image');
+  assert.deepEqual(accessoryImageIds().filter((i) => i.includes('glasses')), ['glasses', 'glasses_side']);
+  assert.ok(ACCESSORY_METRICS.glasses_side);
+  assert.ok(layoutFor('glasses', side).span > layoutFor('glasses', front).span);
+  assert.deepEqual(anchorsOverrides({ view: 'back' }).ignored, ['view']);
+  // The pack's own layout still wins over the profile variant's.
+  const tuned = anchorsOverrides({ view: 'side', layout: { glasses: { span: 0.6 } } }).anchors;
+  assert.equal(layoutFor('glasses', tuned).span, 0.6);
+  assert.equal(layoutFor('glasses', tuned).image, 'glasses_side');
+  // The lens, not the image, lands on the slot's point (the eye).
+  const box = { x: 0, y: 0, width: 64, height: 64 };
+  const anchor = { x: 0.5, y: 0.5, headWidth: 0.375 };
+  const place = accessoryPlacement('glasses', box, anchor, 1, 0, layoutFor('glasses', side));
+  const m = ACCESSORY_METRICS.glasses_side;
+  const lensX = place.x + ((m.x0 + 0.73 * (m.x1 - m.x0)) / 32) * place.size;
+  const lensY = place.y + ((m.y0 + 0.47 * (m.y1 - m.y0)) / 32) * place.size;
+  assert.ok(Math.abs(lensX - 32) <= 1 && Math.abs(lensY - 32) <= 1);
 });

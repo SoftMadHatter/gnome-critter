@@ -185,7 +185,8 @@ Tabs:
   generated point (one frame or the whole animation). Four witness
   accessories (crown, glasses, medal, bow; or any single one) show the
   result next to an animated preview. The pack settings tune the head
-  width (adult and each stage; one animation can also have its own) and
+  width (adult and each stage; one animation can also have its own), the
+  view of the drawing (front or profile: glasses change) and
   the top, face and neck slots; the "Accessories" table tunes, for each
   accessory, its slot, width, shift and anchor point (only differences
   from the code's defaults are written, bold in the table). The draft stays in the

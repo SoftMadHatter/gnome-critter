@@ -4,7 +4,7 @@
 // accessory placed on the head (accessoryPlacement).
 
 import { shiftPixels } from '../../core/colorShift.js';
-import { accessoryPlacement, accessorySlot, anchorFor, anchorsOverrides, layoutFor } from '../../core/accessories.js';
+import { accessoryImageId, accessoryPlacement, accessorySlot, anchorFor, anchorsOverrides, layoutFor } from '../../core/accessories.js';
 import { stagesOverrides, Life } from '../../core/life.js';
 
 const images = new Map();
@@ -122,7 +122,8 @@ export class SpritePlayer {
       // Like in the game: no accessory on an egg.
       const egg = stage === 'egg' || this.options.name === 'egg';
       const ids = egg ? [] : [].concat(accessory ?? []);
-      this.accessories = await Promise.all(ids.map(async (id) => ({ id, image: await loadImage(`/extension/assets/accessories/${id}.png`) })));
+      const anchors = this.options.anchors ?? anchorsOverrides(undefined).anchors;
+      this.accessories = await Promise.all(ids.map(async (id) => ({ id, image: await loadImage(`/extension/assets/accessories/${accessoryImageId(id, anchors)}.png`) })));
       this.error = null;
     } catch (e) {
       this.error = e.message;

@@ -8,7 +8,7 @@ import { ACCESSORY_LAYOUT, anchorEntry, anchorsOverrides } from '../../core/acce
 export const DRAFT_VERSION = 2;
 // Sections the editor carries through without editing, and the order of the written keys.
 const KEPT = ['stageFit', 'base', 'stages'];
-const ORDER = ['head', 'headWidth', 'slots', 'layout', 'stageFit', 'base', 'stages', 'animations', 'reactions'];
+const ORDER = ['head', 'headWidth', 'view', 'slots', 'layout', 'stageFit', 'base', 'stages', 'animations', 'reactions'];
 export const round = (v) => Math.round(v * 1000) / 1000;
 export const key = (kind, name) => `${kind}:${name}`;
 
@@ -30,7 +30,7 @@ export function draftFromPack(pack) {
   const extra = {};
   for (const key of KEPT) if (pack.raw.anchors?.[key] !== undefined) extra[key] = structuredClone(pack.raw.anchors[key]);
   return {
-    version: DRAFT_VERSION, head: { ...anchors.head }, headWidth: anchors.headWidth, slots: structuredClone(anchors.slots),
+    version: DRAFT_VERSION, head: { ...anchors.head }, headWidth: anchors.headWidth, view: anchors.view, slots: structuredClone(anchors.slots),
     layout: structuredClone(anchors.layout), extra, entries,
   };
 }
@@ -81,6 +81,7 @@ export function draftToRaw(pack, draft) {
   const layout = Object.fromEntries(Object.entries(draft.layout ?? {}).filter(([, o]) => Object.keys(o).length > 0)
     .map(([id, o]) => [id, Object.fromEntries(Object.entries(o).map(([f, v]) => [f, Array.isArray(v) ? v.map(round) : typeof v === 'number' ? round(v) : v]))]));
   if (Object.keys(layout).length > 0) out.layout = layout;
+  if (draft.view === 'side') out.view = 'side';
   for (const [slot, d] of Object.entries(draft.slots)) out.slots[slot] = { dx: round(d.dx), dy: round(d.dy) };
   for (const [kind, table, defs] of [['animation', 'animations', pack.meta.animations], ['reaction', 'reactions', pack.meta.reactions]]) {
     const rows = {};

@@ -8,7 +8,7 @@ import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { ACCESSORIES, accessoryPlacement, accessorySlot, anchorFor, layoutFor } from '../core/accessories.js';
+import { accessoryImageId, accessoryImageIds, accessoryPlacement, accessorySlot, anchorFor, layoutFor } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
 
 /**
@@ -18,7 +18,7 @@ import { loadImage } from './packLoader.js';
 export function loadAccessoryImages(dir) {
   const images = {};
   try {
-    for (const id of Object.keys(ACCESSORIES)) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
+    for (const id of accessoryImageIds()) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
   } catch (e) {
     console.warn(`Critter: accessories unavailable (${e.message})`);
     return {};
@@ -51,14 +51,15 @@ export class AccessoryActor {
    */
   update(id, box, facing, visible, pose, stage) {
     const anchor = id ? anchorFor(this._anchors, { ...pose, stage, slot: accessorySlot(id, this._anchors) }) : null;
-    const image = id && visible && anchor ? this._images[id] : null;
+    const imageId = id ? accessoryImageId(id, this._anchors) : null;
+    const image = id && visible && anchor ? this._images[imageId] : null;
     if (!image) {
       if (this.actor.visible) this.actor.hide();
       this._id = null;
       return;
     }
-    if (id !== this._id) {
-      this._id = id;
+    if (imageId !== this._id) {
+      this._id = imageId;
       this.actor.content = image;
     }
     const { x, y, size } = accessoryPlacement(id, box, anchor, facing, anchor.rotation, layoutFor(id, this._anchors));

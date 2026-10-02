@@ -982,7 +982,7 @@ def save_sheet(path, frames):
 # --- accessory anchors (pack.json "anchors": see docs/pack-format.md) ----------
 
 MAX_TILT = 25  # degrees
-ANCHOR_ORDER = ["head", "headWidth", "slots", "layout", "stageFit", "base", "stages", "animations", "reactions"]
+ANCHOR_ORDER = ["head", "headWidth", "view", "slots", "layout", "stageFit", "base", "stages", "animations", "reactions"]
 STAGES = list(STAGE_CFG)
 
 

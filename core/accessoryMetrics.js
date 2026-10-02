@@ -9,6 +9,7 @@ export const ACCESSORY_METRICS = Object.freeze({
   crown: { x0: 1, y0: 2, x1: 32, y1: 32 },
   foilhat: { x0: 2, y0: 0, x1: 32, y1: 32 },
   glasses: { x0: 2, y0: 18, x1: 31, y1: 31 },
+  glasses_side: { x0: 1, y0: 11, x1: 30, y1: 26 },
   halo: { x0: 1, y0: 20, x1: 31, y1: 32 },
   laurel: { x0: 0, y0: 10, x1: 32, y1: 32 },
   medal: { x0: 3, y0: 0, x1: 29, y1: 32 },

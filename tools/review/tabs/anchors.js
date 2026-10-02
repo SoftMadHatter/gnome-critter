@@ -46,6 +46,7 @@ export function render(root, { pack, state, setState }) {
   if (!drafts.has(pack.id)) drafts.set(pack.id, readStored(pack.id) ?? draftFromPack(pack));
   const draft = drafts.get(pack.id);
   draft.layout ??= {};
+  draft.view ??= 'front';
   draft.extra ??= {};
 
   const wanted = state.anim ?? '';
@@ -263,6 +264,7 @@ export function render(root, { pack, state, setState }) {
         numberField('Repli x', () => draft.head.x, (v) => { draft.head.x = v; }),
         numberField('Repli y', () => draft.head.y, (v) => { draft.head.y = v; }),
         numberField('Largeur de tête', () => draft.headWidth, (v) => { draft.headWidth = v; }, { min: 0.05, max: 1, step: 0.005 }),
+        field('Vue du dessin', select([['front', 'de face'], ['side', 'de profil']], draft.view, (v) => { draft.view = v; persist(); go({}); })),
         ...['baby', 'young', 'senior'].map((st) => numberField(`Largeur de tête (${stageLabel(st).toLowerCase()})`, () => stageHeadWidth(draft, st), (v) => setStageHeadWidth(draft, st, v), { min: 0.05, max: 1, step: 0.005 })),
         numberField('Dessus dx', () => draft.slots.top.dx, (v) => { draft.slots.top.dx = v; }, { min: -3, max: 3 }),
         numberField('Dessus dy', () => draft.slots.top.dy, (v) => { draft.slots.top.dy = v; }, { min: -3, max: 3 }),
