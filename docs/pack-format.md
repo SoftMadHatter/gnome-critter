@@ -151,7 +151,9 @@ reactions.
 Optional sections described in `docs/progression.md`: the species'
 achievements (templates that add to, replace, or remove entries from the
 shared library), the species' tricks, the head anchor point for
-accessories. Optional animations `trick_sit`, `trick_roll`, `trick_flip`
+accessories, then frame by frame for each animation and reaction, with the
+head size and the top, face and neck slots (`anchors`, generated for the
+species drawn by the script, see `docs/progression.md`). Optional animations `trick_sit`, `trick_roll`, `trick_flip`
 (one per trick declared) and `gift`.
 
 ## Names (`names`)

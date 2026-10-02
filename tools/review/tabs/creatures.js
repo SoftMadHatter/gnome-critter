@@ -39,7 +39,15 @@ function packSheet(pack) {
     ['Apparence', appearance.enabled
       ? `teinte ${appearance.hueRange.join(' à ')}°${appearance.colorizeGrays ? `, gris colorisés (saturation ${appearance.graySaturation})` : ''}`
       : 'désactivée'],
-    ['Ancrage de la tête', `x ${anchorsOverrides(meta.anchors).anchors.head.x}, y ${anchorsOverrides(meta.anchors).anchors.head.y}`],
+    ['Ancrage de la tête', (() => {
+      const { headWidth, base, animations, reactions, stages } = anchorsOverrides(meta.anchors).anchors;
+      const count = (tables) => Object.keys(tables.animations).length + Object.keys(tables.reactions).length;
+      const total = Object.keys(meta.animations ?? {}).length + Object.keys(meta.reactions ?? {}).length;
+      const touched = count({ animations, reactions });
+      return `tête ${Math.round(headWidth * 100)} % du sprite — ${count(base)} / ${total} animations et réactions générées`
+        + `${Object.keys(stages).length > 0 ? `, stades ${Object.keys(stages).map((n) => stageLabel(n)).join(', ')}` : ''}`
+        + `, ${touched} retouchée${touched > 1 ? 's' : ''} (onglet Ancrages)`;
+    })()],
     ['Animations / réactions', `${Object.keys(meta.animations ?? {}).length} / ${Object.keys(meta.reactions ?? {}).length}`],
   ];
   return table([['', (r) => h('b', {}, r[0]), 'nowrap'], ['', (r) => r[1]]], rows);
@@ -48,7 +56,7 @@ function packSheet(pack) {
 export function render(root, { pack, state, setState }) {
   const meta = pack.meta;
   const appearance = appearanceOverrides(meta.appearance).config;
-  const head = anchorsOverrides(meta.anchors).anchors.head;
+  const anchors = anchorsOverrides(meta.anchors).anchors;
   const animations = Object.keys(meta.animations ?? {});
   const reactions = Object.keys(meta.reactions ?? {});
   const options = {
@@ -85,7 +93,7 @@ export function render(root, { pack, state, setState }) {
   const contact = h('div');
   const redraw = () => {
     save();
-    const player = new SpritePlayer({ pack, ...options, color: color(), head, padding: 0.6 });
+    const player = new SpritePlayer({ pack, ...options, reaction: !animations.includes(options.name), color: color(), anchors, padding: 0.6 });
     const info = h('p', { class: 'muted' });
     player.ready.then(() => {
       const a = player.animation;
@@ -97,13 +105,13 @@ export function render(root, { pack, state, setState }) {
     renderContactSoon();
   };
   const renderContact = () => {
-    const card = (name) => {
-      const player = new SpritePlayer({ pack, ...options, name, zoom: 2, color: color(), head, padding: 0.3 });
+    const card = (name, reaction = false) => {
+      const player = new SpritePlayer({ pack, ...options, name, reaction, zoom: 2, color: color(), anchors, padding: 0.3 });
       return h('div', { class: 'card' }, player.canvas, h('div', { class: 'label' }, name));
     };
     const sheets = options.stage === 'egg'
       ? [h('div', { class: 'grid' }, card('egg'))]
-      : [h('div', { class: 'grid' }, animations.map(card)), h('h3', {}, 'Réactions'), h('div', { class: 'grid' }, reactions.map(card))];
+      : [h('div', { class: 'grid' }, animations.map(card)), h('h3', {}, 'Réactions'), h('div', { class: 'grid' }, reactions.map((name) => card(name, true)))];
     contact.replaceChildren(h('h3', {}, `Animations — ${stageLabel(options.stage)}`), ...sheets);
   };
   const renderContactSoon = debounce(() => renderContact(), 250); // the board recolors every sheet

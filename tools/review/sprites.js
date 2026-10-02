@@ -4,7 +4,7 @@
 // accessory placed on the head (accessoryPlacement).
 
 import { shiftPixels } from '../../core/colorShift.js';
-import { accessoryPlacement } from '../../core/accessories.js';
+import { accessoryImageId, accessoryPlacement, accessorySlot, anchorFor, anchorsOverrides, layoutFor } from '../../core/accessories.js';
 import { stagesOverrides, Life } from '../../core/life.js';
 
 const images = new Map();
@@ -42,14 +42,14 @@ export function sheetUrl(pack, file, stage) {
 }
 
 /** A stage's animation: sheet, frame count, frame duration (the shared egg if the pack has none of its own). */
-export function animationOf(pack, name, stage) {
+export function animationOf(pack, name, stage, reaction = false) {
   if (stage === 'egg') {
     const egg = pack.meta.animations?.egg;
     return egg
       ? { url: `/packs/${pack.id}/${egg.file}`, frames: egg.frames, duration: egg.frameDuration }
       : { url: '/extension/assets/life/egg.png', frames: 4, duration: 0.6 };
   }
-  const def = pack.meta.animations?.[name] ?? pack.meta.reactions?.[name];
+  const def = reaction ? pack.meta.reactions?.[name] : (pack.meta.animations?.[name] ?? pack.meta.reactions?.[name]);
   if (!def) return null;
   return { url: sheetUrl(pack, def.file, stage), frames: def.frames, duration: def.frameDuration ?? 0.2 };
 }
@@ -88,8 +88,8 @@ function loop(time) {
 
 /**
  * Player for an animation in a canvas.
- * options: pack, name (state or reaction), stage, zoom, speed, smooth, facing (1 | -1),
- * color ({hue, saturation, tone, colorizeGrays, graySaturation} or null), accessory (id or null), padding.
+ * options: pack, name (animation or reaction), reaction (true: a reaction, when an animation has the same name), stage, zoom, speed, smooth, facing (1 | -1),
+ * color ({hue, saturation, tone, colorizeGrays, graySaturation} or null), accessory (id, list of ids, or null), anchors (the pack's, from anchorsOverrides), frame (a fixed frame instead of playing), padding.
  */
 export class SpritePlayer {
   constructor(options) {
@@ -97,7 +97,7 @@ export class SpritePlayer {
     this.canvas.className = 'checker';
     this.options = options;
     this.sheet = null;
-    this.accessory = null;
+    this.accessories = [];
     this.ready = this.reload();
     players.add(this);
     if (!looping) {
@@ -107,8 +107,8 @@ export class SpritePlayer {
   }
 
   async reload() {
-    const { pack, name, stage, zoom = 2, color = null, accessory = null, padding = 0.5 } = this.options;
-    this.animation = animationOf(pack, name, stage);
+    const { pack, name, reaction = false, stage, zoom = 2, color = null, accessory = null, padding = 0.5 } = this.options;
+    this.animation = animationOf(pack, name, stage, reaction);
     if (!this.animation) return;
     const scale = stageScales(pack.meta)[stage] ?? 1;
     const size = pack.meta.spriteSize ?? { width: 32, height: 32 };
@@ -121,7 +121,9 @@ export class SpritePlayer {
       this.sheet = await tintedSheet(this.animation.url, color);
       // Like in the game: no accessory on an egg.
       const egg = stage === 'egg' || this.options.name === 'egg';
-      this.accessory = accessory && !egg ? await loadImage(`/extension/assets/accessories/${accessory}.png`) : null;
+      const ids = egg ? [] : [].concat(accessory ?? []);
+      const anchors = this.options.anchors ?? anchorsOverrides(undefined).anchors;
+      this.accessories = await Promise.all(ids.map(async (id) => ({ id, image: await loadImage(`/extension/assets/accessories/${accessoryImageId(id, anchors)}.png`) })));
       this.error = null;
     } catch (e) {
       this.error = e.message;
@@ -134,7 +136,7 @@ export class SpritePlayer {
     if (!this.sheet || !this.animation) return;
     const { pack, speed = 1, smooth = pack.meta.smooth === true, facing = 1, accessory = null } = this.options;
     const frameSize = this.sheet.height;
-    const frame = Math.floor(time / 1000 / (this.animation.duration / speed)) % this.animation.frames;
+    const frame = this.options.frame ?? Math.floor(time / 1000 / (this.animation.duration / speed)) % this.animation.frames;
     ctx.imageSmoothingEnabled = smooth;
     ctx.imageSmoothingQuality = 'high';
     const { x, y, width, height } = this.box;
@@ -146,17 +148,18 @@ export class SpritePlayer {
     }
     ctx.drawImage(this.sheet, frame * frameSize, 0, frameSize, frameSize, x, y, width, height);
     ctx.restore();
-    if (this.accessory && accessory) {
-      const head = this.options.head ?? { x: 0.72, y: 0.2 };
-      const place = accessoryPlacement(accessory, this.box, head, facing);
+    for (const { id, image } of this.accessories) {
+      const anchors = this.options.anchors ?? anchorsOverrides(undefined).anchors;
+      const pose = this.options.reaction ? { reaction: this.options.name } : { animation: this.options.name };
+      const anchor = anchorFor(anchors, { ...pose, frame, stage: this.options.stage, slot: accessorySlot(id, anchors) });
+      if (!anchor) continue;
+      const place = accessoryPlacement(id, this.box, anchor, facing, anchor.rotation, layoutFor(id, anchors));
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      if (facing < 0) {
-        ctx.translate(place.x + place.size / 2, 0);
-        ctx.scale(-1, 1);
-        ctx.translate(-(place.x + place.size / 2), 0);
-      }
-      ctx.drawImage(this.accessory, place.x, place.y, place.size, place.size);
+      ctx.translate(place.x + place.size / 2, place.y + place.size / 2);
+      if (facing < 0) ctx.scale(-1, 1);
+      ctx.rotate((anchor.rotation * Math.PI) / 180);
+      ctx.drawImage(image, -place.size / 2, -place.size / 2, place.size, place.size);
       ctx.restore();
     }
   }

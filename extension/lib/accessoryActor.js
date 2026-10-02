@@ -1,13 +1,14 @@
 // A worn accessory (hat, bow tie, glasses...): a small non-reactive actor
-// placed on the critter's head, anchored via the pack's `anchors.head`
-// section. Added to uiGroup without addChrome: it lets clicks through.
+// placed on the critter's head, face or neck (per accessory), anchored via
+// the pack's `anchors` section, frame by frame. Added to uiGroup without
+// addChrome: it lets clicks through.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { ACCESSORIES, accessoryPlacement } from '../core/accessories.js';
+import { accessoryImageId, accessoryImageIds, accessoryPlacement, accessorySlot, anchorFor, layoutFor } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
 
 /**
@@ -17,7 +18,7 @@ import { loadImage } from './packLoader.js';
 export function loadAccessoryImages(dir) {
   const images = {};
   try {
-    for (const id of Object.keys(ACCESSORIES)) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
+    for (const id of accessoryImageIds()) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
   } catch (e) {
     console.warn(`Critter: accessories unavailable (${e.message})`);
     return {};
@@ -28,7 +29,7 @@ export function loadAccessoryImages(dir) {
 export class AccessoryActor {
   /**
    * @param {Record<string, St.ImageContent>} images
-   * @param {{head: {x:number, y:number}}} anchors
+   * @param {ReturnType<typeof import('../core/accessories.js').anchorsOverrides>['anchors']} anchors
    */
   constructor(images, anchors) {
     this._images = images;
@@ -45,22 +46,27 @@ export class AccessoryActor {
    * @param {{x:number, y:number, width:number, height:number}} box the sprite's on-screen rectangle
    * @param {number} facing 1 (right) or -1 (left)
    * @param {boolean} visible false when the sprite is hidden
+   * @param {{animation?: string, reaction?: string, frame: number}} pose the animation or reaction on screen and its frame
+   * @param {string} stage life stage
    */
-  update(id, box, facing, visible) {
-    const image = id && visible ? this._images[id] : null;
+  update(id, box, facing, visible, pose, stage) {
+    const anchor = id ? anchorFor(this._anchors, { ...pose, stage, slot: accessorySlot(id, this._anchors) }) : null;
+    const imageId = id ? accessoryImageId(id, this._anchors) : null;
+    const image = id && visible && anchor ? this._images[imageId] : null;
     if (!image) {
       if (this.actor.visible) this.actor.hide();
       this._id = null;
       return;
     }
-    if (id !== this._id) {
-      this._id = id;
+    if (imageId !== this._id) {
+      this._id = imageId;
       this.actor.content = image;
     }
-    const { x, y, size } = accessoryPlacement(id, box, this._anchors.head, facing);
+    const { x, y, size } = accessoryPlacement(id, box, anchor, facing, anchor.rotation, layoutFor(id, this._anchors));
     this.actor.set_size(size, size);
     this.actor.set_position(x, y);
     this.actor.scale_x = facing < 0 ? -1 : 1;
+    this.actor.rotation_angle_z = anchor.rotation * (facing < 0 ? -1 : 1);
     if (!this.actor.visible) this.actor.show();
   }
 

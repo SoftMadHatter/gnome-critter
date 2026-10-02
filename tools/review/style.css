@@ -147,3 +147,14 @@ details > summary { cursor: pointer; margin: 6px 0; }
 .warning-text { color: var(--warning); }
 canvas { image-rendering: auto; }
 canvas.pixel { image-rendering: pixelated; }
+
+/* Anchors tab */
+.anchor-stage { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.anchor-marker {
+  display: none; position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border: 2px solid #e22; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1px #fff;
+}
+.anchor-marker.generated { border: 2px dashed #58f; width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+input.overridden { font-weight: 700; border-color: var(--accent); }
+.layout-table tr.current td { background: rgba(80, 130, 255, 0.12); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }

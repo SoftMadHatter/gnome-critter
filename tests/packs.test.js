@@ -11,7 +11,7 @@ import { stagesOverrides } from '../core/life.js';
 import {
   buildAchievements, speciesProfile, CATEGORIES, PLAYER_CATEGORY,
 } from '../core/achievements.js';
-import { anchorsOverrides } from '../core/accessories.js';
+import { anchorsProblems } from '../tools/review/anchorsFile.mjs';
 import { tricksOverrides } from '../core/tricks.js';
 import { namesOverrides } from '../core/names.js';
 
@@ -164,7 +164,7 @@ for (const id of packIds) {
   });
 
   test(`pack "${id}" : ancrages valides`, () => {
-    assert.deepEqual(anchorsOverrides(meta.anchors).ignored, []);
+    assert.deepEqual(anchorsProblems(meta.anchors ?? {}, meta), []);
   });
 
   test(`pack "${id}" : tours connus`, () => {

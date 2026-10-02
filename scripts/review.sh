@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Review tool (dev): a local, read-only page to review achievements,
+# Review tool (dev): a local page (read-only, except the pack anchors editor) to review achievements,
 # titles, rewards, Committee announcements, creatures, and objects the way
 # the game computes them. Fixes are made in the editor; the page reloads
 # itself on every save. Nothing ships with the extension (tools/ isn't

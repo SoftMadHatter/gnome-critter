@@ -15,6 +15,7 @@ const TABS = [
   ['rewards', 'Récompenses', () => import('./tabs/rewards.js')],
   ['narrator', 'Le Comité', () => import('./tabs/narrator.js')],
   ['creatures', 'Créatures', () => import('./tabs/creatures.js')],
+  ['anchors', 'Ancrages', () => import('./tabs/anchors.js')],
   ['items', 'Objets', () => import('./tabs/items.js')],
   ['checks', 'Contrôles', () => import('./tabs/checks.js')],
 ];
