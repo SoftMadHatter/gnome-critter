@@ -185,8 +185,10 @@ Tabs:
   generated point (one frame or the whole animation). Four witness
   accessories (crown, glasses, medal, bow; or any single one) show the
   result next to an animated preview. The pack settings tune the head
-  width (it sizes the accessories) and the top, face and neck slots; the
-  other stages are checked with the stage choice. The draft stays in the
+  width (adult and each stage; one animation can also have its own) and
+  the top, face and neck slots; the "Accessories" table tunes, for each
+  accessory, its slot, width, shift and anchor point (only differences
+  from the code's defaults are written, bold in the table). The draft stays in the
   browser until "Save to pack.json" rewrites only the `anchors` block (the
   diff shows in git): the generated sections are carried through, and a
   touch-up equal to the generated points is not written. After redrawing

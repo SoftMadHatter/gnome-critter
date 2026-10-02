@@ -99,8 +99,17 @@ export const ACCESSORY_LAYOUT = Object.freeze({
 /** Where on the head an accessory is worn: the top (hats), the face (glasses), the neck (medal, bow). */
 export const SLOTS = Object.freeze(['top', 'face', 'neck']);
 
-export function accessorySlot(id) {
-  return ACCESSORY_LAYOUT[id]?.slot ?? 'top';
+/**
+ * An accessory's layout for a pack: the defaults above, overridden by the pack's `anchors.layout`.
+ * @param {string} id
+ * @param {{layout?: Record<string, object>}} [anchors] from anchorsOverrides
+ */
+export function layoutFor(id, anchors) {
+  return { ...ACCESSORY_LAYOUT[id], ...anchors?.layout?.[id] };
+}
+
+export function accessorySlot(id, anchors) {
+  return layoutFor(id, anchors).slot ?? 'top';
 }
 
 const DEFAULT_HEAD_ANCHOR = { x: 0.72, y: 0.2 };
@@ -126,10 +135,10 @@ const toPoint = (v) => ({ x: v[0], y: v[1] });
  * @param {{x:number, y:number, headWidth?:number}} anchor slot point (fractions, sprite facing right) and head width
  * @param {number} facing 1 (right) or -1 (left)
  * @param {number} [rotation] 180 when the head is upside down: the accessory hangs below the point
+ * @param {object} [layout] the accessory's layout for the pack (see layoutFor); the defaults if omitted
  * @returns {{x:number, y:number, size:number}}
  */
-export function accessoryPlacement(id, box, anchor, facing, rotation = 0) {
-  const layout = ACCESSORY_LAYOUT[id] ?? {};
+export function accessoryPlacement(id, box, anchor, facing, rotation = 0, layout = ACCESSORY_LAYOUT[id] ?? {}) {
   const m = ACCESSORY_METRICS[id] ?? { x0: 0, y0: 0, x1: ACCESSORY_GRID, y1: ACCESSORY_GRID };
   const head = (anchor.headWidth ?? DEFAULT_HEAD_WIDTH) * box.width;
   const size = Math.max(6, Math.round((head * (layout.span ?? 1)) / ((m.x1 - m.x0) / ACCESSORY_GRID)));
@@ -209,6 +218,31 @@ function parseStage(raw, prefix, ignored) {
   return stage;
 }
 
+const LAYOUT_FIELDS = {
+  span: (v) => Number.isFinite(v) && v >= 0.1 && v <= 3,
+  shift: (v) => Number.isFinite(v) && v >= -3 && v <= 3,
+  at: (v) => Array.isArray(v) && v.length === 2 && v.every(isFraction),
+  slot: (v) => SLOTS.includes(v),
+};
+
+/** `anchors.layout`: partial overrides of ACCESSORY_LAYOUT per accessory, only valid fields kept. */
+function parseLayout(raw, ignored) {
+  const layout = {};
+  for (const [id, fields] of Object.entries(raw)) {
+    if (!(id in ACCESSORIES) || !isObject(fields)) {
+      ignored.push(`layout.${id}`);
+      continue;
+    }
+    const kept = {};
+    for (const [field, value] of Object.entries(fields)) {
+      if (LAYOUT_FIELDS[field]?.(value)) kept[field] = field === 'at' ? [...value] : value;
+      else ignored.push(`layout.${id}.${field}`);
+    }
+    if (Object.keys(kept).length > 0) layout[id] = kept;
+  }
+  return layout;
+}
+
 /**
  * Validates the `anchors` section of a pack: where accessories sit.
  * - `head`: the top of the head, in fractions of the sprite's size, sprite facing right (fallback).
@@ -217,11 +251,12 @@ function parseStage(raw, prefix, ignored) {
  * - `animations` / `reactions`: manual touch-ups of the head point per animation (or reaction), one
  *   per frame (see parseEntry), which take precedence over `base`.
  * - `slots`: `top`, `face` and `neck` offsets from the head point (`dx`, `dy`), in head widths.
+ * - `layout`: per accessory, overrides of ACCESSORY_LAYOUT for this pack (`span`, `shift`, `at`, `slot`).
  * - `stages`: for a stage drawn differently from the adult (`baby`, `young`, `senior`),
  *   `{ headWidth, base, animations, reactions }`; whatever it doesn't define comes from the adult.
  * - `stageFit`: without `stages`, a stage drawn smaller (`{ "baby": { "scale": 0.75 } }`):
  *   points are scaled around the bottom center of the frame.
- * @returns {{anchors: {head: {x:number, y:number}, headWidth: number, slots: Record<string, {dx:number, dy:number}>, animations: Record<string, any>, reactions: Record<string, any>, base: {animations: Record<string, any>, reactions: Record<string, any>}, stages: Record<string, any>, stageFit: Record<string, {scale:number}>}, ignored: string[]}}
+ * @returns {{anchors: {head: {x:number, y:number}, headWidth: number, slots: Record<string, {dx:number, dy:number}>, animations: Record<string, any>, reactions: Record<string, any>, base: {animations: Record<string, any>, reactions: Record<string, any>}, stages: Record<string, any>, stageFit: Record<string, {scale:number}>, layout: Record<string, any>}, ignored: string[]}}
  */
 export function anchorsOverrides(raw) {
   const anchors = {
@@ -233,6 +268,7 @@ export function anchorsOverrides(raw) {
     base: { animations: {}, reactions: {} },
     stages: {},
     stageFit: {},
+    layout: {},
   };
   const ignored = [];
   for (const [key, value] of Object.entries(raw ?? {})) {
@@ -248,6 +284,8 @@ export function anchorsOverrides(raw) {
       }
     } else if ((key === 'animations' || key === 'reactions') && isObject(value)) {
       anchors[key] = parseTable(value, key, ignored);
+    } else if (key === 'layout' && isObject(value)) {
+      anchors.layout = parseLayout(value, ignored);
     } else if (key === 'base' && isObject(value)) {
       anchors.base = parseTables(value, 'base.', ignored);
     } else if (key === 'stages' && isObject(value)) {

@@ -4,7 +4,7 @@
 // accessory placed on the head (accessoryPlacement).
 
 import { shiftPixels } from '../../core/colorShift.js';
-import { accessoryPlacement, accessorySlot, anchorFor, anchorsOverrides } from '../../core/accessories.js';
+import { accessoryPlacement, accessorySlot, anchorFor, anchorsOverrides, layoutFor } from '../../core/accessories.js';
 import { stagesOverrides, Life } from '../../core/life.js';
 
 const images = new Map();
@@ -150,9 +150,9 @@ export class SpritePlayer {
     for (const { id, image } of this.accessories) {
       const anchors = this.options.anchors ?? anchorsOverrides(undefined).anchors;
       const pose = this.options.reaction ? { reaction: this.options.name } : { animation: this.options.name };
-      const anchor = anchorFor(anchors, { ...pose, frame, stage: this.options.stage, slot: accessorySlot(id) });
+      const anchor = anchorFor(anchors, { ...pose, frame, stage: this.options.stage, slot: accessorySlot(id, anchors) });
       if (!anchor) continue;
-      const place = accessoryPlacement(id, this.box, anchor, facing, anchor.rotation);
+      const place = accessoryPlacement(id, this.box, anchor, facing, anchor.rotation, layoutFor(id, anchors));
       ctx.save();
       ctx.imageSmoothingEnabled = true;
       ctx.translate(place.x + place.size / 2, place.y + place.size / 2);

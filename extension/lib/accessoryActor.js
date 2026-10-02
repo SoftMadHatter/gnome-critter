@@ -8,7 +8,7 @@ import GLib from 'gi://GLib';
 import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { ACCESSORIES, accessoryPlacement, accessorySlot, anchorFor } from '../core/accessories.js';
+import { ACCESSORIES, accessoryPlacement, accessorySlot, anchorFor, layoutFor } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
 
 /**
@@ -50,7 +50,7 @@ export class AccessoryActor {
    * @param {string} stage life stage
    */
   update(id, box, facing, visible, pose, stage) {
-    const anchor = id ? anchorFor(this._anchors, { ...pose, stage, slot: accessorySlot(id) }) : null;
+    const anchor = id ? anchorFor(this._anchors, { ...pose, stage, slot: accessorySlot(id, this._anchors) }) : null;
     const image = id && visible && anchor ? this._images[id] : null;
     if (!image) {
       if (this.actor.visible) this.actor.hide();
@@ -61,7 +61,7 @@ export class AccessoryActor {
       this._id = id;
       this.actor.content = image;
     }
-    const { x, y, size } = accessoryPlacement(id, box, anchor, facing, anchor.rotation);
+    const { x, y, size } = accessoryPlacement(id, box, anchor, facing, anchor.rotation, layoutFor(id, this._anchors));
     this.actor.set_size(size, size);
     this.actor.set_position(x, y);
     this.actor.scale_x = facing < 0 ? -1 : 1;

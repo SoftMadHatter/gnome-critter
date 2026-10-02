@@ -15,7 +15,7 @@ const inline = (value) => {
   return JSON.stringify(value);
 };
 
-const TABLES = ['animations', 'reactions'];
+const TABLES = ['animations', 'reactions', 'layout'];
 const NESTED = ['base', 'stages', 'baby', 'young', 'senior'];
 
 /** The lines of `"key": value`, tables and nested blocks spread over several lines, anything else on one. */

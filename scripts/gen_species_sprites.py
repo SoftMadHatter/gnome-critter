@@ -982,7 +982,7 @@ def save_sheet(path, frames):
 # --- accessory anchors (pack.json "anchors": see docs/pack-format.md) ----------
 
 MAX_TILT = 25  # degrees
-ANCHOR_ORDER = ["head", "headWidth", "slots", "stageFit", "base", "stages", "animations", "reactions"]
+ANCHOR_ORDER = ["head", "headWidth", "slots", "layout", "stageFit", "base", "stages", "animations", "reactions"]
 STAGES = list(STAGE_CFG)
 
 
@@ -1080,12 +1080,12 @@ def _inline(value):
 
 def _anchor_lines(key, value, depth, comma):
     pad = "  " * depth
-    if isinstance(value, dict) and value and (key in ("animations", "reactions", "base", "stages") or key in STAGES):
+    if isinstance(value, dict) and value and (key in ("animations", "reactions", "layout", "base", "stages") or key in STAGES):
         rows = list(value.items())
         inner = []
         for j, (name, entry) in enumerate(rows):
             last = "" if j == len(rows) - 1 else ","
-            if key in ("animations", "reactions"):
+            if key in ("animations", "reactions", "layout"):
                 inner.append(f"{pad}  {json.dumps(name)}: {_inline(entry)}{last}")
             else:
                 inner += _anchor_lines(name, entry, depth + 1, last)

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shopList, equippable, inSeason, anchorsOverrides, anchorEntry, anchorFor, accessorySlot, accessoryPlacement, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
+import { shopList, equippable, inSeason, anchorsOverrides, anchorEntry, anchorFor, accessorySlot, accessoryPlacement, layoutFor, ACCESSORY_LAYOUT, ACCESSORIES, FOOD_PRICES, isSpecial, trophiesFor } from '../core/accessories.js';
 import { ACCESSORY_METRICS } from '../core/accessoryMetrics.js';
 import { Life } from '../core/life.js';
 import { Critter } from '../core/critter.js';
@@ -230,4 +230,20 @@ test('anchorEntry : d\'où vient le point (retouche ou généré, stade ou adult
   assert.deepEqual(from({ animation: 'walk', stage: 'baby' }), ['touch-up', false]);
   assert.equal(anchorEntry(anchors, { animation: 'fly' }), null);
   assert.equal(anchorEntry(anchors, { reaction: 'walk' }), null, 'une réaction n\'est pas une animation');
+});
+
+test('layout : surcharges par pack validées, fusionnées avec le code', () => {
+  const { anchors, ignored } = anchorsOverrides({
+    layout: { bow: { span: 0.3, at: [0.5, 0.2], slot: 'top' }, crown: { span: 9, shift: 0.1, colour: 'red' }, ghost: { span: 1 }, medal: 'x' },
+  });
+  assert.deepEqual(ignored, ['layout.crown.span', 'layout.crown.colour', 'layout.ghost', 'layout.medal']);
+  assert.deepEqual(anchors.layout, { bow: { span: 0.3, at: [0.5, 0.2], slot: 'top' }, crown: { shift: 0.1 } });
+  assert.equal(accessorySlot('bow'), 'neck');
+  assert.equal(accessorySlot('bow', anchors), 'top');
+  assert.deepEqual(layoutFor('crown', anchors), { span: 0.95, shift: 0.1 });
+  assert.deepEqual(layoutFor('bow'), ACCESSORY_LAYOUT.bow);
+  const box = { x: 0, y: 0, width: 64, height: 64 };
+  const anchor = { x: 0.5, y: 0.5, headWidth: 0.375 };
+  const small = accessoryPlacement('bow', box, anchor, 1, 0, layoutFor('bow', anchors));
+  assert.ok(small.size < accessoryPlacement('bow', box, anchor, 1).size, 'le span du pack réduit le nœud');
 });

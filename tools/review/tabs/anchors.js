@@ -7,7 +7,11 @@
 import { h, select, field, toast } from '../dom.js';
 import { SpritePlayer } from '../sprites.js';
 import { ACCESSORIES, accessoryLabel, anchorsOverrides } from '../../../core/accessories.js';
-import { DRAFT_VERSION, round, key, draftFromPack, draftToRaw, generatedAnchors, generatedAt } from '../anchorsDraft.js';
+import {
+  DRAFT_VERSION, round, key, draftFromPack, draftToRaw, generatedAnchors, generatedAt,
+  codeLayout, effectiveLayout, setLayout, stageHeadWidth, setStageHeadWidth,
+} from '../anchorsDraft.js';
+import { SLOTS } from '../../../core/accessories.js';
 import { STAGES } from '../../../core/life.js';
 import { stageLabel } from '../../../core/labels.js';
 
@@ -41,6 +45,8 @@ export function render(root, { pack, state, setState }) {
   const reactions = Object.keys(meta.reactions ?? {});
   if (!drafts.has(pack.id)) drafts.set(pack.id, readStored(pack.id) ?? draftFromPack(pack));
   const draft = drafts.get(pack.id);
+  draft.layout ??= {};
+  draft.extra ??= {};
 
   const wanted = state.anim ?? '';
   const name = wanted.startsWith('r:') ? wanted.slice(2) : wanted;
@@ -165,6 +171,38 @@ export function render(root, { pack, state, setState }) {
     toast('Enregistré dans pack.json.');
   };
 
+  // Per accessory: slot, width (in head widths), vertical shift, and the point of the drawn part that sits on the slot.
+  const layoutBody = h('tbody');
+  const renderLayout = () => {
+    const cell = (id, fieldName, index, props = {}) => {
+      const overridden = draft.layout[id]?.[fieldName] !== undefined;
+      const get = () => (index === undefined ? effectiveLayout(draft, id)[fieldName] : effectiveLayout(draft, id)[fieldName][index]);
+      return h('input', {
+        type: 'number', step: '0.01', value: String(round(get())), class: overridden ? 'overridden' : '', style: { width: '64px' }, ...props,
+        oninput: (e) => {
+          const v = Number(e.target.value);
+          if (!Number.isFinite(v)) return;
+          const next = index === undefined ? v : Object.assign([...effectiveLayout(draft, id).at], { [index]: v });
+          setLayout(draft, id, fieldName, next);
+          persist();
+          redraw();
+        },
+        onchange: renderLayout,
+      });
+    };
+    layoutBody.replaceChildren(...Object.keys(ACCESSORIES).map((id) => {
+      const eff = effectiveLayout(draft, id);
+      return h('tr', { class: current.witness === id ? 'current' : '' },
+        h('td', {}, accessoryLabel(id)),
+        h('td', {}, select(SLOTS.map((sl) => [sl, { top: 'dessus', face: 'visage', neck: 'cou' }[sl]]), eff.slot, (v) => { setLayout(draft, id, 'slot', v); persist(); renderLayout(); redraw(); })),
+        h('td', {}, cell(id, 'span', undefined, { min: '0.1', max: '3' })),
+        h('td', {}, cell(id, 'shift', undefined, { min: '-3', max: '3' })),
+        h('td', {}, cell(id, 'at', 0, { min: '0', max: '1' }), ' ', cell(id, 'at', 1, { min: '0', max: '1' })),
+        h('td', {}, draft.layout[id] ? h('button', { onclick: () => { delete draft.layout[id]; persist(); renderLayout(); redraw(); } }, 'Défaut') : h('span', { class: 'muted' }, `défaut ${codeLayout(id).span}`)));
+    }));
+  };
+  renderLayout();
+
   const optionLabel = (kind, nm) => `${nm}  (${progress(kind, nm)})`;
   root.append(
     h('section', { class: 'panel' },
@@ -188,7 +226,11 @@ export function render(root, { pack, state, setState }) {
         field('Tête à l’envers (180°)', h('input', {
           type: 'checkbox', checked: (draft.entries[id]?.rotation ?? generatedHere(0)?.rotation ?? 0) === 180,
           onchange: (e) => { entry().rotation = e.target.checked ? 180 : 0; persist(); redraw(); },
-        }))),
+        })),
+        editable ? numberField('Largeur de tête (animation)', () => draft.entries[id]?.width ?? generatedHere(0)?.width ?? draft.headWidth, (v) => {
+          entry().width = v === draft.headWidth ? null : v;
+          persist();
+        }, { min: 0.05, max: 1, step: 0.005 }) : ''),
       h('div', { class: 'controls' },
         h('button', { onclick: () => { entry().points[current.frame] = false; persist(); go({}); } }, 'Masquer sur cette image'),
         h('button', { onclick: () => { if (draft.entries[id]) draft.entries[id].points[current.frame] = null; persist(); go({}); } }, 'Revenir au point généré'),
@@ -217,6 +259,7 @@ export function render(root, { pack, state, setState }) {
         numberField('Repli x', () => draft.head.x, (v) => { draft.head.x = v; }),
         numberField('Repli y', () => draft.head.y, (v) => { draft.head.y = v; }),
         numberField('Largeur de tête', () => draft.headWidth, (v) => { draft.headWidth = v; }, { min: 0.05, max: 1, step: 0.005 }),
+        ...['baby', 'young', 'senior'].map((st) => numberField(`Largeur de tête (${stageLabel(st).toLowerCase()})`, () => stageHeadWidth(draft, st), (v) => setStageHeadWidth(draft, st, v), { min: 0.05, max: 1, step: 0.005 })),
         numberField('Dessus dx', () => draft.slots.top.dx, (v) => { draft.slots.top.dx = v; }, { min: -3, max: 3 }),
         numberField('Dessus dy', () => draft.slots.top.dy, (v) => { draft.slots.top.dy = v; }, { min: -3, max: 3 }),
         numberField('Visage dx', () => draft.slots.face.dx, (v) => { draft.slots.face.dx = v; }, { min: -3, max: 3 }),
@@ -228,6 +271,12 @@ export function render(root, { pack, state, setState }) {
         h('button', { class: 'primary', onclick: save }, 'Enregistrer dans pack.json'),
         h('button', { onclick: () => { drafts.delete(pack.id); store(pack.id, null); go({}); } }, 'Abandonner le brouillon'),
         h('span', { class: 'muted' }, 'Le brouillon est gardé dans le navigateur tant que tu n’enregistres pas.'))),
+    h('section', { class: 'panel' },
+      h('h2', {}, 'Accessoires'),
+      h('p', { class: 'muted' }, 'Largeur : de la partie dessinée, en largeurs de tête. Décalage : vers le bas, en largeurs de tête. Point : l’endroit de l’accessoire (0 à 1, de gauche à droite et de haut en bas) posé sur l’emplacement. Seuls les écarts au défaut sont enregistrés (en gras).'),
+      h('table', { class: 'layout-table' },
+        h('thead', {}, h('tr', {}, ['Accessoire', 'Emplacement', 'Largeur', 'Décalage', 'Point x / y', ''].map((t) => h('th', {}, t)))),
+        layoutBody)),
   );
 
   const onKey = (ev) => {
