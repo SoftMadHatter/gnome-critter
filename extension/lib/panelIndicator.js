@@ -199,7 +199,9 @@ export const CritterIndicator = GObject.registerClass(
           stayAction(this._shop.section, fmt(_('Acheter : {accessory} ({price} pièces)'), { accessory: label, price }), () => {
             this._owner.buyAccessory(id);
             // The list is rebuilt, the clicked item included: once its handler is over.
-            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            if (this._idleId) GLib.source_remove(this._idleId);
+            this._idleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+              this._idleId = null;
               this._rebuildProgress();
               return GLib.SOURCE_REMOVE;
             });
@@ -250,6 +252,10 @@ export const CritterIndicator = GObject.registerClass(
     }
 
     destroy() {
+      if (this._idleId) {
+        GLib.source_remove(this._idleId);
+        this._idleId = null;
+      }
       if (this._timeoutId) {
         GLib.source_remove(this._timeoutId);
         this._timeoutId = null;
