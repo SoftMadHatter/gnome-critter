@@ -71,6 +71,8 @@ export class Manager {
     this._uuid = uuid;
     this._openSettings = openSettings;
     this._indicator = null;
+    /** Dialogs currently open: closed if the extension is disabled meanwhile. */
+    this._dialogs = new Set();
     this._notifier = new Notifier({
       onActivated: (id) => {
         this._player.markRead(id);
@@ -421,7 +423,7 @@ export class Manager {
     const mine = achievementView(critter.config.achievements, { trait: critter.life.trait, unlocked: critter.unlocked, facts });
     const yours = achievementView(this._playerAchievements, { unlocked: this._player.unlocked, facts: this._player.progressFacts() });
     const { stageReached, tricksLearned, achievementsUnlocked, ...values } = facts.stats;
-    new ProgressDialog({
+    this._openDialog(new ProgressDialog({
       title: fmt(_('{name} — progression'), { name: critter.name ?? _('Sans nom') }),
       tab,
       achievements: {
@@ -433,12 +435,22 @@ export class Manager {
       journal: this._player.journal,
       onRead: (id) => this.readJournalEntry(id),
       onReadAll: () => this.readAllJournal(),
-    }).open();
+    }));
   }
 
   /** Opens the dialog to rename a creature. */
   openRename(critter) {
-    new RenameDialog(critter.name ?? '', (text) => this.rename(critter, text)).open();
+    this._openDialog(new RenameDialog(critter.name ?? '', (text) => this.rename(critter, text)));
+  }
+
+  /** Opens a modal dialog; it is destroyed once closed (a closed ModalDialog stays in uiGroup). */
+  _openDialog(dialog) {
+    this._dialogs.add(dialog);
+    dialog.connect('closed', () => {
+      if (!this._dialogs.delete(dialog)) return; // already handled by destroy()
+      dialog.destroy();
+    });
+    dialog.open();
   }
 
   /** Renames (cleaned up, unique among the displayed critters) and logs it. */
@@ -865,6 +877,12 @@ export class Manager {
     this._settingsIds = [];
     this._indicator?.destroy();
     this._indicator = null;
+    const dialogs = [...this._dialogs];
+    this._dialogs.clear();
+    for (const dialog of dialogs) {
+      dialog.close(); // releases the modal grab
+      dialog.destroy();
+    }
     this._notifier?.destroy();
     this._notifier = null;
     this._sensors?.destroy();
