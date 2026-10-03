@@ -249,15 +249,21 @@ def cat_head(d, x, y, p, tilt=0, scale=1.0):
     head by picking where `(x, y)` lands (see `draw_cat`'s stage handling)."""
     X, Y = lambda dx: x + dx * scale, lambda dy: y + dy * scale  # noqa: E731
     d.head = Head(X(6), Y(0), 12 * scale, (X(7), Y(5)))
+    # Seen from the side (facing right): the far ear peeks out from behind
+    # the head, shifted toward the back of the skull, and is drawn first so
+    # the head covers its base; the near ear is seen edge-on, wider, with
+    # the pink inner ear.
+    if p.ears == "back":
+        d.polygon([(X(0), Y(5)), (X(-3), Y(1)), (X(5), Y(2))], fill=CAT_DARK)
+    else:
+        d.polygon([(X(0), Y(4)), (X(1), Y(-3)), (X(6), Y(2))], fill=CAT_DARK)
     blob(d, (X(0), Y(0), X(12), Y(12)), CAT_BASE, CAT_DARK, CAT_LIGHT)
     if p.ears == "back":
-        d.polygon([(X(1), Y(4)), (X(-2), Y(-1)), (X(6), Y(1))], fill=CAT_DARK)
-        d.polygon([(X(7), Y(1)), (X(13), Y(-1)), (X(12), Y(4))], fill=CAT_DARK)
+        d.polygon([(X(3), Y(3)), (X(-1), Y(0)), (X(8), Y(1))], fill=CAT_BASE)
+        d.polygon([(X(3), Y(2)), (X(1), Y(1)), (X(6), Y(1))], fill=CAT_PINK)
     else:
-        d.polygon([(X(1), Y(4)), (X(1), Y(-4)), (X(6), Y(1))], fill=CAT_BASE)
-        d.polygon([(X(2), Y(3)), (X(2), Y(-1)), (X(4), Y(1))], fill=CAT_PINK)
-        d.polygon([(X(7), Y(1)), (X(12), Y(-4)), (X(12), Y(4))], fill=CAT_BASE)
-        d.polygon([(X(9), Y(1)), (X(11), Y(-1)), (X(11), Y(3))], fill=CAT_PINK)
+        d.polygon([(X(3), Y(3)), (X(5), Y(-5)), (X(10), Y(3))], fill=CAT_BASE)
+        d.polygon([(X(5), Y(2)), (X(5.5), Y(-2)), (X(8), Y(2))], fill=CAT_PINK)
     eye(d, X(7), Y(5), p.eyes)
     d.point((X(11), Y(8)), fill=CAT_PINK)
     d.line((X(9), Y(10), X(11), Y(10)), fill=CAT_DARK) if p.mouth else None
