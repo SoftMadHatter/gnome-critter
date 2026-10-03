@@ -61,7 +61,9 @@ fi
 
 ZIP_PATH="$DIST_DIR/$UUID.shell-extension.zip"
 rm -f "$ZIP_PATH"
-(cd "$BUILD_DIR" && zip -qr "$ZIP_PATH" .)
+# gschemas.compiled stays in the build folder (the dev symlink needs it) but not in
+# the archive: since GNOME 44 the installer compiles the schemas itself.
+(cd "$BUILD_DIR" && zip -qr "$ZIP_PATH" . -x schemas/gschemas.compiled)
 echo "==> Archive ready: $ZIP_PATH"
 
 if [[ "${1:-}" == "--install" || "${1:-}" == "--link" ]]; then

@@ -208,3 +208,15 @@ actual rendering (menus, notifications, HiDPI, Clutter filters): sprites
 are replayed in a browser canvas. For a headless capture (`chromium
 --headless`), add `?noreload` to the address: without it, the reload stream
 keeps the page open.
+
+## Checking a release
+
+`scripts/check-release.sh` builds the archive (`dist/<uuid>.shell-extension.zip`)
+and runs the checks that can be automated before uploading to
+extensions.gnome.org: `metadata.json` (real `url`, no `version`, `version-name`
+of 1 to 16 characters, stable `shell-version`), the archive's contents (required
+files, no `gschemas.compiled`, `.po`, script or binary; size), the code
+(no `Mainloop`, `Lang`, `ByteArray` or `imports.`; no Shell library in
+`prefs.js`; no Gtk/Gdk in the Shell's process) and `npm test`
+(`--no-tests` skips it). `gschemas.compiled` stays in `dist/<uuid>/` for the
+dev symlink but is left out of the archive.
