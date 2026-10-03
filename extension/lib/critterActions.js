@@ -12,9 +12,23 @@ import { trickLabel } from '../core/tricks.js';
 import { FOODS, isBowlFood, toyFits } from '../core/items.js';
 import { Locomotion } from '../core/critter.js';
 
+const pendingIdles = new Set();
+
 /** Runs `after` once the activated item's handler is over (the menu may rebuild the very item that was clicked). */
 function later(after) {
-  if (after) GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => { after(); return GLib.SOURCE_REMOVE; });
+  if (!after) return;
+  const id = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+    pendingIdles.delete(id);
+    after();
+    return GLib.SOURCE_REMOVE;
+  });
+  pendingIdles.add(id);
+}
+
+/** Cancels the callbacks still waiting (the menus they would update are about to be destroyed). */
+export function cancelPendingActions() {
+  for (const id of pendingIdles) GLib.source_remove(id);
+  pendingIdles.clear();
 }
 
 /** A critter's diet foods, favorite first (plants are placed separately). */

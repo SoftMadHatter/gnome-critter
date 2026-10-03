@@ -120,6 +120,7 @@ export function loadVariantSheet(path) {
  *   speeds: object,
  *   behavior: object,
  *   needs: object,
+ *   appearance: object,
  *   animationFrames: Record<string, St.ImageContent[]>,
  *   animationTiming: Record<string, {frameDuration:number, loop:boolean}>,
  *   reactionFrames: Record<string, St.ImageContent[]>,
@@ -182,14 +183,17 @@ export function loadPack(packDirPath) {
         key,
         identity
           ? buildFrames(null, stageKey)
-          : buildFrames((pixels) =>
-          shiftPixels(pixels, {
-            hue: appearance.hue,
-            saturation: appearance.saturation,
-            colorizeGrays: appearanceConfig.colorizeGrays,
-            tone: appearance.tone,
-            graySaturation: appearanceConfig.graySaturation,
-          }), stageKey),
+          : buildFrames(
+              (pixels) =>
+                shiftPixels(pixels, {
+                  hue: appearance.hue,
+                  saturation: appearance.saturation,
+                  colorizeGrays: appearanceConfig.colorizeGrays,
+                  tone: appearance.tone,
+                  graySaturation: appearanceConfig.graySaturation,
+                }),
+              stageKey,
+            ),
       );
     }
     return variants.get(key);
