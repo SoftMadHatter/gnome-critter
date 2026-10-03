@@ -1,8 +1,6 @@
 // Autonomy: how much the animal covers its own needs (hunting, foraging),
 // from 0 (depends on you) to 1. Pure module.
 
-export const AUTONOMY_MODES = Object.freeze(['auto', 'off', 'partial', 'full']);
-
 /** At autonomy 1, the needs' decay rate is reduced by this share (never zero). */
 export const RELIEF = 0.8;
 

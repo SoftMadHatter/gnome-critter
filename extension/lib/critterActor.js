@@ -217,12 +217,6 @@ export class CritterActor {
     this.actor.scale_x = this.critter.facing < 0 ? -1 : 1;
   }
 
-  /**
-   * Advances the animation by one time step. Call this right after
-   * `critter.tick()`, with the snapshot it returned.
-   * @param {number} dt
-   * @param {{state: string, event: string|null}} snapshot
-   */
   /** New appearance (evolution): switches to the matching frame set. */
   _refreshAppearance(snapshot) {
     const { hue, tone, saturation } = snapshot.appearance;
@@ -233,6 +227,12 @@ export class CritterActor {
     this._eggFrames = this._eggSheet?.framesFor(snapshot.appearance) ?? null;
   }
 
+  /**
+   * Advances the animation by one time step. Call this right after
+   * `critter.tick()`, with the snapshot it returned.
+   * @param {number} dt
+   * @param {{state: string, event: string|null}} snapshot
+   */
   updateAnimation(dt, snapshot) {
     this._scale = snapshot.scale ?? 1;
     this._refreshAppearance(snapshot);

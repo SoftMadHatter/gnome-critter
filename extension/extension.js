@@ -45,7 +45,7 @@ export default class CritterExtension extends Extension {
   enable() {
     // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo
     // catalog, metadata.json's "gettext-domain"); without a catalog: the original French.
-    this.initTranslations?.();
+    this.initTranslations();
     setTranslator({
       gettext: (text) => this.gettext(text),
       ngettext: (singular, plural, n) => this.ngettext(singular, plural, n),

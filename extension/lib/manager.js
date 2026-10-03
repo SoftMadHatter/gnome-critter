@@ -45,6 +45,7 @@ import { loadAccessoryImages } from './accessoryActor.js';
 import { RenameDialog } from './renameDialog.js';
 import { ProgressDialog } from './progressDialog.js';
 import { Notifier } from './notifier.js';
+import { cancelPendingActions } from './critterActions.js';
 
 const SAVE_INTERVAL_S = 30;
 const DIFFICULTY_SCALE = { relaxed: 0.4, normal: 1, strict: 2 };
@@ -774,7 +775,6 @@ export class Manager {
     for (const { item } of this._items) item.removed = true;
   }
 
-  /** "Tidy up toys": removes toys only (not the bowl, bed, or food). */
   /** "Clean up messes": removes every mess and resets litter boxes to zero (no coins). */
   cleanAll() {
     for (const { item } of this._items) {
@@ -783,6 +783,7 @@ export class Manager {
     }
   }
 
+  /** "Tidy up toys": removes toys only (not the bowl, bed, or food). */
   clearToys() {
     this._player.stats.add('tidies');
     for (const { item } of this._items) if (isToy(item)) item.removed = true;
@@ -877,6 +878,7 @@ export class Manager {
     this._settingsIds = [];
     this._indicator?.destroy();
     this._indicator = null;
+    cancelPendingActions();
     const dialogs = [...this._dialogs];
     this._dialogs.clear();
     for (const dialog of dialogs) {

@@ -85,14 +85,7 @@ function buildMixRows(group, settings, packs) {
       writeMix();
       render();
     };
-    if (typeof Adw.ButtonRow === 'function') {
-      const row = new Adw.ButtonRow({ title: _('Ajouter une espèce'), start_icon_name: 'list-add-symbolic' });
-      row.connect('activated', onAdd);
-      return row;
-    }
-    // libadwaita < 1.6: an activatable row does the same job.
-    const row = new Adw.ActionRow({ title: _('Ajouter une espèce'), activatable: true });
-    row.add_prefix(new Gtk.Image({ icon_name: 'list-add-symbolic' }));
+    const row = new Adw.ButtonRow({ title: _('Ajouter une espèce'), start_icon_name: 'list-add-symbolic' });
     row.connect('activated', onAdd);
     return row;
   };
@@ -149,7 +142,7 @@ function buildMixRows(group, settings, packs) {
 export default class CritterPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
     // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo catalog).
-    this.initTranslations?.();
+    this.initTranslations();
     setTranslator({
       gettext: (text) => this.gettext(text),
       ngettext: (singular, plural, n) => this.ngettext(singular, plural, n),
@@ -179,7 +172,7 @@ export default class CritterPreferences extends ExtensionPreferences {
     buildMixRows(group, settings, packs);
 
     const soundsRow = new Adw.SwitchRow({ title: _('Sons activés') });
-    settings.bind('sounds-enabled', soundsRow, 'active', 0);
+    settings.bind('sounds-enabled', soundsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     generalGroup.add(soundsRow);
 
     const difficulties = [
@@ -205,14 +198,14 @@ export default class CritterPreferences extends ExtensionPreferences {
       title: _('Mode vacances'),
       subtitle: _('Fige tous les besoins des animaux.'),
     });
-    settings.bind('vacation-mode', vacationRow, 'active', 0);
+    settings.bind('vacation-mode', vacationRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     lifeGroup.add(vacationRow);
 
     const indicatorRow = new Adw.SwitchRow({
       title: _('Icône dans la barre supérieure'),
       subtitle: _('Humeur et menu des animaux.'),
     });
-    settings.bind('show-indicator', indicatorRow, 'active', 0);
+    settings.bind('show-indicator', indicatorRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     generalGroup.add(indicatorRow);
 
     const autonomies = [
@@ -234,21 +227,21 @@ export default class CritterPreferences extends ExtensionPreferences {
       title: _('Proies automatiques'),
       subtitle: _('Des proies apparaissent de temps en temps pour les animaux autonomes.'),
     });
-    settings.bind('prey-spawn', preyRow, 'active', 0);
+    settings.bind('prey-spawn', preyRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     lifeGroup.add(preyRow);
 
     const plantsRow = new Adw.SwitchRow({
       title: _('Plantes décoratives'),
       subtitle: _('Des plantes à grignoter sont maintenues sur le bureau.'),
     });
-    settings.bind('decor-plants', plantsRow, 'active', 0);
+    settings.bind('decor-plants', plantsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     lifeGroup.add(plantsRow);
 
     const growthRow = new Adw.SwitchRow({
       title: _('Croissance'),
       subtitle: _("Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte."),
     });
-    settings.bind('growth-enabled', growthRow, 'active', 0);
+    settings.bind('growth-enabled', growthRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     lifeGroup.add(growthRow);
 
     const growthSpeedRow = new Adw.SpinRow({
@@ -256,7 +249,7 @@ export default class CritterPreferences extends ExtensionPreferences {
       subtitle: _('1 = temps réel. Plus haut pour essayer les stades sans attendre.'),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 1000, step_increment: 1, page_increment: 10 }),
     });
-    settings.bind('growth-speed', growthSpeedRow, 'value', 0);
+    settings.bind('growth-speed', growthSpeedRow, 'value', Gio.SettingsBindFlags.DEFAULT);
     lifeGroup.add(growthSpeedRow);
 
     const worldGroup = new Adw.PreferencesGroup({
@@ -269,49 +262,49 @@ export default class CritterPreferences extends ExtensionPreferences {
       title: _('Cycle jour/nuit'),
       subtitle: _('De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris.'),
     });
-    settings.bind('day-night', dayNightRow, 'active', 0);
+    settings.bind('day-night', dayNightRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(dayNightRow);
 
     const awayRow = new Adw.SwitchRow({
       title: _('Dormir en votre absence'),
-      subtitle: _('Ils s\'endorment quand vous êtes inactif, et vous accueillent à votre retour.'),
+      subtitle: _("Ils s'endorment quand vous êtes inactif, et vous accueillent à votre retour."),
     });
-    settings.bind('away-sleep', awayRow, 'active', 0);
+    settings.bind('away-sleep', awayRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(awayRow);
 
     const awayMinutesRow = new Adw.SpinRow({
       title: _("Minutes d'inactivité avant l'absence"),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 240, step_increment: 1, page_increment: 10 }),
     });
-    settings.bind('away-minutes', awayMinutesRow, 'value', 0);
+    settings.bind('away-minutes', awayMinutesRow, 'value', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(awayMinutesRow);
 
     const breakRow = new Adw.SwitchRow({
       title: _('Rappel de pause'),
-      subtitle: _('Un animal vient vers votre curseur après une longue période d\'activité.'),
+      subtitle: _("Un animal vient vers votre curseur après une longue période d'activité."),
     });
-    settings.bind('break-reminder', breakRow, 'active', 0);
+    settings.bind('break-reminder', breakRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(breakRow);
 
     const breakMinutesRow = new Adw.SpinRow({
       title: _("Minutes d'activité avant le rappel"),
       adjustment: new Gtk.Adjustment({ lower: 1, upper: 480, step_increment: 5, page_increment: 30 }),
     });
-    settings.bind('break-minutes', breakMinutesRow, 'value', 0);
+    settings.bind('break-minutes', breakMinutesRow, 'value', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(breakMinutesRow);
 
     const notificationsRow = new Adw.SwitchRow({
       title: _('Réagir aux notifications'),
       subtitle: _("Seul le fait qu'une notification arrive est utilisé, jamais son contenu."),
     });
-    settings.bind('react-notifications', notificationsRow, 'active', 0);
+    settings.bind('react-notifications', notificationsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(notificationsRow);
 
     const typingRow = new Adw.SwitchRow({
       title: _('Réagir à la frappe'),
       subtitle: _("Compte seulement qu'une touche est pressée, jamais laquelle."),
     });
-    settings.bind('react-typing', typingRow, 'active', 0);
+    settings.bind('react-typing', typingRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     worldGroup.add(typingRow);
 
     window.add(generalPage);
