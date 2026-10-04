@@ -5,6 +5,7 @@
 
 import Clutter from 'gi://Clutter';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { warn } from './log.js';
 
 export class ActivitySensor {
   /**
@@ -36,7 +37,7 @@ export class ActivitySensor {
       this._connect(tray, 'source-added', (_tray, source) => this._hookSource(source));
       for (const source of tray.getSources?.() ?? []) this._hookSource(source);
     } catch (e) {
-      console.warn(`Critter: notification reaction unavailable (${e.message})`);
+      warn(`notification reaction unavailable (${e.message})`);
       this._unhookNotifications();
     }
   }

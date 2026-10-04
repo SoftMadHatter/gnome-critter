@@ -4,6 +4,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { loadPack, resolvePackPath } from './lib/packLoader.js';
 import { Manager } from './lib/manager.js';
 import { setTranslator, sessionLanguage } from './core/i18n.js';
+import { resetLog } from './lib/log.js';
 
 const DEFAULT_MIX = [{ pack: 'cat', count: 1 }];
 const MAX_TOTAL_CRITTERS = 10; // matches critter-mix's schema description
@@ -42,6 +43,9 @@ function parseMix(text) {
 }
 
 export default class CritterExtension extends Extension {
+  /** Bumped by every start and by disable(): a start still reading packs after that gives up. */
+  _generation = 0;
+
   enable() {
     // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo
     // catalog, metadata.json's "gettext-domain"); without a catalog: the original French.
@@ -62,6 +66,11 @@ export default class CritterExtension extends Extension {
   }
 
   _startManager() {
+    this._start().catch((e) => logError(e, 'Critter: failed to start'));
+  }
+
+  async _start() {
+    const generation = ++this._generation;
     const mix = parseMix(this._settings.get_string('critter-mix'));
 
     // Each distinct pack id is only loaded once, however many mix entries
@@ -73,16 +82,17 @@ export default class CritterExtension extends Extension {
       if (!loaded.has(packId)) {
         const packPath = resolvePackPath(this.path, packId);
         try {
-          loaded.set(packId, loadPack(packPath));
+          loaded.set(packId, await loadPack(packPath));
         } catch (e) {
           logError(e, `Critter: failed to load pack "${packId}" (${packPath})`);
           loaded.set(packId, null);
         }
+        if (generation !== this._generation) return; // disabled or restarted meanwhile
       }
       const pack = loaded.get(packId);
       if (pack) packs.push({ pack, count });
     }
-    if (packs.length === 0) return;
+    if (generation !== this._generation || packs.length === 0) return; // disabled or restarted meanwhile
 
     this._manager = new Manager(packs, this._settings, {
       extensionPath: this.path,
@@ -105,6 +115,7 @@ export default class CritterExtension extends Extension {
   }
 
   disable() {
+    this._generation++;
     if (this._reloadId) {
       GLib.source_remove(this._reloadId);
       this._reloadId = null;
@@ -114,6 +125,7 @@ export default class CritterExtension extends Extension {
     this._manager?.destroy();
     this._manager = null;
     this._settings = null;
+    resetLog();
     setTranslator(); // back to French: doesn't keep a reference to the disabled extension
   }
 }

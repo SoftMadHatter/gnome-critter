@@ -8,13 +8,15 @@ import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/
 import { _, N_, setTranslator, sessionLanguage, language } from './core/i18n.js';
 import { localizePack } from './core/packTranslations.js';
 
+Gio._promisify(Gio.File.prototype, 'load_contents_async', 'load_contents_finish');
+
 /**
  * Lists the installed packs: every `packs/` subfolder that has a readable
  * pack.json. Inlined here rather than via lib/packLoader.js, which imports
  * St/Cogl, unavailable in the preferences' GTK process.
- * @returns {{id: string, label: string}[]}
+ * @returns {Promise<{id: string, label: string}[]>}
  */
-function listPacks(extensionPath) {
+async function listPacks(extensionPath) {
   const packsDir = Gio.File.new_for_path(extensionPath).get_child('packs');
   const packs = [];
   let children;
@@ -28,7 +30,7 @@ function listPacks(extensionPath) {
     if (info.get_file_type() !== Gio.FileType.DIRECTORY) continue;
     const id = info.get_name();
     try {
-      const [, contents] = packsDir.get_child(id).get_child('pack.json').load_contents(null);
+      const [contents] = await packsDir.get_child(id).get_child('pack.json').load_contents_async(null);
       const meta = JSON.parse(new TextDecoder('utf-8').decode(contents));
       packs.push({ id, label: localizePack(meta, language()).displayName ?? id });
     } catch {
@@ -140,7 +142,7 @@ function buildMixRows(group, settings, packs) {
 }
 
 export default class CritterPreferences extends ExtensionPreferences {
-  fillPreferencesWindow(window) {
+  async fillPreferencesWindow(window) {
     // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo catalog).
     this.initTranslations();
     setTranslator({
@@ -168,7 +170,7 @@ export default class CritterPreferences extends ExtensionPreferences {
 
     const worldPage = new Adw.PreferencesPage({ title: _('Rythme et capteurs'), icon_name: 'preferences-system-time-symbolic' });
 
-    const packs = listPacks(this.path);
+    const packs = await listPacks(this.path);
     buildMixRows(group, settings, packs);
 
     const soundsRow = new Adw.SwitchRow({ title: _('Sons activés') });

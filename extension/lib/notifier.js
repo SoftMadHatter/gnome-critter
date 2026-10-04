@@ -6,6 +6,7 @@
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import { warn } from './log.js';
 
 const SOURCE_TITLE = 'Critter';
 const SOURCE_ICON = 'face-smile-symbolic';
@@ -43,7 +44,7 @@ export class Notifier {
       });
       source.addNotification(notification);
     } catch (e) {
-      console.warn(`Critter: GNOME notification unavailable (${e.message}), falling back to Main.notify`);
+      warn(`GNOME notification unavailable (${e.message}), falling back to Main.notify`);
       Main.notify(title, body);
     }
   }
