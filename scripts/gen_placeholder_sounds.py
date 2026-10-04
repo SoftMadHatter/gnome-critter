@@ -5,8 +5,12 @@ Not final sounds: just enough to hear a difference between reactions (and
 between species) right away. No external dependency (stdlib `wave` module
 only, 16-bit PCM written directly).
 
+The cat, bug, fish and bird packs have their own voices, made by
+gen_species_sounds.py: this script now only serves `critter-demo` by
+default (naming another species overwrites its voice with these beeps).
+
 Usage: python3 scripts/gen_placeholder_sounds.py [species ...]
-       (all species by default: critter-demo, cat, bug, fish, bird)
+       (critter-demo by default)
 """
 
 import math
@@ -100,7 +104,7 @@ SOUNDS = {
 
 
 def main():
-    requested = sys.argv[1:] or list(SPECIES_PITCH)
+    requested = sys.argv[1:] or ["critter-demo"]
     unknown = [s for s in requested if s not in SPECIES_PITCH]
     if unknown:
         sys.exit(f"unknown species: {', '.join(unknown)} (known: {', '.join(SPECIES_PITCH)})")
