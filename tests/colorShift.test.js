@@ -59,3 +59,53 @@ test('appearanceOverrides valide la section du pack', () => {
   assert.equal(config.graySaturation, 0.35);
   assert.deepEqual(ignored.sort(), ['graySaturation', 'x']);
 });
+
+// The pixel-by-pixel version the cached one replaced: the output must stay identical.
+function referenceShift(rgba, { hue = 0, saturation = 1, colorizeGrays = false, tone = 0, graySaturation = 0.35 } = {}) {
+  const out = Uint8Array.from(rgba);
+  for (let i = 0; i + 3 < out.length; i += 4) {
+    if (out[i + 3] === 0) continue;
+    const [h, s, v] = rgbToHsv(out[i], out[i + 1], out[i + 2]);
+    if (v < 0.15) continue;
+    let nh;
+    let ns;
+    if (s < 0.15) {
+      if (v > 0.9 || !colorizeGrays) continue;
+      nh = tone;
+      ns = Math.min(1, graySaturation * saturation);
+    } else {
+      nh = h + hue;
+      ns = Math.min(1, s * saturation);
+    }
+    const [r, g, b] = hsvToRgb(nh, ns, v);
+    out[i] = r;
+    out[i + 1] = g;
+    out[i + 2] = b;
+  }
+  return out;
+}
+
+test('shiftPixels : même résultat que le calcul pixel par pixel, quelles que soient les options', () => {
+  let seed = 7;
+  const random = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const pixels = new Uint8Array(4 * 3000);
+  for (let i = 0; i < pixels.length; i += 4) {
+    const kind = random();
+    if (kind < 0.2) pixels.set([0, 0, 0, 0], i); // transparent
+    else if (kind < 0.35) pixels.set([20, 20, 20, 255], i); // outline
+    else if (kind < 0.5) pixels.set([250, 250, 250, 255], i); // white
+    else if (kind < 0.7) pixels.set([120 + Math.floor(random() * 20), 125, 130, 255], i); // grays
+    else pixels.set([Math.floor(random() * 256), Math.floor(random() * 256), Math.floor(random() * 256), 40 + Math.floor(random() * 216)], i);
+  }
+  const variants = [
+    {},
+    { hue: 30 },
+    { hue: -35, saturation: 1.3 },
+    { hue: 120, saturation: 0.5, colorizeGrays: true, tone: 210, graySaturation: 0.35 },
+    { colorizeGrays: true, tone: 0, graySaturation: 1 },
+    { hue: 30 }, // back to the first options: the cache restarts cleanly
+  ];
+  for (const options of variants) {
+    assert.deepEqual(shiftPixels(pixels, options), referenceShift(pixels, options), JSON.stringify(options));
+  }
+});
