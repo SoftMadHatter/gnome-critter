@@ -45,6 +45,7 @@ import { loadAccessoryImages } from './accessoryActor.js';
 import { RenameDialog } from './renameDialog.js';
 import { ProgressDialog } from './progressDialog.js';
 import { Notifier } from './notifier.js';
+import { playEventSound } from './eventSounds.js';
 import { cancelPendingActions } from './critterActions.js';
 
 const SAVE_INTERVAL_S = 30;
@@ -387,11 +388,16 @@ export class Manager {
     const def = ACCESSORIES[id];
     if (!def || this._player.owns(id) || def.price === 0) return;
     if (!this._pay(def.price)) return;
+    this._playEventSound('coin');
     this._player.own(id);
     if (id === 'crown') this._player.stats.mark('shop', 'crown');
     const label = accessoryLabel(id);
     this._player.log(fmt(_('Accessoire acheté : {accessory}.'), { accessory: label }), Date.now());
     Main.notify('Critter', fmt(_('{accessory} acheté (-{price} pièces).'), { accessory: label, price: def.price }));
+  }
+
+  _playEventSound(name) {
+    playEventSound(this._extensionPath, this.settings, name);
   }
 
   /** A critter's name in messages: the species, numbered if there are several. */
@@ -485,6 +491,8 @@ export class Manager {
       coins += outcome.coins;
       return outcome;
     });
+    // A lone blunder gets its own sound; every other case (and any burst) is a success.
+    this._playEventSound(defs.length <= BURST_SIZE && defs.every((def) => def.troll) ? 'blunder' : 'achievement');
     const subject = who ?? _('Toi');
     if (defs.length > BURST_SIZE) {
       const line = fmt(ngettext("{name} : {count} succès d'un coup.", "{name} : {count} succès d'un coup.", defs.length), { name: subject, count: defs.length });
@@ -801,6 +809,7 @@ export class Manager {
       if (item.collected && item.type === 'gift') {
         const coins = GIFTS[item.kind]?.coins ?? 0;
         this._player.award('gift', coins, 0);
+        if (coins > 0) this._playEventSound('coin');
         this._player.stats.add('giftsCollected');
         this._player.log(fmt(ngettext('Cadeau ramassé : +{coins} pièce.', 'Cadeau ramassé : +{coins} pièces.', coins), { coins }), Date.now());
       } else if (item.collected && item.type === 'mess') {
