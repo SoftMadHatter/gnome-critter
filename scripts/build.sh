@@ -11,6 +11,8 @@
 #   scripts/build.sh                 # builds dist/<uuid>/ and dist/<uuid>.shell-extension.zip
 #   scripts/build.sh --install       # + copies into ~/.local/share/gnome-shell/extensions/
 #   scripts/build.sh --link          # + dev symlink (simpler live reloading)
+#   scripts/build.sh --with-demo     # keeps the reference pack packs/critter-demo
+#                                    # (left out by default: it isn't a species to ship)
 
 set -euo pipefail
 
@@ -19,6 +21,16 @@ EXT_SRC="$ROOT_DIR/extension"
 CORE_SRC="$ROOT_DIR/core"
 PACKS_SRC="$ROOT_DIR/packs"
 DIST_DIR="$ROOT_DIR/dist"
+
+MODE=""
+WITH_DEMO=0
+for arg in "$@"; do
+  case "$arg" in
+    --install | --link) MODE="$arg" ;;
+    --with-demo) WITH_DEMO=1 ;;
+    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
 
 UUID=$(python3 - "$EXT_SRC/metadata.json" <<'PY'
 import json, sys
@@ -36,6 +48,8 @@ cp -r "$EXT_SRC"/. "$BUILD_DIR"/
 mkdir -p "$BUILD_DIR/core" "$BUILD_DIR/packs"
 cp -r "$CORE_SRC"/. "$BUILD_DIR/core"/
 cp -r "$PACKS_SRC"/. "$BUILD_DIR/packs"/
+# The demo pack is the reference for pack authors (docs/pack-format.md), not a species to ship.
+if [[ "$WITH_DEMO" -eq 0 ]]; then rm -rf "$BUILD_DIR/packs/critter-demo"; fi
 cp "$ROOT_DIR/LICENSE" "$BUILD_DIR"/ # the license text ships with the distributed archive
 
 if command -v glib-compile-schemas >/dev/null 2>&1; then
@@ -66,10 +80,10 @@ rm -f "$ZIP_PATH"
 (cd "$BUILD_DIR" && zip -qr "$ZIP_PATH" . -x schemas/gschemas.compiled)
 echo "==> Archive ready: $ZIP_PATH"
 
-if [[ "${1:-}" == "--install" || "${1:-}" == "--link" ]]; then
+if [[ -n "$MODE" ]]; then
   TARGET="$HOME/.local/share/gnome-shell/extensions/$UUID"
   rm -rf "$TARGET"
-  if [[ "${1:-}" == "--link" ]]; then
+  if [[ "$MODE" == "--link" ]]; then
     ln -s "$BUILD_DIR" "$TARGET"
     echo "==> Symlink created: $TARGET -> $BUILD_DIR"
   else

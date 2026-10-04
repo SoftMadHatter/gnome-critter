@@ -220,3 +220,14 @@ files, no `gschemas.compiled`, `.po`, script or binary; size), the code
 `prefs.js`; no Gtk/Gdk in the Shell's process) and `npm test`
 (`--no-tests` skips it). `gschemas.compiled` stays in `dist/<uuid>/` for the
 dev symlink but is left out of the archive.
+
+## Image weight
+
+Sprites are the bulk of the archive, so the generators save them as palette
+PNGs (128 colors with per-color transparency, from libimagequant, which ships
+with Pillow) through `scripts/pngsave.py`: about 40 % of the RGBA size, with no
+visible difference. To optimize files drawn by hand or by another tool, run
+`python3 scripts/pngsave.py [file-or-folder ...]` (default: `packs/` and
+`extension/assets/`); it skips what is already optimized. An image with no
+transparent pixel stays RGBA on purpose: GdkPixbuf loads an opaque palette
+image without an alpha channel, and the extension's color variants need one.

@@ -19,6 +19,8 @@ import sys
 from pathlib import Path
 from PIL import Image, ImageDraw
 
+from pngsave import save_png
+
 GRID = 16  # logical drawing size (16x16 "pixels"), shared by every species
 
 PACKS_DIR = Path(__file__).resolve().parent.parent / "packs"
@@ -154,7 +156,7 @@ def write_species(species):
             sheet.paste(frame_fn(i), (i * GRID, 0))
         sheet = sheet.resize((GRID * count * scale, GRID * scale), Image.NEAREST)
         out_path = out_dir / filename
-        sheet.save(out_path)
+        save_png(sheet, out_path)
         print(f"wrote {out_path} ({sheet.width}x{sheet.height}, {count} frames)")
 
 

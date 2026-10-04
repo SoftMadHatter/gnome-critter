@@ -291,7 +291,7 @@ cat, bird, insect, and fish, from per-state pose recipes.
 
 | Folder | Species | Locomotion | Notes |
 |---|---|---|---|
-| `critter-demo` | Critter (demo) | all | reference pack |
+| `critter-demo` | Critter (demo) | all | reference pack (not in the shipped archive; `scripts/build.sh --with-demo` keeps it) |
 | `cat` | Cat | ground, walls, ceiling | sleeps and washes often, follows the cursor |
 | `bug` | Insect | ground, walls, ceiling | 16 px, fast, climbs constantly |
 | `fish` | Fish | water only | continuous undulating swim |

@@ -85,7 +85,7 @@ done
 grep -q '^schemas/.*\.gschema\.xml$' <<<"$files" || fail "archive: no schemas/*.gschema.xml"
 grep -q '^locale/.*\.mo$' <<<"$files" || warn "archive: no compiled translation (.mo)"
 
-forbidden='(^|/)(gschemas\.compiled|__pycache__|\.git|\.idea|node_modules|tests?)(/|$)|\.(po|pot|py|sh|so|exe|dll|pyc)$'
+forbidden='(^|/)(gschemas\.compiled|__pycache__|\.git|\.idea|node_modules|tests?|critter-demo)(/|$)|\.(po|pot|py|sh|so|exe|dll|pyc)$'
 bad="$(grep -E "$forbidden" <<<"$files" || true)"
 if [[ -n "$bad" ]]; then
   while IFS= read -r line; do fail "archive: forbidden file: $line"; done <<<"$bad"
