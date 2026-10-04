@@ -4,6 +4,10 @@ species (meow and purr for the cat, chirps for the bird, bubbles for the
 fish, buzzing for the insect), for the six base reactions every pack
 wires up (petted, startled, annoyed, noticed, greeted, tickled).
 
+Also the event sounds: hatching and growing (copied into every species'
+`sounds/`, the packs point to them) and the sounds the extension plays on
+its own for an achievement, a coin and a blunder (`extension/assets/sounds/`).
+
 Pure synthesis, no sample and no dependency (stdlib only): square,
 triangle, sawtooth, sine and noise (a linear-feedback shift register, like
 the sound chips of old consoles), mixed down to 22.05 kHz, 8-bit mono and
@@ -26,9 +30,18 @@ RATE = 22050
 TAU = 2 * math.pi
 QUANT_BITS = 6
 PEAK = 0.5  # square waves are loud: keep well below full scale
-PACKS_DIR = Path(__file__).resolve().parent.parent / "packs"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+PACKS_DIR = ROOT_DIR / "packs"
+EVENT_SOUNDS_DIR = ROOT_DIR / "extension" / "assets" / "sounds"
+_NOTES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 ATTACK_S = 0.002
 RELEASE_S = 0.004
+
+
+def note(name):
+    """'C#5' -> frequency in Hz."""
+    accidental = 1 if "#" in name else 0
+    return 440 * 2 ** ((12 * (int(name[-1]) + 1) + _NOTES[name[0]] + accidental - 69) / 12)
 
 
 def tone(f0, f1=None, dur=0.1, wave_="square", duty=0.5, vol=1.0, env="decay", vib=None, trem=None):
@@ -215,6 +228,39 @@ def bug_voice():
     }
 
 
+# --- Events: the same square-wave voice for every species. ---
+
+
+def pulse(name, dur=0.08, duty=0.25, **kwargs):
+    return tone(note(name), None, dur, "square", duty, **kwargs)
+
+
+def event_hatched():
+    cracks = cat(*[tone(2500 + 300 * i, None, 0.02, "noise", vol=0.9, env="pluck") + rest(0.07) for i in range(3)])
+    return mix(cracks, cat(rest(0.3), tone(note("C5"), note("C6"), 0.25, "square", 0.5, env="swell")))
+
+
+def event_grew():
+    return cat(*[pulse(n) for n in ("C5", "D5", "E5", "G5", "C6")], pulse("E6", 0.2, env="fade"))
+
+
+def event_achievement():
+    fanfare = [pulse(n, 0.09, 0.5) for n in ("C5", "E5", "G5", "C6")]
+    return cat(*fanfare, rest(0.04), pulse("G5", 0.07, 0.5), pulse("C6", 0.3, 0.5, vib=(7, 0.01)))
+
+
+def event_coin():
+    return cat(pulse("B5", 0.07, 0.5, env="flat"), pulse("E6", 0.3, 0.5, env="fade"))
+
+
+def event_blunder():
+    sagging = [tone(note(n), note(n) * 0.97, 0.2, "square", 0.5, env="flat", vib=(6, 0.03)) for n in ("A3", "G#3", "G3")]
+    return cat(*sagging, tone(note("F#3"), note("F#3") * 0.85, 0.45, "square", 0.5, env="fade", vib=(7, 0.05)))
+
+
+PACK_EVENTS = {"hatched": event_hatched, "grew": event_grew}
+EXTENSION_EVENTS = {"achievement": event_achievement, "coin": event_coin, "blunder": event_blunder}
+
 VOICES = {"cat": cat_voice, "bird": bird_voice, "fish": fish_voice, "bug": bug_voice}
 
 
@@ -223,12 +269,20 @@ def main():
     unknown = [s for s in requested if s not in VOICES]
     if unknown:
         sys.exit(f"unknown species: {', '.join(unknown)} (known: {', '.join(VOICES)})")
+    pack_events = {name: to_wav(make()) for name, make in PACK_EVENTS.items()}
     for species in requested:
         out_dir = PACKS_DIR / species / "sounds"
         out_dir.mkdir(parents=True, exist_ok=True)
-        for reaction, samples in VOICES[species]().items():
-            path = out_dir / f"{reaction}.wav"
-            path.write_bytes(to_wav(samples))
+        sounds = {reaction: to_wav(samples) for reaction, samples in VOICES[species]().items()}
+        for name, data in {**sounds, **pack_events}.items():
+            path = out_dir / f"{name}.wav"
+            path.write_bytes(data)
+            print(f"==> {path}")
+    if not sys.argv[1:]:  # the extension's own sounds belong to no pack
+        EVENT_SOUNDS_DIR.mkdir(parents=True, exist_ok=True)
+        for name, make in EXTENSION_EVENTS.items():
+            path = EVENT_SOUNDS_DIR / f"{name}.wav"
+            path.write_bytes(to_wav(make()))
             print(f"==> {path}")
 
 

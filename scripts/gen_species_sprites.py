@@ -755,7 +755,7 @@ REACTIONS = {
     "annoyed": ("react_annoyed", 0.3, "annoyed"), "noticed": ("react_noticed", 0.25, "noticed"),
     "startled": ("react_startled", 0.2, "startled"), "greeted": ("react_greeted", 0.15, "greeted"),
     "purring": ("react_purr", 0.4, "petted"), "brushed": ("react_brushed", 0.35, "petted"),
-    "hatched": ("react_hatched", 0.2, "startled"), "grew": ("react_grew", 0.15, "tickled"),
+    "hatched": ("react_hatched", 0.2, "hatched"), "grew": ("react_grew", 0.15, "grew"),
     "awakened": ("react_awakened", 0.25, "noticed"), "ate": ("react_ate", 0.15, None),
     "played": ("react_played", 0.15, "greeted"), "sick": ("react_sick", 0.3, "annoyed"),
     "accident": ("react_accident", 0.3, "startled"), "relieved": ("react_relieved", 0.3, None),
