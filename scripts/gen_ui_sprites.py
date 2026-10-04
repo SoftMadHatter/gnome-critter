@@ -28,6 +28,7 @@ from pathlib import Path
 from PIL import Image
 
 from finedraw import Canvas
+from pngsave import save_png
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "extension" / "assets"
 ITEMS_DIR = ASSETS_DIR / "items"
@@ -975,7 +976,7 @@ def items():
 def write_dir(directory, sprites):
     directory.mkdir(parents=True, exist_ok=True)
     for name, draw in sprites.items():
-        draw().save(directory / f"{name}.png")
+        save_png(draw(), directory / f"{name}.png")
     print(f"wrote {len(sprites)} sprites in {directory.relative_to(ASSETS_DIR.parent.parent)}")
 
 
@@ -988,7 +989,7 @@ def main():
     write_dir(ACCESSORIES_DIR, ACCESSORY_SPRITES)
     write_dir(BUBBLES_DIR, ICONS)
     LIFE_DIR.mkdir(parents=True, exist_ok=True)
-    egg_sheet().save(LIFE_DIR / "egg.png")
+    save_png(egg_sheet(), LIFE_DIR / "egg.png")
     print("wrote extension/assets/life/egg.png")
 
 

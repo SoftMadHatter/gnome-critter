@@ -26,6 +26,7 @@ from types import SimpleNamespace
 from PIL import Image, ImageOps
 
 from finedraw import Canvas
+from pngsave import save_png
 
 G = 32  # logical grid of the drawing recipes
 R = 64  # side of an output frame
@@ -982,7 +983,7 @@ def save_sheet(path, frames):
     sheet = Image.new("RGBA", (R * len(frames), R), (0, 0, 0, 0))
     for i, f in enumerate(frames):
         sheet.paste(f, (i * R, 0))
-    sheet.save(path)
+    save_png(sheet, path)
 
 
 # --- accessory anchors (pack.json "anchors": see docs/pack-format.md) ----------
