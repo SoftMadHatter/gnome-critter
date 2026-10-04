@@ -1,7 +1,7 @@
 {
   "uuid": "gnome-critter@beedi.xyz",
   "name": "Critter",
-  "description": "Un petit animal pixel-art qui se promène sur le bureau : sol, rebords de fenêtres, murs et plafond selon l'espèce.",
+  "description": "A pixel-art desktop pet. Cats, birds, fish and bugs live on your desktop: they walk along the bottom of your screens, sit on window title bars, climb walls or fly, and react to what you do. Feed them, pet them, play with them, watch them grow from an egg to a senior, and unlock achievements. No network access, and nothing you type or read is ever recorded.",
   "shell-version": ["50"],
   "url": "https://github.com/SoftMadHatter/gnome-critter",
   "version-name": "0.1.0",

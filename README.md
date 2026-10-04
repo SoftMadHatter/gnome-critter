@@ -27,14 +27,14 @@ extension/   GNOME Shell layer: reads desktop state (windows, monitors,
              pointer), draws sprites, handles click/drag.
 packs/       per-species data (see docs/pack-format.md): sprites + JSON,
              no code.
-scripts/     placeholder sprite generation, build/packaging.
+scripts/     sprite and sound generation, build/packaging, release checks.
 tests/       tests for core/ (node --test).
 LICENSE      GNU GPL version 3 (see "License" below).
 ```
 
 ## Species
 
-Five packs ship today, each with its own sprites, sounds and set of
+Four species ship today, each with its own sprites, sounds and set of
 surfaces it can use:
 
 | Species | Can use |
@@ -43,10 +43,11 @@ surfaces it can use:
 | Bug | ground, walls, ceiling |
 | Bird | ground, air |
 | Fish | water only |
-| Critter (demo) | everything — the placeholder species used for development |
 
 Adding a new species is just a folder (sprites, sounds and a `pack.json`
 describing its behaviour); see [`docs/pack-format.md`](docs/pack-format.md).
+The `critter-demo` pack in the repository is the minimal reference to copy
+from; it isn't part of the released archive.
 
 ## How it works
 
@@ -72,7 +73,7 @@ describing its behaviour); see [`docs/pack-format.md`](docs/pack-format.md).
   built on standard GNOME gettext tooling. See
   [`docs/i18n.md`](docs/i18n.md).
 
-## Try it (GNOME 48+, Wayland)
+## Try it (GNOME Shell 50, Wayland)
 
 Prerequisites:
 
@@ -122,11 +123,28 @@ Details and limitations of the nested session:
 npm test
 ```
 
-## Regenerating the placeholder sprites
+## Regenerating sprites and sounds
+
+Sprites and sounds are drawn and synthesized by the scripts in `scripts/`
+(no hand-made asset), so they can be regenerated at any time:
 
 ```bash
-python3 scripts/gen_placeholder_sprites.py
+python3 scripts/gen_species_sprites.py [species ...]   # cat, bug, fish, bird
+python3 scripts/gen_species_sounds.py [species ...]    # 8-bit voices and event sounds
+python3 scripts/gen_ui_sprites.py                      # items, accessories, bubbles, egg
 ```
+
+Requires Python 3 and Pillow. Images are saved as palette PNGs
+(`scripts/pngsave.py`) to keep the archive small.
+
+## Building a release
+
+```bash
+scripts/check-release.sh
+```
+
+builds `dist/<uuid>.shell-extension.zip` and checks it against the
+extensions.gnome.org review rules (see [`docs/publishing.md`](docs/publishing.md)).
 
 ## Contributing
 
