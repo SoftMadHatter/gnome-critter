@@ -51,27 +51,62 @@ const WHITE_ABOVE = 0.9;
  * @returns {Uint8Array} new pixels
  */
 export function shiftPixels(rgba, { hue = 0, saturation = 1, colorizeGrays = false, tone = 0, graySaturation = 0.35 } = {}) {
-  const out = Uint8Array.from(rgba);
+  const out = rgba instanceof Uint8Array ? rgba.slice() : Uint8Array.from(rgba);
+  const shifted = shiftCache(`${hue}|${saturation}|${colorizeGrays}|${tone}|${graySaturation}`);
+  let lastKey = -1; // runs of one colour are common: skip the lookup
+  let lastPacked = UNCHANGED;
   for (let i = 0; i + 3 < out.length; i += 4) {
     if (out[i + 3] === 0) continue;
-    const [h, s, v] = rgbToHsv(out[i], out[i + 1], out[i + 2]);
-    if (v < BLACK_BELOW) continue;
-    let nh;
-    let ns;
-    if (s < GRAY_BELOW) {
-      if (v > WHITE_ABOVE || !colorizeGrays) continue;
-      nh = tone;
-      ns = Math.min(1, graySaturation * saturation);
-    } else {
-      nh = h + hue;
-      ns = Math.min(1, s * saturation);
+    const key = (out[i] << 16) | (out[i + 1] << 8) | out[i + 2];
+    if (key !== lastKey) {
+      lastKey = key;
+      lastPacked = shifted.get(key);
+      if (lastPacked === undefined) {
+        lastPacked = shiftColor(out[i], out[i + 1], out[i + 2], { hue, saturation, colorizeGrays, tone, graySaturation });
+        shifted.set(key, lastPacked);
+      }
     }
-    const [r, g, b] = hsvToRgb(nh, ns, v);
-    out[i] = r;
-    out[i + 1] = g;
-    out[i + 2] = b;
+    const packed = lastPacked;
+    if (packed === UNCHANGED) continue;
+    out[i] = packed >> 16;
+    out[i + 1] = (packed >> 8) & 255;
+    out[i + 2] = packed & 255;
   }
   return out;
+}
+
+const UNCHANGED = -1;
+
+/** Colour a pixel becomes, packed as 0xRRGGBB (or UNCHANGED: black, white, or gray left alone). */
+function shiftColor(r, g, b, { hue, saturation, colorizeGrays, tone, graySaturation }) {
+  const [h, s, v] = rgbToHsv(r, g, b);
+  if (v < BLACK_BELOW) return UNCHANGED;
+  let nh;
+  let ns;
+  if (s < GRAY_BELOW) {
+    if (v > WHITE_ABOVE || !colorizeGrays) return UNCHANGED;
+    nh = tone;
+    ns = Math.min(1, graySaturation * saturation);
+  } else {
+    nh = h + hue;
+    ns = Math.min(1, s * saturation);
+  }
+  const [nr, ng, nb] = hsvToRgb(nh, ns, v);
+  return (nr << 16) | (ng << 8) | nb;
+}
+
+// A sprite has a hundred colours at most, repeated over thousands of pixels,
+// and every image of an animal is shifted with the same options: the result
+// for a colour is worked out once and kept until the options change.
+let cacheKey = null;
+let cache = new Map();
+
+function shiftCache(key) {
+  if (key !== cacheKey) {
+    cacheKey = key;
+    cache = new Map();
+  }
+  return cache;
 }
 
 /** Validates the `appearance` section of a pack.json. */

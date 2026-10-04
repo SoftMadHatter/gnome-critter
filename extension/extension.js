@@ -45,6 +45,8 @@ function parseMix(text) {
 export default class CritterExtension extends Extension {
   /** Bumped by every start and by disable(): a start still reading packs after that gives up. */
   _generation = 0;
+  /** Packs already read, by id, kept between restarts of the manager (changing the mix): a pack and its colour variants are only built once per session. */
+  _loadedPacks = new Map();
 
   enable() {
     // Text in the session's language (locale/<language>/LC_MESSAGES/gnome-critter.mo
@@ -73,24 +75,23 @@ export default class CritterExtension extends Extension {
     const generation = ++this._generation;
     const mix = parseMix(this._settings.get_string('critter-mix'));
 
-    // Each distinct pack id is only loaded once, however many mix entries
-    // (or critters) use it -- see docs/dev-workflow.md and the Manager's
-    // own per-pack cache for the same idea at spawn time.
-    const loaded = new Map();
+    // Each distinct pack id is only loaded once per session, however many mix
+    // entries (or critters) use it and however often the mix changes -- see
+    // docs/dev-workflow.md and the Manager's own per-pack cache for the same
+    // idea at spawn time.
     const packs = [];
     for (const { pack: packId, count } of mix) {
-      if (!loaded.has(packId)) {
+      if (!this._loadedPacks.has(packId)) {
         const packPath = resolvePackPath(this.path, packId);
         try {
-          loaded.set(packId, await loadPack(packPath));
+          this._loadedPacks.set(packId, await loadPack(packPath));
         } catch (e) {
           logError(e, `Critter: failed to load pack "${packId}" (${packPath})`);
-          loaded.set(packId, null);
+          continue; // not kept: tried again at the next restart
         }
         if (generation !== this._generation) return; // disabled or restarted meanwhile
       }
-      const pack = loaded.get(packId);
-      if (pack) packs.push({ pack, count });
+      packs.push({ pack: this._loadedPacks.get(packId), count });
     }
     if (generation !== this._generation || packs.length === 0) return; // disabled or restarted meanwhile
 
@@ -124,6 +125,7 @@ export default class CritterExtension extends Extension {
     this._settingsIds = [];
     this._manager?.destroy();
     this._manager = null;
+    this._loadedPacks.clear();
     this._settings = null;
     resetLog();
     setTranslator(); // back to French: doesn't keep a reference to the disabled extension
