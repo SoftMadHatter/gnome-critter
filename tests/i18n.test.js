@@ -153,7 +153,7 @@ test('rien n’échappe à la traduction : aucun texte d’interface hors de _()
   // scripts/i18n-data.mjs, checked above) and generic given names (one list per language).
   const exempt = new Set(['core/achievementLibrary.js', 'core/names.js']);
   // Development logs and errors; the proper noun (source of notifications, the tray button).
-  const allowedCalls = new Set(['log', 'logError', 'console.log', 'console.warn', 'console.error', 'console.debug', 'Error', 'TypeError']);
+  const allowedCalls = new Set(['log', 'logError', 'warn', 'console.log', 'console.warn', 'console.error', 'console.debug', 'Error', 'TypeError']);
   const allowedTexts = new Set(['Critter']);
   // Text-like appearance: an accented letter, two words, or a single capitalized word ("Journal").
   const looksLikeText = (text) =>

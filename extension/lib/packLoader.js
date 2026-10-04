@@ -22,6 +22,8 @@ import { stagesOverrides } from '../core/life.js';
 import { localizePack } from '../core/packTranslations.js';
 import { language } from '../core/i18n.js';
 
+Gio._promisify(Gio.File.prototype, 'load_contents_async', 'load_contents_finish');
+
 /**
  * @param {GdkPixbuf.Pixbuf} pixbuf
  * @param {((pixels: Uint8Array) => Uint8Array)|null} [transform] color variation
@@ -112,7 +114,7 @@ export function loadVariantSheet(path) {
 
 /**
  * @param {string} packDirPath folder containing pack.json
- * @returns {{
+ * @returns {Promise<{
  *   meta: object,
  *   spriteSize: {width:number, height:number},
  *   smooth: boolean,
@@ -128,12 +130,12 @@ export function loadVariantSheet(path) {
  *   reactionSounds: Record<string, Gio.File>,
  *   framesFor: (appearance: {hue:number, tone:number, saturation:number}) =>
  *     {animationFrames: Record<string, St.ImageContent[]>, reactionFrames: Record<string, St.ImageContent[]>},
- * }}
+ * }>}
  */
-export function loadPack(packDirPath) {
+export async function loadPack(packDirPath) {
   const dir = Gio.File.new_for_path(packDirPath);
   const packFile = dir.get_child('pack.json');
-  const [, contents] = packFile.load_contents(null);
+  const [contents] = await packFile.load_contents_async(null);
   // The pack's name, given names, and achievements in the session's language (`translations` section).
   const meta = localizePack(JSON.parse(new TextDecoder('utf-8').decode(contents)), language());
   const appearanceConfig = appearanceOverrides(meta.appearance).config;

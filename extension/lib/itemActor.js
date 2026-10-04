@@ -8,6 +8,7 @@ import Graphene from 'gi://Graphene';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { loadImage } from './packLoader.js';
+import { warn } from './log.js';
 import { throwItem } from '../core/items.js';
 import { spriteName, spriteSize } from '../core/itemLooks.js';
 
@@ -30,7 +31,7 @@ export function loadItemImages(dir) {
         try {
           image = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
         } catch (e) {
-          console.warn(`Critter: object sprite "${name}" unavailable (${e.message})`);
+          warn(`object sprite "${name}" unavailable (${e.message})`);
         }
         cache.set(name, image);
       }

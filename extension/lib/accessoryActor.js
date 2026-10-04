@@ -10,6 +10,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { accessoryImageId, accessoryImageIds, accessoryPlacement, accessorySlot, anchorFor, layoutFor } from '../core/accessories.js';
 import { loadImage } from './packLoader.js';
+import { warn } from './log.js';
 
 /**
  * @param {string} dir extension/assets/accessories
@@ -20,7 +21,7 @@ export function loadAccessoryImages(dir) {
   try {
     for (const id of accessoryImageIds()) images[id] = loadImage(GLib.build_filenamev([dir, `${id}.png`]));
   } catch (e) {
-    console.warn(`Critter: accessories unavailable (${e.message})`);
+    warn(`accessories unavailable (${e.message})`);
     return {};
   }
   return images;

@@ -9,6 +9,7 @@ import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { loadImage } from './packLoader.js';
+import { warn } from './log.js';
 
 const ICON_FOR_NEED = {
   relief: 'relief',
@@ -37,7 +38,7 @@ export function loadBubbleIcons(dir) {
       icons[name] = loadImage(GLib.build_filenamev([dir, `${name}.png`]));
     }
   } catch (e) {
-    console.warn(`Critter: bubble icons unavailable (${e.message})`);
+    warn(`bubble icons unavailable (${e.message})`);
     return {};
   }
   return icons;

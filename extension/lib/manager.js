@@ -46,6 +46,7 @@ import { RenameDialog } from './renameDialog.js';
 import { ProgressDialog } from './progressDialog.js';
 import { Notifier } from './notifier.js';
 import { playEventSound } from './eventSounds.js';
+import { warn } from './log.js';
 import { cancelPendingActions } from './critterActions.js';
 
 const SAVE_INTERVAL_S = 30;
@@ -58,7 +59,7 @@ const OVERFED_SATIETY = 95; // feeding a critter this full is a blunder
 
 export class Manager {
   /**
-   * @param {{pack: ReturnType<typeof import('./packLoader.js').loadPack>, count: number}[]} packs
+   * @param {{pack: Awaited<ReturnType<typeof import('./packLoader.js').loadPack>>, count: number}[]} packs
    *   one entry per species in the mix; a species used by several critters
    *   still only appears once here (see `_packData`, called once per id)
    * @param {Gio.Settings} settings
@@ -141,34 +142,17 @@ export class Manager {
     if (this._packCache.has(id)) return this._packCache.get(id);
 
     const behavior = behaviorOverrides(pack.behavior);
-    if (behavior.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", "behavior" keys ignored: ${behavior.ignored.join(', ')}`);
-    }
     const needs = needsOverrides(pack.needs);
-    if (needs.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", "needs" keys ignored: ${needs.ignored.join(', ')}`);
-    }
     const anchors = anchorsOverrides(pack.meta.anchors);
-    if (anchors.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", "anchors" keys ignored: ${anchors.ignored.join(', ')}`);
-    }
     const stages = stagesOverrides(pack.meta.stages);
-    if (stages.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", "stages" keys ignored: ${stages.ignored.join(', ')}`);
-    }
     const translations = translationsOverrides(pack.meta.translations);
-    if (translations.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", translations ignored: ${translations.ignored.join(', ')}`);
-    }
     const namesList = namesOverrides(pack.meta.names).list;
     const achievements = buildAchievements(pack.meta.achievements, speciesProfile(pack.meta));
-    if (achievements.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", achievements ignored: ${achievements.ignored.join(', ')}`);
-    }
     const tricks = tricksOverrides(pack.meta.tricks);
-    if (tricks.ignored.length > 0) {
-      console.warn(`Critter: pack "${id}", tricks ignored: ${tricks.ignored.join(', ')}`);
-    }
+    const ignored = Object.entries({ behavior, needs, anchors, stages, translations, achievements, tricks })
+      .filter(([, section]) => section.ignored.length > 0)
+      .map(([name, section]) => `${name} (${section.ignored.join(', ')})`);
+    if (ignored.length > 0) warn(`pack "${id}": ignored keys: ${ignored.join('; ')}`);
     const hueRange = pack.appearance.enabled ? pack.appearance.hueRange : [0, 0];
 
     const data = { pack, behavior, needs, anchors, stages, translations, namesList, achievements, tricks, hueRange };
@@ -187,7 +171,7 @@ export class Manager {
     try {
       this._eggSheet = loadVariantSheet(GLib.build_filenamev([this._extensionPath, 'assets', 'life', 'egg.png']));
     } catch (e) {
-      console.warn(`Critter: egg sprite unavailable (${e.message})`);
+      warn(`egg sprite unavailable (${e.message})`);
     }
     this._player = Player.parse(this.settings.get_string('saved-player'));
     const growthEnabled = this.settings.get_boolean('growth-enabled');

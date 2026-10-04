@@ -39,7 +39,7 @@ const ANIMATION_FALLBACKS = {
 export class CritterActor {
   /**
    * @param {import('../../core/critter.js').Critter} critter
-   * @param {ReturnType<typeof import('./packLoader.js').loadPack>} pack
+   * @param {Awaited<ReturnType<typeof import('./packLoader.js').loadPack>>} pack
    * @param {Gio.Settings} settings
    * @param {Record<string, St.ImageContent>} [bubbleIcons] thought bubble icons (no bubble if empty)
    * @param {object} [menuOwner] context menu actions (see CritterMenu); no menu if absent
