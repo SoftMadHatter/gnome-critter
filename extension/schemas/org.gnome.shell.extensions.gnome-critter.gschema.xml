@@ -8,7 +8,19 @@
     </key>
     <key name="sounds-enabled" type="b">
       <default>true</default>
-      <summary>Active les effets sonores des réactions</summary>
+      <summary>Active les effets sonores (interrupteur général)</summary>
+    </key>
+    <key name="sounds-voices" type="b">
+      <default>true</default>
+      <summary>Sons de la voix des animaux (caresse, surprise, ronron...)</summary>
+    </key>
+    <key name="sounds-life" type="b">
+      <default>true</default>
+      <summary>Sons des moments de vie (éclosion, croissance, anniversaire, cadeau, tour, rappel de pause)</summary>
+    </key>
+    <key name="sounds-game" type="b">
+      <default>true</default>
+      <summary>Sons du jeu (succès, pièces, bourdes)</summary>
     </key>
     <key name="difficulty" type="s">
       <choices>

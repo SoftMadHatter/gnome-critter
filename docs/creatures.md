@@ -71,7 +71,8 @@ area, and doesn't close the menu.
 ## Settings window
 
 Opened by "Settings…" (a GNOME preferences window, non-modal). Three pages:
-General (critter, count, sounds, tray icon), Needs and life (difficulty,
+General (critter, count, sounds, tray icon; sounds have a master switch and
+three categories: animal voices, life moments, game sounds), Needs and life (difficulty,
 vacation, growth, speed), Rhythm and sensors (day/night, away, break
 reminder, notifications, typing). **Everything applies immediately**, without
 reloading the extension: changing the critter or the count recreates the
