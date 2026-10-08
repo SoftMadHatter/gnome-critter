@@ -29,9 +29,9 @@ import { announceUnlock, announceBurst, announceTrophy } from '../core/narrator.
 import { stageLabel } from '../core/labels.js';
 import { _, ngettext, fmt } from '../core/i18n.js';
 import { translationsOverrides } from '../core/packTranslations.js';
-import { computeSurfaces } from '../core/surfaceMap.js';
+import { computeSurfaces, usableSurfaces } from '../core/surfaceMap.js';
 import {
-  createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, rescueItem, regroundItem, serializeItems, parseSavedItems, GIFTS,
+  createItem, fillBowl, tickItem, FOODS, PLANTS, TOYS, isGone, isToy, ITEM_HEADROOM, rescueItem, regroundItem, serializeItems, parseSavedItems, GIFTS,
   pickVariant, toyFits, BOWL_CAPACITY,
 } from '../core/items.js';
 import { getMonitors, getWindows, getPointer, computeWorldBounds } from './sensors.js';
@@ -976,16 +976,18 @@ export class Manager {
         .map(({ critter }) => ({ x: critter.x, y: critter.y, radius: FLEE_ANIMAL_RADIUS })),
       { x: pointer.x, y: pointer.y, radius: FLEE_POINTER_RADIUS },
     ];
+    // Objects and prey don't stay on a ledge with no room above it (a window flush with the top of the screen): they fall.
+    const itemSurfaces = usableSurfaces(surfaces, monitors, ITEM_HEADROOM);
     for (const { item, actor } of this._items) {
       if (item.yeeted) {
         item.yeeted = false;
         this._player.stats.mark('moment', 'yeet');
       }
       rescueItem(item, monitors);
-      tickItem(item, dt, surfaces, worldBounds, { threats, random: Math.random });
+      tickItem(item, dt, itemSurfaces, worldBounds, { threats, random: Math.random });
       actor.sync();
     }
-    this._autonomyTick(dt, surfaces, worldBounds);
+    this._autonomyTick(dt, itemSurfaces, worldBounds);
     this._removeGoneItems();
     const items = this._items.map(({ item }) => item);
     this._laserDot?.update(pointer, this._laser);

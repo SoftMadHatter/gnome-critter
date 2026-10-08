@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {
   createItem, tickItem, edibleFor, consume, fillBowl, isGone, bedsOn,
   serializeItems, parseSavedItems, BOWL_CAPACITY, kick, push, throwItem, isToy, toysFor, toyFits,
-  pickVariant, bowlLevel,
+  pickVariant, bowlLevel, ITEM_HEADROOM,
 } from '../core/items.js';
-import { computeSurfaces } from '../core/surfaceMap.js';
+import { computeSurfaces, usableSurfaces } from '../core/surfaceMap.js';
 
 const monitor = { x: 0, y: 0, width: 1000, height: 500 };
 const bounds = monitor;
@@ -41,6 +41,21 @@ test("un objet dont la fenêtre bouge sous lui retombe aussi", () => {
   settle(bed, before);
   settle(bed, moved);
   assert.equal(bed.y, 300);
+});
+
+test("un objet ne reste pas sur un rebord sans place au-dessus : il tombe, la proie aussi", () => {
+  const flush = { id: 'max', x: 100, y: 0, width: 400, height: 500 }; // top of the window = top of the screen
+  const raw = computeSurfaces({ monitors: [monitor], windows: [flush] });
+  const surfaces = usableSurfaces(raw, [monitor], ITEM_HEADROOM);
+  for (const [type, kind] of [['bowl', 'kibble'], ['food', 'kibble'], ['prey', 'mouse']]) {
+    const item = createItem(type, kind, 300, 0);
+    settle(item, surfaces);
+    assert.equal(item.y, 500, `${type} ends on the ground`);
+  }
+  const ledge = computeSurfaces({ monitors: [monitor], windows: [{ id: 'w', x: 100, y: 200, width: 400, height: 100 }] });
+  const bowl = createItem('bowl', 'kibble', 300, 50);
+  settle(bowl, usableSurfaces(ledge, [monitor], ITEM_HEADROOM));
+  assert.equal(bowl.y, 200, 'a ledge with room above keeps its objects');
 });
 
 test('le plancton flotte sans gravité et un objet tenu ne bouge pas', () => {

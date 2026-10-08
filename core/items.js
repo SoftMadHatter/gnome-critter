@@ -97,6 +97,8 @@ export const ITEM_TYPES = Object.freeze(['food', 'bowl', 'bed', 'toy', 'gift', '
 
 export const BOWL_CAPACITY = 5;
 
+/** Room an object needs above its resting ledge: on a ledge with less, it falls through. */
+export const ITEM_HEADROOM = 32;
 const GRAVITY = 900;
 const TERMINAL_VELOCITY = 800;
 const RESTING_TYPES = new Set(['ground', 'shelf']);
