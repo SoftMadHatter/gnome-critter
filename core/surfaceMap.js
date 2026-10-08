@@ -250,11 +250,16 @@ export const DROP_PROBE = 6;
  * the void (monitor outer edge) or onto something higher.
  * @returns {{x:number, dir:-1|1, landing:Segment}[]} `x` is the end itself, `dir` the way off
  */
-export function findDropEdges(segments, surface, y, maxDrop, allowedTypes) {
+export function findDropEdges(segments, surface, y, maxDrop, allowedTypes, monitors = []) {
   const edges = [];
   for (const [x, dir] of [[surface.x1, -1], [surface.x2, 1]]) {
     const landing = findSurfaceBelow(segments, x + dir * DROP_PROBE, y + 1, maxDrop, allowedTypes);
-    if (landing) edges.push({ x, dir, landing });
+    if (!landing) continue;
+    // The fall must stay on screen: beside a lower or smaller screen, the column
+    // just past the edge can be dead space (nothing is displayed there).
+    const column = x + dir * DROP_PROBE;
+    if (!pathInsideMonitors(monitors, column, y - 1, column, landing.y - 1)) continue;
+    edges.push({ x, dir, landing });
   }
   return edges;
 }
@@ -381,7 +386,7 @@ export function isInsideAnyMonitor(monitors, x, y) {
 }
 
 /** Closest monitor to the point (the one containing it, if any), or null. */
-function nearestMonitor(monitors, x, y) {
+export function nearestMonitor(monitors, x, y) {
   let best = null;
   let bestDistance = Infinity;
   for (const m of monitors) {
@@ -427,5 +432,73 @@ export function groundPoint(monitors, x, y, margin = 16) {
   return {
     x: Math.min(Math.max(x, best.x + safe), best.x + best.width - safe),
     y: best.y + best.height,
+  };
+}
+
+/**
+ * True if the straight path from one point to another stays inside the
+ * monitors, sampled every `step` px (no monitor known: nothing to check).
+ */
+export function pathInsideMonitors(monitors, x1, y1, x2, y2, step = 12) {
+  if (monitors.length === 0) return true;
+  const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / step));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    if (!isInsideAnyMonitor(monitors, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)) return false;
+  }
+  return true;
+}
+
+/**
+ * Surfaces a sprite `spriteHeight` tall can actually use: a ground or ledge
+ * needs room above it inside the screen (the top of a maximized window flush
+ * with the top of the screen has none: the sprite would stand off-screen),
+ * and a ceiling needs room below it. Segments keep their object identity.
+ * Without monitors, everything is kept.
+ */
+export function usableSurfaces(surfaces, monitors, spriteHeight) {
+  if (monitors.length === 0) return surfaces;
+  const tolerance = 0.5;
+  const monitorAt = (x, y) => monitors.find((m) => x >= m.x && x <= m.x + m.width && y >= m.y && y <= m.y + m.height);
+  const fits = (seg) => {
+    for (const x of [seg.x1 + 1, (seg.x1 + seg.x2) / 2, seg.x2 - 1]) {
+      if (seg.type === 'ceiling') {
+        const m = monitorAt(x, seg.y + 1) ?? monitorAt(x, seg.y - 1);
+        if (m && seg.y + spriteHeight > m.y + m.height + tolerance) return false;
+      } else if (seg.type === 'ground' || seg.type === 'shelf') {
+        // The screen under the ledge, or just above it for the bottom edge of a screen.
+        const m = monitorAt(x, seg.y + 1) ?? monitorAt(x, seg.y - 1);
+        if (m && seg.y - spriteHeight < m.y - tolerance) return false;
+      }
+    }
+    return true;
+  };
+  return { ...surfaces, segments: surfaces.segments.filter(fits) };
+}
+
+/**
+ * A random point whose whole sprite (`size` px square, anchored at its
+ * feet) lies inside one monitor: the monitor is drawn by area, and
+ * `yFactors` ([0, 1] = whole height) bounds the feet within it.
+ * @returns {{x:number, y:number}|null} null without monitors
+ */
+export function pickPointInMonitors(monitors, random, yFactors, size) {
+  if (monitors.length === 0) return null;
+  const total = monitors.reduce((sum, m) => sum + m.width * m.height, 0);
+  let r = random() * total;
+  let monitor = monitors[monitors.length - 1];
+  for (const m of monitors) {
+    r -= m.width * m.height;
+    if (r <= 0) {
+      monitor = m;
+      break;
+    }
+  }
+  const half = Math.min(size / 2, monitor.width / 2);
+  const top = monitor.y + Math.min(size, monitor.height);
+  const span = Math.max(0, monitor.y + monitor.height - top - 6); // a little slack: swimming undulates
+  return {
+    x: monitor.x + half + random() * Math.max(0, monitor.width - 2 * half),
+    y: top + span * (yFactors[0] + random() * (yFactors[1] - yFactors[0])),
   };
 }

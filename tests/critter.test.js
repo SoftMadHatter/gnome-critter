@@ -3159,3 +3159,42 @@ test('suivi : une cible mouvante qui bouge d’un cheveu ne retourne pas le crit
   assert.equal(snapshot.facing, -1);
   assert.ok(snapshot.x < 300);
 });
+
+test('lâcher le plafond : le critter tombe depuis l’emplacement de son corps, pas d’au-dessus de l’écran', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), spriteHeight: 32 }, { x: 500, y: 0 });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ceiling');
+  critter.state = State.CEILING;
+  critter.stateTimer = 0; // time is up: it lets go
+
+  const snapshot = critter.tick(1 / 60, surfaces, { worldBounds: monitor, monitors: [monitor] });
+  assert.equal(snapshot.state, State.FALL);
+  assert.ok(snapshot.y >= 32, `les pieds sont sous le plafond, y=${snapshot.y}`);
+  assert.equal(critter.ensureVisible([monitor], 32), false, 'et il est visible : pas de sauvetage');
+});
+
+test('un oiseau ne vise ni rebord sans place au-dessus ni trajet par la zone morte entre deux écrans', () => {
+  const monitors = [
+    { x: 0, y: 300, width: 1000, height: 600 },
+    { x: 1000, y: 0, width: 1000, height: 600 },
+  ];
+  const surfaces = computeSurfaces({
+    monitors,
+    windows: [{ id: 'flush', x: 1000, y: 0, width: 1000, height: 600 }], // top at the screen top: no room
+  });
+  const worldBounds = { x: 0, y: 0, width: 2000, height: 900 };
+  let seed = 11;
+  const random = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const bird = new Critter(
+    { random, spriteHeight: 32, supportedSurfaces: new Set([Locomotion.GROUND, Locomotion.AIR]), flyRetargetChance: 1 },
+    { x: 500, y: 700 },
+  );
+  bird.state = State.FLY;
+  bird.stateTimer = 1e9;
+  bird.currentSurface = null;
+
+  for (let i = 0; i < 6000; i++) {
+    const snapshot = bird.tick(1 / 30, surfaces, { worldBounds, monitors });
+    assert.equal(bird.ensureVisible(monitors, 32), false, `tick ${i}: ${snapshot.state} à (${snapshot.x.toFixed(0)}, ${snapshot.y.toFixed(0)}) hors écran`);
+  }
+});
