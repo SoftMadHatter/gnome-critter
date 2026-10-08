@@ -226,6 +226,7 @@ export class Manager {
           stageScales: data.stages.scales,
           needsRateScale: this._needsRateScale(),
           speciesId: data.pack.meta.id,
+          spriteHeight: data.pack.spriteSize.height,
           walkSpeed: data.pack.speeds.walk ?? 40,
           climbSpeed: data.pack.speeds.climb ?? 30,
           swimSpeed: data.pack.speeds.swim ?? 25,
@@ -996,7 +997,7 @@ export class Manager {
       critter.ensureVisible(monitors, pack.spriteSize.height);
       const ambient = this._ambientFor(critter);
       const snapshot = critter.tick(dt, surfaces, {
-        worldBounds, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient, progress,
+        worldBounds, monitors, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient, progress,
       });
       actor.setNight(ambient.night);
       this._processProgress(i, critter, snapshot, nowUs);

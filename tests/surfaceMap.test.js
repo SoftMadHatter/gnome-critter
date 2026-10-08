@@ -14,6 +14,10 @@ import {
   findWallById,
   groundPoint,
   ceilingRun,
+  usableSurfaces,
+  pathInsideMonitors,
+  pickPointInMonitors,
+  isInsideAnyMonitor,
 } from '../core/surfaceMap.js';
 
 test('computeSurfaces génère sol, plafond et murs pour chaque moniteur', () => {
@@ -297,4 +301,85 @@ test('ceilingRun : va vers le côté où il reste le plus de place', () => {
   assert.deepEqual(ceilingRun(seg, 600), { dir: -1, run: 400 });
   assert.deepEqual(ceilingRun(seg, 250), { dir: 1, run: 350 });
   assert.deepEqual(ceilingRun(seg, 580), { dir: -1, run: 380 });
+});
+
+// --- Surfaces a sprite can use, and paths on screen --------------------------
+
+test('usableSurfaces : un rebord collé au haut de l’écran n’a pas la place pour un sprite', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 600 }];
+  const surfaces = computeSurfaces({
+    monitors,
+    windows: [
+      { id: 'flush', x: 0, y: 0, width: 400, height: 300 }, // top at the top of the screen
+      { id: 'bar', x: 500, y: 32, width: 400, height: 300 }, // below a 32 px top bar
+      { id: 'low', x: 100, y: 400, width: 200, height: 100 },
+    ],
+  });
+  const usable = usableSurfaces(surfaces, monitors, 32);
+  const shelves = usable.segments.filter((s) => s.type === 'shelf').map((s) => s.surfaceId).sort();
+  assert.deepEqual(shelves, ['bar', 'low'], '32 px de sprite sur un rebord à y = 32 : juste la place');
+  assert.ok(usable.segments.some((s) => s.type === 'ground'), 'le sol reste');
+  assert.equal(usableSurfaces(surfaces, [], 32), surfaces, 'sans écran connu : tout est gardé');
+});
+
+test('usableSurfaces : un plafond collé au bas de l’écran n’a pas la place pour pendre un sprite', () => {
+  const monitors = [{ x: 0, y: 0, width: 1000, height: 600 }];
+  const surfaces = computeSurfaces({
+    monitors,
+    windows: [
+      { id: 'tall', x: 0, y: 100, width: 400, height: 500 }, // its underside is the bottom of the screen
+      { id: 'short', x: 500, y: 100, width: 400, height: 200 },
+    ],
+  });
+  const ceilings = usableSurfaces(surfaces, monitors, 32).segments.filter((s) => s.type === 'ceiling').map((s) => s.surfaceId);
+  assert.ok(ceilings.includes('short'));
+  assert.ok(!ceilings.includes('tall'));
+  assert.ok(ceilings.includes('monitor:0'), 'le plafond de l’écran lui-même (sous son bord haut) reste');
+});
+
+test('pathInsideMonitors : un trajet droit entre deux écrans décalés traverse la zone morte ou non', () => {
+  const monitors = [
+    { x: 0, y: 300, width: 1000, height: 600 },
+    { x: 1000, y: 0, width: 1000, height: 600 },
+  ];
+  assert.equal(pathInsideMonitors(monitors, 100, 400, 900, 800), true, 'dans un seul écran');
+  assert.equal(pathInsideMonitors(monitors, 900, 400, 1100, 400), true, 'à cheval sur la frontière, dans la partie commune');
+  assert.equal(pathInsideMonitors(monitors, 900, 320, 1100, 100), false, 'passe par le coin vide au-dessus du premier écran');
+  assert.equal(pathInsideMonitors([], 0, 0, 5000, 5000), true, 'sans écran connu : rien à vérifier');
+});
+
+test('findDropEdges : pas de descente par un bord dont la chute passe hors de tout écran', () => {
+  const monitors = [
+    { x: 0, y: 0, width: 1600, height: 900 },
+    { x: 1600, y: 100, width: 2560, height: 1440 },
+  ];
+  const surfaces = computeSurfaces({
+    monitors,
+    windows: [
+      { id: 'a', x: 0, y: 32, width: 1600, height: 868 }, // maximized on the small screen
+      { id: 'b', x: 1600, y: 132, width: 2560, height: 1408 }, // its ledge is 100 px below, beside it
+    ],
+  });
+  const ledge = surfaces.segments.find((s) => s.surfaceId === 'a' && s.type === 'shelf');
+  const types = new Set(['ground', 'shelf']);
+  const without = findDropEdges(surfaces.segments, ledge, ledge.y, 200, types);
+  assert.ok(without.some((e) => e.dir === 1), 'sans écrans : le bord droit semble une descente possible');
+  const withMonitors = findDropEdges(surfaces.segments, ledge, ledge.y, 200, types, monitors);
+  assert.ok(!withMonitors.some((e) => e.dir === 1), 'avec les écrans : la chute passerait par le vide au-dessus du grand écran');
+});
+
+test('pickPointInMonitors : tout le sprite reste dans un écran', () => {
+  const monitors = [
+    { x: 0, y: 300, width: 800, height: 500 },
+    { x: 800, y: 0, width: 400, height: 400 },
+  ];
+  let seed = 3;
+  const random = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  for (let i = 0; i < 500; i++) {
+    const { x, y } = pickPointInMonitors(monitors, random, [0, 1], 32);
+    assert.ok(isInsideAnyMonitor(monitors, x, y - 1), `pieds dans un écran (${x}, ${y})`);
+    assert.ok(isInsideAnyMonitor(monitors, x, y - 32), `tête dans un écran (${x}, ${y})`);
+    assert.ok(isInsideAnyMonitor(monitors, x - 16, y - 16) && isInsideAnyMonitor(monitors, x + 16, y - 16), 'largeur dans un écran');
+  }
+  assert.equal(pickPointInMonitors([], random, [0, 1], 32), null);
 });

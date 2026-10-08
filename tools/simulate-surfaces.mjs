@@ -30,6 +30,8 @@ const args = Object.fromEntries(
 const MINUTES = Number(args.minutes ?? 20);
 const SEEDS = Number(args.seeds ?? 3);
 const SPECIES = (args.species ?? 'cat,bird,fish,bug').split(',');
+const LAYOUT = args.layout; // restricts to the layouts whose name contains this text
+const TRAIL = args.trail === 'true'; // prints the ticks before the first rescue of each case
 
 /** Small seeded generator (mulberry32): the runs are reproducible. */
 function rng(seed) {
@@ -100,6 +102,7 @@ function critterFor(species, random, start) {
       needsDiet: needs.diet,
       needsPrey: needs.prey,
       speciesId: species,
+      spriteHeight: pack.spriteSize?.height ?? 32,
       walkSpeed: speeds.walk ?? 40,
       climbSpeed: speeds.climb ?? 30,
       swimSpeed: speeds.swim ?? 25,
@@ -143,6 +146,7 @@ function run(species, layoutName, layout, seed) {
   let pointer = { x: m0.x + 400, y: m0.y + 300 };
   let lastFacing = critter.facing;
   const recent = []; // [{flip, x}] over the last 30 ticks
+  const trail = []; // last positions, for --trail
   let lastFlipEpisode = -1000;
   const ticks = Math.round((MINUTES * 60) / DT);
 
@@ -155,16 +159,19 @@ function run(species, layoutName, layout, seed) {
     }
     const before = { x: critter.x, y: critter.y, state: critter.state };
     if (critter.ensureVisible(monitors, spriteHeight)) {
-      rescues.push({ ...before, zone: zoneOf(monitors, before.x, before.y - 1), t: i * DT });
+      rescues.push({ ...before, zone: zoneOf(monitors, before.x, before.y - 1), t: i * DT, trail: trail.slice(-14) });
     }
     critter.tick(DT, surfaces, {
       worldBounds,
+      monitors,
       pointer: { x: pointer.x, y: pointer.y },
       otherCritters: undefined,
       items: [],
       ambient: { night: false, away: false, breakReminder: false },
       progress: { now: 1_700_000_000_000 + i * 33 },
     });
+    trail.push(`${critter.state} x=${critter.x.toFixed(1)} y=${critter.y.toFixed(1)} on ${critter.currentSurface?.type ?? '-'}${critter.currentSurface?.surfaceId ? ':' + critter.currentSurface.surfaceId : ''}`);
+    if (trail.length > 40) trail.shift();
     const flip = critter.facing !== lastFacing ? 1 : 0;
     lastFacing = critter.facing;
     recent.push({ flip, x: critter.x });
@@ -191,6 +198,7 @@ function tally(items, keyFn) {
 
 for (const species of SPECIES) {
   for (const [layoutName, layout] of Object.entries(LAYOUTS)) {
+    if (LAYOUT && !layoutName.includes(LAYOUT)) continue;
     const rescues = [];
     const flips = [];
     for (let seed = 1; seed <= SEEDS; seed++) {
@@ -201,6 +209,7 @@ for (const species of SPECIES) {
     const hours = (MINUTES * SEEDS) / 60;
     console.log(`\n== ${species} / ${layoutName}: ${rescues.length} rescues, ${flips.length} flip episodes in ${hours.toFixed(1)} h simulated`);
     for (const [key, n] of tally(rescues, (r) => `${r.zone} | state ${r.state}`).slice(0, 6)) console.log(`   rescue  ${String(n).padStart(4)}  ${key}`);
+    if (TRAIL && rescues[0]) console.log(`   first rescue (${rescues[0].zone}), before it:\n     ${rescues[0].trail.join('\n     ')}`);
     for (const [key, n] of tally(flips, (f) => `state ${f.state}`).slice(0, 4)) console.log(`   flicker ${String(n).padStart(4)}  ${key}`);
   }
 }

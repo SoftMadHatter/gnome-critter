@@ -24,6 +24,10 @@ import {
   isInsideAnyMonitor,
   respawnPoint,
   groundPoint,
+  pathInsideMonitors,
+  usableSurfaces,
+  pickPointInMonitors,
+  nearestMonitor,
 } from './surfaceMap.js';
 
 /** Possible states. Deliberately a simple string union: easy to
@@ -208,6 +212,7 @@ const DEFAULT_CONFIG = {
   exploreWeight: 6, // walking to the end of a surface and stepping off (ledge -> ground, one screen -> the next)
   dropMaxHeight: 500,
   climbApproachDistance: 6, // distance below which it's considered to have "reached" the wall
+  spriteHeight: 32, // adult sprite height (px): a ledge needs this much room above it on screen
   ceilingMinRun: 32, // a ceiling with less room to walk than this isn't latched onto
   seekFocusWeight: 10,
   seekFocusDuration: [3, 6],
@@ -584,6 +589,11 @@ export class Critter {
     this._enterState(State.FALL);
   }
 
+  /** Needs and decisions on hold: while in the egg or hibernating. */
+  _lifeFrozen() {
+    return this.life.hibernating || this.life.stage === 'egg';
+  }
+
   /**
    * After a resolution or monitor change, the animal can end up outside
    * every monitor: it then reappears at the top of the closest monitor
@@ -592,15 +602,15 @@ export class Critter {
    * @param {number} spriteHeight sprite height (y designates the feet)
    * @returns {boolean} true if it was repositioned
    */
-  /** Needs and decisions on hold: while in the egg or hibernating. */
-  _lifeFrozen() {
-    return this.life.hibernating || this.life.stage === 'egg';
-  }
-
   ensureVisible(monitors, spriteHeight) {
     if (this.state === State.DRAG || monitors.length === 0) return false;
-    // One pixel above the feet: resting on a monitor's bottom edge, it's visible.
-    if (isInsideAnyMonitor(monitors, this.x, this.y - 1)) return false;
+    // One pixel above the feet: resting on a monitor's bottom edge, it's visible. Hanging from a
+    // ceiling the body is below the anchor point, and a climb starts at the bottom edge and ends
+    // by latching onto the ceiling at the top: either side counts then.
+    const clinging = this.state === State.CEILING || this.state === State.CLIMB;
+    if (isInsideAnyMonitor(monitors, this.x, this.y - 1) || (clinging && isInsideAnyMonitor(monitors, this.x, this.y + 1))) {
+      return false;
+    }
     const point = respawnPoint(monitors, this.x, this.y, spriteHeight);
     if (!point) return false;
     this.x = point.x;
@@ -748,6 +758,10 @@ export class Critter {
    */
   tick(dt, surfaces, options = {}) {
     this._now = options.progress?.now ?? null;
+    // Only the surfaces the sprite fits on: no standing on a ledge flush with
+    // the top of the screen, no hanging from one flush with the bottom.
+    this._monitors = options.monitors ?? [];
+    surfaces = usableSurfaces(surfaces, this._monitors, this.config.spriteHeight);
     this.lastEvent = this._pendingEvent;
     this._pendingEvent = null;
     // An event coming from outside affects the gauges right away: the
@@ -1045,7 +1059,7 @@ export class Critter {
     this._dropEdges = [];
     if (this.supports(Locomotion.GROUND) && this.currentSurface && isOnSegment(this.currentSurface, this.x, this.y, 4)) {
       this._dropEdges = findDropEdges(
-        surfaces.segments, this.currentSurface, this.y, this.config.dropMaxHeight, new Set(['ground', 'shelf']),
+        surfaces.segments, this.currentSurface, this.y, this.config.dropMaxHeight, new Set(['ground', 'shelf']), this._monitors,
       );
       if (this._dropEdges.length > 0) candidates.push({ value: 'explore', weight: this.config.exploreWeight });
     }
@@ -2458,6 +2472,7 @@ export class Critter {
         this.walkTargetX = randRange([bounds.x, bounds.x + bounds.width], this.config.random);
         this._flyTargetY = randRange([yMin, yMax], this.config.random);
       }
+      this._keepRoamTargetOnScreen(yRangeFactors);
       this._roamHasTarget = true;
       this._roamTimer = randRange(
         wavy ? this.config.swimRetargetDuration : this.config.roamRetargetDuration,
@@ -2491,6 +2506,51 @@ export class Critter {
     this.facing = sign(dirX) || this.facing;
     this.x += dirX * speed * dt;
     this.y += dirY * speed * dt;
+    this._pullIntoScreen();
+  }
+
+  /** True if the whole sprite (feet and head) stays inside the screens along a straight flight. */
+  _pathOnScreen(x1, y1, x2, y2) {
+    const size = this.config.spriteHeight;
+    return (
+      pathInsideMonitors(this._monitors, x1, y1 - 1, x2, y2 - 1, 4) &&
+      pathInsideMonitors(this._monitors, x1, y1 - size, x2, y2 - size, 4)
+    );
+  }
+
+  /** A roaming critter that slipped off every screen (swimming undulates) is pulled back to the nearest one. */
+  _pullIntoScreen() {
+    const monitors = this._monitors;
+    if (monitors.length === 0 || isInsideAnyMonitor(monitors, this.x, this.y - 1)) return;
+    const m = nearestMonitor(monitors, this.x, this.y);
+    this.x = clamp(this.x, m.x, m.x + m.width);
+    this.y = clamp(this.y, m.y + Math.min(this.config.spriteHeight, m.height), m.y + m.height);
+  }
+
+  /**
+   * The roaming target drawn above can fall in dead space (the bounding box of
+   * several screens of different sizes holds some) or need a path across it.
+   * Then a point is drawn inside a screen instead: any one reachable in a
+   * straight line, otherwise one within the current screen.
+   */
+  _keepRoamTargetOnScreen(yFactors) {
+    const monitors = this._monitors;
+    if (monitors.length === 0) return;
+    const size = this.config.spriteHeight;
+    const reachable = (x, y) => isInsideAnyMonitor(monitors, x, y - size) && this._pathOnScreen(this.x, this.y, x, y);
+    if (reachable(this.walkTargetX, this._flyTargetY)) return;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const point = pickPointInMonitors(monitors, this.config.random, yFactors, size);
+      if (point && reachable(point.x, point.y)) {
+        this.walkTargetX = point.x;
+        this._flyTargetY = point.y;
+        return;
+      }
+    }
+    const here = nearestMonitor(monitors, this.x, this.y);
+    const point = pickPointInMonitors([here], this.config.random, yFactors, size);
+    this.walkTargetX = point.x;
+    this._flyTargetY = point.y;
   }
 
   /**
@@ -2588,11 +2648,14 @@ export class Critter {
       bounds.x,
       bounds.x + bounds.width,
     );
+    // Both legs (here to the cruising point, then down to the target) must stay on screen.
+    if (!this._pathOnScreen(this.x, this.y, x, y) || !this._pathOnScreen(x, y, target.x, target.y)) return null;
     return { x, y };
   }
 
   /** Landing surface (ground or ledge, other than the one being left, if
-   * possible) and arrival point on it; failing that, the bottom of the world. */
+   * possible) and arrival point on it, reachable in a straight line on screen;
+   * failing that, the bottom of the world. */
   _pickFlyTarget(surfaces, options) {
     const landable = (surfaces.segments ?? []).filter(
       (seg) => (seg.type === 'ground' || seg.type === 'shelf') && seg.x2 > seg.x1,
@@ -2608,13 +2671,26 @@ export class Critter {
         y: bounds.y + bounds.height,
       };
     }
-    const segment = pool[Math.min(pool.length - 1, Math.floor(this.config.random() * pool.length))];
-    const margin = Math.min(8, (segment.x2 - segment.x1) / 2);
-    return {
-      segment,
-      x: randRange([segment.x1 + margin, segment.x2 - margin], this.config.random),
-      y: segment.y,
+    const first = Math.min(pool.length - 1, Math.floor(this.config.random() * pool.length));
+    const pointOn = (segment) => {
+      const margin = Math.min(8, (segment.x2 - segment.x1) / 2);
+      return {
+        segment,
+        x: randRange([segment.x1 + margin, segment.x2 - margin], this.config.random),
+        y: segment.y,
+      };
     };
+    // The drawn surface first, then the others in order, then the surface being left: the
+    // first one a straight flight reaches without crossing dead space between screens.
+    const order = [...pool.slice(first), ...pool.slice(0, first), ...landable.filter((seg) => !pool.includes(seg))];
+    for (const segment of order) {
+      const target = pointOn(segment);
+      if (this._pathOnScreen(this.x, this.y, target.x, target.y)) return target;
+    }
+    // Nothing reachable in a straight line: back down to the floor of the nearest screen.
+    const here = nearestMonitor(this._monitors, this.x, this.y);
+    if (here) return { segment: null, x: clamp(this.x, here.x + 16, here.x + here.width - 16), y: here.y + here.height };
+    return pointOn(pool[first]);
   }
 
   _tickSwim(dt, options) {
@@ -2623,6 +2699,7 @@ export class Critter {
   }
 
   _enterState(state) {
+    const wasHanging = this.state === State.CEILING;
     if (state !== State.FALL && state !== State.CLIMB && state !== State.CEILING) this._noGrab = false;
     this._dropDir = null;
     this._reliefTarget = null;
@@ -2637,6 +2714,8 @@ export class Critter {
       case State.FALL:
         this.vy = 0;
         this.currentSurface = null;
+        // Hanging, y was the top of the body; falling, it is the feet: let go from where the body was.
+        if (wasHanging) this.y += this.config.spriteHeight * (this.life.scale ?? 1);
         break;
       case State.CEILING:
         // stateTimer inherited from the previous state (WALK/CLIMB...) would
