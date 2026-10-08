@@ -52,6 +52,12 @@
       <summary>Vitesse de croissance</summary>
       <description>Multiplicateur de la vitesse de vieillissement (utile pour essayer les stades sans attendre des jours).</description>
     </key>
+    <key name="critter-size" type="d">
+      <range min="0.5" max="3"/>
+      <default>1</default>
+      <summary>Taille des animaux</summary>
+      <description>Multiplicateur de la taille d'affichage des animaux (1 = taille d'origine).</description>
+    </key>
     <key name="day-night" type="b">
       <default>true</default>
       <summary>Cycle jour/nuit</summary>
