@@ -231,3 +231,18 @@ visible difference. To optimize files drawn by hand or by another tool, run
 `extension/assets/`); it skips what is already optimized. An image with no
 transparent pixel stays RGBA on purpose: GdkPixbuf loads an opaque palette
 image without an alpha channel, and the extension's color variants need one.
+
+## Simulating the critters without the Shell
+
+`core/` is pure, so the Manager's loop can be replayed headless:
+
+```bash
+node tools/simulate-surfaces.mjs [--minutes 20] [--seeds 3] [--species cat,bird]
+```
+
+It runs each species on several screen layouts (one screen, a laptop offset
+under an external screen, screens of different sizes, windows maximized below
+the top bar or flush with the top of the screen) and prints, per species and
+layout, the rescues (a critter found outside every screen and put back at the
+top) grouped by zone and state, and the episodes where it turns around every
+tick on the spot. Runs are seeded, so before and after a change compare.

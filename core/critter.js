@@ -112,6 +112,9 @@ const STATE_GROUPS = [
   ['ceilingWalks', new Set(['ceiling'])],
 ];
 
+/** A target closer than this (px) along x doesn't turn the critter around. */
+const FACING_DEADZONE = 0.5;
+
 const ACTIVE_STATES = new Set([
   State.WALK, State.RUN, State.CLIMB, State.CEILING, State.SWIM, State.SWIM_FAST,
   State.FLY, State.FLY_FAST, State.DIVE, State.FOLLOW, State.GREET, State.SEEK_WALL,
@@ -2172,13 +2175,25 @@ export class Critter {
    * fixed point once and for all; FOLLOW/GREET call this every tick
    * with a target that may have moved). */
   _chase(dt, targetX, speed = this.config.walkSpeed) {
-    const dir = sign(targetX - this.x);
-    this.facing = dir || this.facing;
-    this.x += dir * speed * dt;
+    this.x = this._stepToward(targetX, speed * dt);
 
     if (this.currentSurface) {
       this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
     }
+  }
+
+  /**
+   * One walking step toward `targetX`: never past it (a step longer than the
+   * distance left would overshoot, then come back, and the critter would
+   * turn around every tick on the spot), and the facing only follows a
+   * target that is really on the other side, so a cursor or a prey that
+   * moves a hair doesn't flip it either.
+   * @returns {number} the new x
+   */
+  _stepToward(targetX, step) {
+    const toTarget = targetX - this.x;
+    if (Math.abs(toTarget) > FACING_DEADZONE) this.facing = sign(toTarget);
+    return this.x + sign(toTarget) * Math.min(step, Math.abs(toTarget));
   }
 
   _startWalkOnCurrentSurface(state = State.WALK) {
@@ -2212,8 +2227,7 @@ export class Critter {
       return;
     }
 
-    this.facing = dir;
-    this.x += dir * speed * dt;
+    this.x = this._stepToward(this.walkTargetX, speed * dt);
 
     if (this.currentSurface) {
       this.x = clamp(this.x, this.currentSurface.x1, this.currentSurface.x2);
