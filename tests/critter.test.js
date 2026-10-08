@@ -3116,3 +3116,46 @@ test("SEEK_WALL : le critter traverse l'écran jusqu'au mur au lieu de renoncer 
   assert.equal(log[0].to, State.SEEK_WALL);
   assert.equal(log[1].to, State.CLIMB, 'après SEEK_WALL, directement au mur');
 });
+
+test('marche : un pas plus long que la distance restante ne dépasse pas la cible et ne fait pas tourner en rond', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 90 }, { x: 100, y: monitor.height });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  critter.state = State.WALK;
+  critter.stateTimer = 10;
+  critter.walkTargetX = 107.5; // not a multiple of the 3 px step (90 px/s at 30 Hz)
+
+  const facings = [];
+  let reached = false;
+  for (let i = 0; i < 12; i++) {
+    const snapshot = critter.tick(1 / 30, surfaces, { worldBounds: monitor });
+    facings.push(snapshot.facing);
+    assert.ok(snapshot.x <= 107.5 + 1e-9, `ne dépasse pas la cible, x=${snapshot.x}`);
+    if (snapshot.state !== State.WALK) reached = true;
+  }
+  assert.ok(reached, 'la marche se termine à la cible');
+  assert.deepEqual([...new Set(facings)], [1], 'toujours tourné vers la droite');
+});
+
+test('suivi : une cible mouvante qui bouge d’un cheveu ne retourne pas le critter, une vraie traversée oui', () => {
+  const surfaces = computeSurfaces({ monitors: [monitor], windows: [] });
+  const critter = new Critter({ random: fixedRandom(0.9), walkSpeed: 90 }, { x: 300, y: monitor.height });
+  critter.currentSurface = surfaces.segments.find((s) => s.type === 'ground');
+  critter.state = State.FOLLOW;
+  critter.stateTimer = 100;
+
+  // The cursor jiggles by 0.2 px around the critter: no turning around.
+  let flips = 0;
+  let last = critter.facing;
+  for (let i = 0; i < 60; i++) {
+    const snapshot = critter.tick(1 / 30, surfaces, { worldBounds: monitor, pointer: { x: 300 + (i % 2 ? 0.2 : -0.2), y: 0 } });
+    if (snapshot.facing !== last) flips++;
+    last = snapshot.facing;
+  }
+  assert.equal(flips, 0);
+
+  // The cursor really crosses to the left: it turns, and keeps following.
+  const snapshot = critter.tick(1 / 30, surfaces, { worldBounds: monitor, pointer: { x: 100, y: 0 } });
+  assert.equal(snapshot.facing, -1);
+  assert.ok(snapshot.x < 300);
+});
