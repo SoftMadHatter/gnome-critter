@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-01 14:43+0200\n"
+"POT-Creation-Date: 2026-10-04 13:42+0200\n"
 "PO-Revision-Date: 2026-09-25 07:40+0200\n"
 "Last-Translator: Critter\n"
 "Language-Team: none\n"
@@ -15,51 +15,51 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: core/accessories.js:12
+#: core/accessories.js:13
 msgid "Chapeau de fête"
 msgstr "Party hat"
 
-#: core/accessories.js:13
+#: core/accessories.js:14
 msgid "Nœud"
 msgstr "Bow"
 
-#: core/accessories.js:14
+#: core/accessories.js:15
 msgid "Lunettes"
 msgstr "Glasses"
 
-#: core/accessories.js:15
+#: core/accessories.js:16
 msgid "Couronne"
 msgstr "Crown"
 
-#: core/accessories.js:16
+#: core/accessories.js:17
 msgid "Bonnet de Noël"
 msgstr "Santa hat"
 
-#: core/accessories.js:17
+#: core/accessories.js:18
 msgid "Chapeau de sorcière"
 msgstr "Witch hat"
 
-#: core/accessories.js:18
+#: core/accessories.js:19
 msgid "Médaille"
 msgstr "Medal"
 
-#: core/accessories.js:19
+#: core/accessories.js:20
 msgid "Couronne de laurier"
 msgstr "Laurel wreath"
 
-#: core/accessories.js:20
+#: core/accessories.js:21
 msgid "Auréole"
 msgstr "Halo"
 
-#: core/accessories.js:21
+#: core/accessories.js:22
 msgid "Cône de la honte"
 msgstr "Cone of shame"
 
-#: core/accessories.js:22
+#: core/accessories.js:23
 msgid "Chaussette"
 msgstr "Sock"
 
-#: core/accessories.js:23
+#: core/accessories.js:24
 msgid "Chapeau en papier alu"
 msgstr "Tinfoil hat"
 
@@ -411,7 +411,7 @@ msgstr "Collection"
 msgid "Saisons"
 msgstr "Seasons"
 
-#: core/labels.js:111 extension/lib/manager.js:475
+#: core/labels.js:111 extension/lib/manager.js:480
 msgid "Toi"
 msgstr "You"
 
@@ -881,79 +881,79 @@ msgstr "Roll over"
 msgid "Saut périlleux"
 msgstr "Backflip"
 
-#: extension/lib/critterActions.js:33
+#: extension/lib/critterActions.js:56
 msgid "{food} (préféré)"
 msgstr "{food} (favorite)"
 
-#: extension/lib/critterActions.js:37
+#: extension/lib/critterActions.js:61
 msgid "Nourriture"
 msgstr "Food"
 
-#: extension/lib/critterActions.js:42
+#: extension/lib/critterActions.js:66
 msgid "Gamelle"
 msgstr "Bowl"
 
-#: extension/lib/critterActions.js:44
+#: extension/lib/critterActions.js:68
 msgid "Remplir une gamelle"
 msgstr "Fill a bowl"
 
-#: extension/lib/critterActions.js:47
+#: extension/lib/critterActions.js:71
 msgid "Lit"
 msgstr "Bed"
 
-#: extension/lib/critterActions.js:51
+#: extension/lib/critterActions.js:75
 msgid "Jouet"
 msgstr "Toy"
 
-#: extension/lib/critterActions.js:58
+#: extension/lib/critterActions.js:82
 msgid "Litière"
 msgstr "Litter box"
 
-#: extension/lib/critterActions.js:59
+#: extension/lib/critterActions.js:83
 msgid "Plante"
 msgstr "Plant"
 
-#: extension/lib/critterActions.js:60
+#: extension/lib/critterActions.js:84
 msgid "Proie"
 msgstr "Prey"
 
-#: extension/lib/critterActions.js:87
+#: extension/lib/critterActions.js:115
 msgid "Renommer…"
 msgstr "Rename…"
 
-#: extension/lib/critterActions.js:89 extension/lib/panelIndicator.js:131
+#: extension/lib/critterActions.js:117 extension/lib/panelIndicator.js:131
 msgid "Poser…"
 msgstr "Place…"
 
-#: extension/lib/critterActions.js:93
+#: extension/lib/critterActions.js:121
 msgid "Accessoires"
 msgstr "Accessories"
 
-#: extension/lib/critterActions.js:94
+#: extension/lib/critterActions.js:122
 msgid "Titre"
 msgstr "Title"
 
-#: extension/lib/critterActions.js:95
+#: extension/lib/critterActions.js:123
 msgid "Tours"
 msgstr "Tricks"
 
-#: extension/lib/critterActions.js:96
+#: extension/lib/critterActions.js:124
 msgid "Réveiller"
 msgstr "Wake up"
 
-#: extension/lib/critterActions.js:98 extension/lib/panelIndicator.js:125
+#: extension/lib/critterActions.js:126 extension/lib/panelIndicator.js:125
 msgid "Brosser"
 msgstr "Brush"
 
-#: extension/lib/critterActions.js:104 extension/lib/critterActions.js:116
+#: extension/lib/critterActions.js:132 extension/lib/critterActions.js:144
 msgid "Aucun"
 msgstr "None"
 
-#: extension/lib/critterActions.js:129
+#: extension/lib/critterActions.js:157
 msgid "Faire : {trick}"
 msgstr "Perform: {trick}"
 
-#: extension/lib/critterActions.js:132
+#: extension/lib/critterActions.js:160
 msgid "Entraîner : {trick} ({skill} %)"
 msgstr "Train: {trick} ({skill}%)"
 
@@ -965,81 +965,81 @@ msgstr "Laser pointer"
 msgid "Ranger les jouets"
 msgstr "Tidy up toys"
 
-#: extension/lib/critterMenu.js:51 extension/lib/manager.js:425
-#: extension/lib/panelIndicator.js:133 extension/lib/panelIndicator.js:223
-#: extension/lib/panelIndicator.js:224 extension/lib/panelIndicator.js:226
+#: extension/lib/critterMenu.js:54 extension/lib/manager.js:418
+#: extension/lib/panelIndicator.js:133 extension/lib/panelIndicator.js:240
+#: extension/lib/panelIndicator.js:241 extension/lib/panelIndicator.js:243
 msgid "Sans nom"
 msgstr "Unnamed"
 
-#: extension/lib/manager.js:263
+#: extension/lib/manager.js:251
 msgid "Un œuf est déposé : {name}."
 msgstr "An egg has been laid: {name}."
 
-#: extension/lib/manager.js:379
+#: extension/lib/manager.js:367
 msgid "Pièces insuffisantes ({price} nécessaires, {coins} en poche)."
 msgstr "Not enough coins ({price} needed, {coins} in your pocket)."
 
-#: extension/lib/manager.js:390
+#: extension/lib/manager.js:379
 msgid "Accessoire acheté : {accessory}."
 msgstr "Accessory bought: {accessory}."
 
-#: extension/lib/manager.js:391
+#: extension/lib/manager.js:380
 msgid "{accessory} acheté (-{price} pièces)."
 msgstr "{accessory} bought (-{price} coins)."
 
-#: extension/lib/manager.js:425
+#: extension/lib/manager.js:418
 msgid "{name} — progression"
 msgstr "{name} — progress"
 
-#: extension/lib/manager.js:451
+#: extension/lib/manager.js:454
 msgid "Une créature"
 msgstr "A creature"
 
-#: extension/lib/manager.js:451
+#: extension/lib/manager.js:454
 msgid "{previous} est rebaptisé(e) {name}."
 msgstr "{previous} has been renamed {name}."
 
-#: extension/lib/manager.js:477
+#: extension/lib/manager.js:482
 msgid "{name} : {count} succès d'un coup."
 msgid_plural "{name} : {count} succès d'un coup."
 msgstr[0] "{name}: {count} achievement at once."
 msgstr[1] "{name}: {count} achievements at once."
 
-#: extension/lib/manager.js:481
+#: extension/lib/manager.js:486
 msgid "{name} : exploit douteux « {achievement} »."
 msgstr "{name}: dubious feat “{achievement}”."
 
-#: extension/lib/manager.js:481
+#: extension/lib/manager.js:486
 msgid "{name} : succès « {achievement} »."
 msgstr "{name}: achievement “{achievement}”."
 
-#: extension/lib/manager.js:490
+#: extension/lib/manager.js:495
 msgid "Trophée obtenu : {trophy}."
 msgstr "Trophy earned: {trophy}."
 
-#: extension/lib/manager.js:542
+#: extension/lib/manager.js:547
 msgid "{name} a éclos."
 msgstr "{name} has hatched."
 
-#: extension/lib/manager.js:543
+#: extension/lib/manager.js:548
 msgid "{name} fête son anniversaire !"
 msgstr "It's {name}'s birthday!"
 
-#: extension/lib/manager.js:544
+#: extension/lib/manager.js:549
 msgid "{name} devient {stage}."
 msgstr "{name} has reached the {stage} stage."
 
-#: extension/lib/manager.js:546
+#: extension/lib/manager.js:551
 msgid "{name} a appris un tour."
 msgstr "{name} learned a trick."
 
-#: extension/lib/manager.js:792
+#: extension/lib/manager.js:798
 msgid "Cadeau ramassé : +{coins} pièce."
 msgid_plural "Cadeau ramassé : +{coins} pièces."
 msgstr[0] "Gift collected: +{coins} coin."
 msgstr[1] "Gift collected: +{coins} coins."
 
-#: extension/lib/menuWidgets.js:141
+#: extension/lib/menuWidgets.js:152
 msgid "Retour"
 msgstr "Back"
 
@@ -1083,7 +1083,7 @@ msgstr "Play"
 msgid "Câlin"
 msgstr "Cuddle"
 
-#: extension/lib/panelIndicator.js:134 extension/lib/panelIndicator.js:201
+#: extension/lib/panelIndicator.js:134 extension/lib/panelIndicator.js:218
 msgid "Progrès"
 msgstr "Progress"
 
@@ -1095,7 +1095,7 @@ msgstr "Achievements"
 msgid "Statistiques"
 msgstr "Statistics"
 
-#: extension/lib/panelIndicator.js:137 extension/lib/panelIndicator.js:204
+#: extension/lib/panelIndicator.js:137 extension/lib/panelIndicator.js:221
 #: extension/lib/progressDialog.js:20
 msgid "Journal"
 msgstr "Journal"
@@ -1104,7 +1104,7 @@ msgstr "Journal"
 msgid "Réglages…"
 msgstr "Settings…"
 
-#: extension/lib/panelIndicator.js:147 extension/prefs.js:205
+#: extension/lib/panelIndicator.js:147 extension/prefs.js:213
 msgid "Mode vacances"
 msgstr "Vacation mode"
 
@@ -1112,27 +1112,27 @@ msgstr "Vacation mode"
 msgid "Nettoyer les traces"
 msgstr "Clean up messes"
 
-#: extension/lib/panelIndicator.js:155
+#: extension/lib/panelIndicator.js:158
 msgid "Retirer les objets"
 msgstr "Remove items"
 
-#: extension/lib/panelIndicator.js:175
+#: extension/lib/panelIndicator.js:186
 msgid "Pièces : {coins}"
 msgstr "Coins: {coins}"
 
-#: extension/lib/panelIndicator.js:179
+#: extension/lib/panelIndicator.js:190
 msgid "Succès ({done}/{total})"
 msgstr "Achievements ({done}/{total})"
 
-#: extension/lib/panelIndicator.js:185
+#: extension/lib/panelIndicator.js:196
 msgid "{accessory} (gratuit de saison)"
 msgstr "{accessory} (free this season)"
 
-#: extension/lib/panelIndicator.js:188
+#: extension/lib/panelIndicator.js:199
 msgid "Acheter : {accessory} ({price} pièces)"
 msgstr "Buy: {accessory} ({price} coins)"
 
-#: extension/lib/panelIndicator.js:203
+#: extension/lib/panelIndicator.js:220
 msgid "Journal ({count} non lu)"
 msgid_plural "Journal ({count} non lus)"
 msgstr[0] "Journal ({count} unread)"
@@ -1206,195 +1206,224 @@ msgstr "Cancel"
 msgid "OK"
 msgstr "OK"
 
-#: extension/prefs.js:89 extension/prefs.js:94
+#: extension/prefs.js:90
 msgid "Ajouter une espèce"
 msgstr "Add a species"
 
-#: extension/prefs.js:104
+#: extension/prefs.js:99
 msgid "Animal"
 msgstr "Species"
 
-#: extension/prefs.js:119
+#: extension/prefs.js:114
 msgid "Nombre d'animaux"
 msgstr "Number of pets"
 
-#: extension/prefs.js:132
+#: extension/prefs.js:127
 msgid "Retirer cette espèce"
 msgstr "Remove this species"
 
-#: extension/prefs.js:162
+#: extension/prefs.js:157
 msgid "Général"
 msgstr "General"
 
-#: extension/prefs.js:164
+#: extension/prefs.js:159
 msgid "Animaux"
 msgstr "Pets"
 
-#: extension/prefs.js:165
+#: extension/prefs.js:160
 msgid ""
 "Les changements sont appliqués tout de suite. 10 animaux au total, tous "
 "ensemble."
 msgstr "Changes apply right away. 10 pets total, all together."
 
-#: extension/prefs.js:172
+#: extension/prefs.js:167
 msgid "Besoins et vie"
 msgstr "Needs & life"
 
-#: extension/prefs.js:173
+#: extension/prefs.js:168
 msgid "Besoins et croissance"
 msgstr "Needs & growth"
 
-#: extension/prefs.js:176 extension/prefs.js:263
+#: extension/prefs.js:171 extension/prefs.js:271
 msgid "Rythme et capteurs"
 msgstr "Rhythm & sensors"
 
-#: extension/prefs.js:181
-msgid "Sons activés"
+#: extension/prefs.js:176
+msgid "Sons"
 msgstr "Sounds"
 
-#: extension/prefs.js:186
+#: extension/prefs.js:178
+msgid "Tous les sons"
+msgstr "All sounds"
+
+#: extension/prefs.js:182
+msgid "Caresses, chatouilles, surprise, agacement, ronron, maladie..."
+msgstr "Petting, tickling, surprise, annoyance, purring, sickness..."
+
+#: extension/prefs.js:182
+msgid "Voix des animaux"
+msgstr "Animal voices"
+
+#: extension/prefs.js:183
+msgid "Moments de vie"
+msgstr "Life moments"
+
+#: extension/prefs.js:183
+msgid ""
+"Éclosion, croissance, anniversaire, cadeaux, tours appris, rappels de pause."
+msgstr "Hatching, growing, birthday, gifts, learned tricks, break reminders."
+
+#: extension/prefs.js:184
+msgid "Succès débloqués, pièces gagnées ou dépensées, bourdes."
+msgstr "Unlocked achievements, coins earned or spent, blunders."
+
+#: extension/prefs.js:184
+msgid "Succès, pièces et bourdes"
+msgstr "Achievements, coins and blunders"
+
+#: extension/prefs.js:194
 msgid "Détendue"
 msgstr "Relaxed"
 
-#: extension/prefs.js:187
+#: extension/prefs.js:195
 msgid "Normale"
 msgstr "Normal"
 
-#: extension/prefs.js:188
+#: extension/prefs.js:196
 msgid "Stricte"
 msgstr "Strict"
 
-#: extension/prefs.js:191
+#: extension/prefs.js:199
 msgid "Difficulté"
 msgstr "Difficulty"
 
-#: extension/prefs.js:192
+#: extension/prefs.js:200
 msgid "Vitesse à laquelle les besoins des animaux baissent."
 msgstr "How fast your pets' needs go down."
 
-#: extension/prefs.js:206
+#: extension/prefs.js:214
 msgid "Fige tous les besoins des animaux."
 msgstr "Freezes all of your pets' needs."
 
-#: extension/prefs.js:212
+#: extension/prefs.js:220
 msgid "Icône dans la barre supérieure"
 msgstr "Top bar icon"
 
-#: extension/prefs.js:213
+#: extension/prefs.js:221
 msgid "Humeur et menu des animaux."
 msgstr "Your pets' mood and menu."
 
-#: extension/prefs.js:219
+#: extension/prefs.js:227
 msgid "Auto (suit la croissance)"
 msgstr "Auto (follows growth)"
 
-#: extension/prefs.js:220
+#: extension/prefs.js:228
 msgid "Désactivée"
 msgstr "Off"
 
-#: extension/prefs.js:221
+#: extension/prefs.js:229
 msgid "Partielle"
 msgstr "Partial"
 
-#: extension/prefs.js:222
+#: extension/prefs.js:230
 msgid "Totale"
 msgstr "Full"
 
-#: extension/prefs.js:225
+#: extension/prefs.js:233
 msgid "Autonomie"
 msgstr "Autonomy"
 
-#: extension/prefs.js:226
+#: extension/prefs.js:234
 msgid ""
 "Les animaux autonomes chassent, grignotent et voient leurs besoins baisser "
 "plus lentement."
 msgstr "Autonomous pets hunt and nibble, and their needs go down more slowly."
 
-#: extension/prefs.js:234
+#: extension/prefs.js:242
 msgid "Proies automatiques"
 msgstr "Automatic prey"
 
-#: extension/prefs.js:235
+#: extension/prefs.js:243
 msgid "Des proies apparaissent de temps en temps pour les animaux autonomes."
 msgstr "Prey shows up now and then for autonomous pets."
 
-#: extension/prefs.js:241
+#: extension/prefs.js:249
 msgid "Plantes décoratives"
 msgstr "Decorative plants"
 
-#: extension/prefs.js:242
+#: extension/prefs.js:250
 msgid "Des plantes à grignoter sont maintenues sur le bureau."
 msgstr "Plants to nibble on are kept on the desktop."
 
-#: extension/prefs.js:248
+#: extension/prefs.js:256
 msgid "Croissance"
 msgstr "Growth"
 
-#: extension/prefs.js:249
+#: extension/prefs.js:257
 msgid "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte."
 msgstr ""
 "A new pet hatches from an egg and grows up; when off, it is born an adult."
 
-#: extension/prefs.js:255
+#: extension/prefs.js:263
 msgid "Vitesse de croissance"
 msgstr "Growth speed"
 
-#: extension/prefs.js:256
+#: extension/prefs.js:264
 msgid "1 = temps réel. Plus haut pour essayer les stades sans attendre."
 msgstr "1 = real time. Higher to try out the stages without waiting."
 
-#: extension/prefs.js:264
+#: extension/prefs.js:272
 msgid "Aucun contenu n'est jamais lu : ni notifications, ni touches."
 msgstr "No content is ever read: neither notifications nor keys."
 
-#: extension/prefs.js:269
+#: extension/prefs.js:277
 msgid "Cycle jour/nuit"
 msgstr "Day/night cycle"
 
-#: extension/prefs.js:270
+#: extension/prefs.js:278
 msgid ""
 "De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris."
 msgstr "From 11 p.m. to 7 a.m., pets sleep more and are slightly dimmed."
 
-#: extension/prefs.js:276
+#: extension/prefs.js:284
 msgid "Dormir en votre absence"
 msgstr "Sleep while you're away"
 
-#: extension/prefs.js:277
+#: extension/prefs.js:285
 msgid ""
 "Ils s'endorment quand vous êtes inactif, et vous accueillent à votre retour."
 msgstr "They fall asleep when you're idle and greet you when you come back."
 
-#: extension/prefs.js:283
+#: extension/prefs.js:291
 msgid "Minutes d'inactivité avant l'absence"
 msgstr "Idle minutes before you're away"
 
-#: extension/prefs.js:290
+#: extension/prefs.js:298
 msgid "Rappel de pause"
 msgstr "Break reminder"
 
-#: extension/prefs.js:291
+#: extension/prefs.js:299
 msgid "Un animal vient vers votre curseur après une longue période d'activité."
 msgstr "A pet comes to your cursor after a long stretch of activity."
 
-#: extension/prefs.js:297
+#: extension/prefs.js:305
 msgid "Minutes d'activité avant le rappel"
 msgstr "Active minutes before the reminder"
 
-#: extension/prefs.js:304
+#: extension/prefs.js:312
 msgid "Réagir aux notifications"
 msgstr "React to notifications"
 
-#: extension/prefs.js:305
+#: extension/prefs.js:313
 msgid ""
 "Seul le fait qu'une notification arrive est utilisé, jamais son contenu."
 msgstr "Only the fact that a notification arrives is used, never its content."
 
-#: extension/prefs.js:311
+#: extension/prefs.js:319
 msgid "Réagir à la frappe"
 msgstr "React to typing"
 
-#: extension/prefs.js:312
+#: extension/prefs.js:320
 msgid "Compte seulement qu'une touche est pressée, jamais laquelle."
 msgstr "Only counts that a key is pressed, never which one."
 
@@ -1411,17 +1440,31 @@ msgstr ""
 "of that species}. Total capped at 10."
 
 #: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:11
-msgid "Active les effets sonores des réactions"
-msgstr "Enables reaction sound effects"
+msgid "Active les effets sonores (interrupteur général)"
+msgstr "Enables sound effects (master switch)"
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:21
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:15
+msgid "Sons de la voix des animaux (caresse, surprise, ronron...)"
+msgstr "Animal voice sounds (petting, surprise, purring...)"
+
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:19
+msgid ""
+"Sons des moments de vie (éclosion, croissance, anniversaire, cadeau, tour, "
+"rappel de pause)"
+msgstr "Life moment sounds (hatching, growing, birthday, gift, trick, break reminder)"
+
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:23
+msgid "Sons du jeu (succès, pièces, bourdes)"
+msgstr "Game sounds (achievements, coins, blunders)"
+
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:33
 msgid ""
 "Vitesse à laquelle les besoins de l'animal baissent : détendu (x0,4), normal "
 "(x1) ou strict (x2)."
 msgstr ""
 "How fast the pet's needs go down: relaxed (x0.4), normal (x1) or strict (x2)."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:35
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:47
 msgid ""
 "Un animal neuf naît d'un œuf et grandit par stades. Désactivée, il naît "
 "adulte."
@@ -1429,7 +1472,7 @@ msgstr ""
 "A new pet hatches from an egg and grows up in stages. When off, it is born "
 "an adult."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:41
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:53
 msgid ""
 "Multiplicateur de la vitesse de vieillissement (utile pour essayer les "
 "stades sans attendre des jours)."
@@ -1437,7 +1480,7 @@ msgstr ""
 "Aging speed multiplier (handy for trying out the stages without waiting for "
 "days)."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:46
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:58
 msgid ""
 "La nuit (23 h à 7 h, heure locale), les animaux dorment davantage et sont "
 "légèrement assombris."
@@ -1445,40 +1488,40 @@ msgstr ""
 "At night (11 p.m. to 7 a.m., local time), pets sleep more and are slightly "
 "dimmed."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:64
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:76
 msgid "Minutes d'activité avant le rappel de pause"
 msgstr "Active minutes before the break reminder"
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:84
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:96
 msgid "Autonomie des animaux"
 msgstr "Pet autonomy"
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:85
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:97
 msgid ""
 "Auto : suit la croissance et les tours appris. Sinon désactivée, partielle "
 "ou totale."
 msgstr ""
 "Auto: follows growth and learned tricks. Otherwise off, partial or full."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:95
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:107
 msgid ""
 "Des plantes à grignoter sont maintenues sur le bureau pour les animaux "
 "autonomes."
 msgstr "Plants to nibble on are kept on the desktop for autonomous pets."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:99
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:111
 msgid "Pièces, achats et journal (interne)"
 msgstr "Coins, purchases and journal (internal)"
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:100
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:112
 msgid "JSON écrit par l'extension. Ne pas modifier à la main."
 msgstr "JSON written by the extension. Do not edit by hand."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:104
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:116
 msgid "Objets du bureau sauvegardés (interne)"
 msgstr "Saved desktop items (internal)"
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:105
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:117
 msgid ""
 "JSON écrit par l'extension : gamelles, lits et nourriture à restaurer. Ne "
 "pas modifier à la main."
@@ -1486,11 +1529,11 @@ msgstr ""
 "JSON written by the extension: bowls, beds and food to restore. Do not edit "
 "by hand."
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:109
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:121
 msgid "État sauvegardé des animaux (interne)"
 msgstr "Saved pet state (internal)"
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:110
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:122
 msgid ""
 "JSON écrit par l'extension : positions à restaurer au prochain démarrage. Ne "
 "pas modifier à la main."
@@ -4521,6 +4564,12 @@ msgid ""
 msgstr ""
 "You took away the food it was about to eat. The Committee saw nothing. "
 "Actually, it did. Processing fees."
+
+#~ msgid "Sons activés"
+#~ msgstr "Sounds"
+
+#~ msgid "Active les effets sonores des réactions"
+#~ msgstr "Enables reaction sound effects"
 
 #~ msgid "Donner à manger"
 #~ msgstr "Feed"

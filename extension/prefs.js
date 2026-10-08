@@ -173,9 +173,22 @@ export default class CritterPreferences extends ExtensionPreferences {
     const packs = await listPacks(this.path);
     buildMixRows(group, settings, packs);
 
-    const soundsRow = new Adw.SwitchRow({ title: _('Sons activés') });
+    const soundsGroup = new Adw.PreferencesGroup({ title: _('Sons') });
+    generalPage.add(soundsGroup);
+    const soundsRow = new Adw.SwitchRow({ title: _('Tous les sons') });
     settings.bind('sounds-enabled', soundsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
-    generalGroup.add(soundsRow);
+    soundsGroup.add(soundsRow);
+    const soundCategories = [
+      ['sounds-voices', N_('Voix des animaux'), N_('Caresses, chatouilles, surprise, agacement, ronron, maladie...')],
+      ['sounds-life', N_('Moments de vie'), N_('Éclosion, croissance, anniversaire, cadeaux, tours appris, rappels de pause.')],
+      ['sounds-game', N_('Succès, pièces et bourdes'), N_('Succès débloqués, pièces gagnées ou dépensées, bourdes.')],
+    ];
+    for (const [key, title, subtitle] of soundCategories) {
+      const row = new Adw.SwitchRow({ title: _(title), subtitle: _(subtitle) });
+      settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
+      settings.bind('sounds-enabled', row, 'sensitive', Gio.SettingsBindFlags.GET);
+      soundsGroup.add(row);
+    }
 
     const difficulties = [
       ['relaxed', N_('Détendue')],

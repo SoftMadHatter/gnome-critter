@@ -4,14 +4,16 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
+import { GAME_KEY, soundEnabled } from '../core/soundCategories.js';
+
 /**
- * Plays extension/assets/sounds/<name>.wav, unless sounds are turned off.
+ * Plays extension/assets/sounds/<name>.wav, unless the game sounds are turned off.
  * @param {string} extensionPath
  * @param {Gio.Settings} settings
  * @param {'achievement'|'coin'|'blunder'} name
  */
 export function playEventSound(extensionPath, settings, name) {
-  if (!settings.get_boolean('sounds-enabled')) return;
+  if (!soundEnabled((key) => settings.get_boolean(key), GAME_KEY)) return;
   const file = Gio.File.new_for_path(GLib.build_filenamev([extensionPath, 'assets', 'sounds', `${name}.wav`]));
   global.display.get_sound_player().play_from_file(file, `Critter: ${name}`, null);
 }

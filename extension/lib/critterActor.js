@@ -7,6 +7,7 @@ import Clutter from 'gi://Clutter';
 import Graphene from 'gi://Graphene';
 
 import { State } from '../core/critter.js';
+import { reactionSoundKey, soundEnabled } from '../core/soundCategories.js';
 import { ThoughtBubble } from './thoughtBubble.js';
 import { CritterMenu } from './critterMenu.js';
 import { AccessoryActor } from './accessoryActor.js';
@@ -327,7 +328,7 @@ export class CritterActor {
 
   _playReactionSound(name) {
     const file = this.pack.reactionSounds?.[name];
-    if (!file || !this._settings.get_boolean('sounds-enabled')) return;
+    if (!file || !soundEnabled((key) => this._settings.get_boolean(key), reactionSoundKey(name))) return;
     global.display.get_sound_player().play_from_file(file, `Critter: ${name}`, null);
   }
 
