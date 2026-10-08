@@ -95,6 +95,7 @@ export class Life {
   constructor(state = {}, { stageHours = {}, scales = {} } = {}) {
     this.stageHours = { ...DEFAULT_STAGE_HOURS, ...stageHours };
     this.scales = { ...DEFAULT_SCALES, ...scales };
+    this.sizeFactor = 1; // the player's size setting, applied on top of the stage scale
     this.trait = TRAITS.includes(state.trait) ? state.trait : null; // null: neutral
     this.ageSeconds = Number.isFinite(state.ageSeconds) ? Math.max(0, state.ageSeconds) : this.stageHours.adult * HOUR;
     this.appearance = { hue: 0, tone: 0, saturation: 1, ...state.appearance };
@@ -129,7 +130,7 @@ export class Life {
   }
 
   get scale() {
-    return this.scales[this.stage];
+    return this.scales[this.stage] * this.sizeFactor;
   }
 
   /** Displayable age in seconds of life elapsed. */

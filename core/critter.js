@@ -316,6 +316,7 @@ export class Critter {
     this._baseRates = { ...this.needs.rates };
     /** A neutral adult by default: the Manager provides the real life (egg,
      * trait, colour) via setLife(), which keeps the core deterministic for tests. */
+    this._sizeFactor = 1;
     this.life = new Life({}, { scales: this.config.stageScales });
     this.x = initialPosition.x;
     this.y = initialPosition.y;
@@ -390,6 +391,7 @@ export class Critter {
   /** Replaces the life (egg, trait...) and recomputes the configuration that depends on it. */
   setLife(life) {
     this.life = life;
+    life.sizeFactor = this._sizeFactor;
     this._recomputeConfig();
     // An egg (or a hibernating animal) replacing an already-active animal: if
     // resting, it goes straight to the still state; if airborne, it falls first.
@@ -415,6 +417,17 @@ export class Critter {
     for (const gauge of NEED_GAUGES) {
       this.needs.rates[gauge] = this._baseRates[gauge] * (mods.decay[gauge] ?? 1) * (mods.decay.all ?? 1);
     }
+  }
+
+  /** Displayed sprite height (px): the pack's, times the stage scale and the size setting. */
+  _spriteHeight() {
+    return this.config.spriteHeight * (this.life.scale ?? 1);
+  }
+
+  /** The player's size setting (1 = the pack's size), on top of the stage scale. */
+  setSizeFactor(factor) {
+    this._sizeFactor = factor;
+    this.life.sizeFactor = factor;
   }
 
   setLifeAgeScale(scale) {
@@ -761,7 +774,7 @@ export class Critter {
     // Only the surfaces the sprite fits on: no standing on a ledge flush with
     // the top of the screen, no hanging from one flush with the bottom.
     this._monitors = options.monitors ?? [];
-    surfaces = usableSurfaces(surfaces, this._monitors, this.config.spriteHeight);
+    surfaces = usableSurfaces(surfaces, this._monitors, this._spriteHeight());
     this.lastEvent = this._pendingEvent;
     this._pendingEvent = null;
     // An event coming from outside affects the gauges right away: the
@@ -2511,7 +2524,7 @@ export class Critter {
 
   /** True if the whole sprite (feet and head) stays inside the screens along a straight flight. */
   _pathOnScreen(x1, y1, x2, y2) {
-    const size = this.config.spriteHeight;
+    const size = this._spriteHeight();
     return (
       pathInsideMonitors(this._monitors, x1, y1 - 1, x2, y2 - 1, 4) &&
       pathInsideMonitors(this._monitors, x1, y1 - size, x2, y2 - size, 4)
@@ -2524,7 +2537,7 @@ export class Critter {
     if (monitors.length === 0 || isInsideAnyMonitor(monitors, this.x, this.y - 1)) return;
     const m = nearestMonitor(monitors, this.x, this.y);
     this.x = clamp(this.x, m.x, m.x + m.width);
-    this.y = clamp(this.y, m.y + Math.min(this.config.spriteHeight, m.height), m.y + m.height);
+    this.y = clamp(this.y, m.y + Math.min(this._spriteHeight(), m.height), m.y + m.height);
   }
 
   /**
@@ -2536,7 +2549,7 @@ export class Critter {
   _keepRoamTargetOnScreen(yFactors) {
     const monitors = this._monitors;
     if (monitors.length === 0) return;
-    const size = this.config.spriteHeight;
+    const size = this._spriteHeight();
     const reachable = (x, y) => isInsideAnyMonitor(monitors, x, y - size) && this._pathOnScreen(this.x, this.y, x, y);
     if (reachable(this.walkTargetX, this._flyTargetY)) return;
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -2715,7 +2728,7 @@ export class Critter {
         this.vy = 0;
         this.currentSurface = null;
         // Hanging, y was the top of the body; falling, it is the feet: let go from where the body was.
-        if (wasHanging) this.y += this.config.spriteHeight * (this.life.scale ?? 1);
+        if (wasHanging) this.y += this._spriteHeight();
         break;
       case State.CEILING:
         // stateTimer inherited from the previous state (WALK/CLIMB...) would

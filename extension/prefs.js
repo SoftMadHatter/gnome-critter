@@ -252,6 +252,15 @@ export default class CritterPreferences extends ExtensionPreferences {
     settings.bind('decor-plants', plantsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     lifeGroup.add(plantsRow);
 
+    const sizeRow = new Adw.SpinRow({
+      title: _('Taille des animaux'),
+      subtitle: _("1 = taille d'origine, 2 = double."),
+      adjustment: new Gtk.Adjustment({ lower: 0.5, upper: 3, step_increment: 0.1, page_increment: 0.5 }),
+      digits: 1,
+    });
+    settings.bind('critter-size', sizeRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+    lifeGroup.add(sizeRow);
+
     const growthRow = new Adw.SwitchRow({
       title: _('Croissance'),
       subtitle: _("Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte."),

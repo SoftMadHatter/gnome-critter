@@ -165,3 +165,11 @@ test('stagesOverrides : dossier de stade, échelle facultative, chemins dangereu
   assert.deepEqual(scales, { baby: 1, young: 0.8 });
   assert.deepEqual(ignored.sort(), ['adult', 'senior']);
 });
+
+test('le réglage de taille multiplie l’échelle du stade', () => {
+  const life = new Life({}, { scales: { adult: 1, baby: 0.5 } });
+  assert.equal(life.scale, 1);
+  life.sizeFactor = 2;
+  assert.equal(life.scale, 2);
+  assert.equal(life.snapshot().scale, 2);
+});

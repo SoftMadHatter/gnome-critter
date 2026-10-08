@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnome-critter\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 13:42+0200\n"
+"POT-Creation-Date: 2026-10-08 19:35+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -414,7 +414,7 @@ msgstr ""
 msgid "Saisons"
 msgstr ""
 
-#: core/labels.js:111 extension/lib/manager.js:480
+#: core/labels.js:111 extension/lib/manager.js:483
 msgid "Toi"
 msgstr ""
 
@@ -958,75 +958,75 @@ msgstr ""
 msgid "Ranger les jouets"
 msgstr ""
 
-#: extension/lib/critterMenu.js:54 extension/lib/manager.js:418
+#: extension/lib/critterMenu.js:54 extension/lib/manager.js:421
 #: extension/lib/panelIndicator.js:133 extension/lib/panelIndicator.js:240
 #: extension/lib/panelIndicator.js:241 extension/lib/panelIndicator.js:243
 msgid "Sans nom"
 msgstr ""
 
-#: extension/lib/manager.js:251
+#: extension/lib/manager.js:253
 msgid "Un œuf est déposé : {name}."
 msgstr ""
 
-#: extension/lib/manager.js:367
+#: extension/lib/manager.js:370
 msgid "Pièces insuffisantes ({price} nécessaires, {coins} en poche)."
 msgstr ""
 
-#: extension/lib/manager.js:379
+#: extension/lib/manager.js:382
 msgid "Accessoire acheté : {accessory}."
 msgstr ""
 
-#: extension/lib/manager.js:380
+#: extension/lib/manager.js:383
 msgid "{accessory} acheté (-{price} pièces)."
 msgstr ""
 
-#: extension/lib/manager.js:418
+#: extension/lib/manager.js:421
 msgid "{name} — progression"
 msgstr ""
 
-#: extension/lib/manager.js:454
+#: extension/lib/manager.js:457
 msgid "Une créature"
 msgstr ""
 
-#: extension/lib/manager.js:454
+#: extension/lib/manager.js:457
 msgid "{previous} est rebaptisé(e) {name}."
 msgstr ""
 
-#: extension/lib/manager.js:482
+#: extension/lib/manager.js:485
 msgid "{name} : {count} succès d'un coup."
 msgid_plural "{name} : {count} succès d'un coup."
 msgstr[0] ""
 msgstr[1] ""
 
-#: extension/lib/manager.js:486
+#: extension/lib/manager.js:489
 msgid "{name} : exploit douteux « {achievement} »."
 msgstr ""
 
-#: extension/lib/manager.js:486
+#: extension/lib/manager.js:489
 msgid "{name} : succès « {achievement} »."
 msgstr ""
 
-#: extension/lib/manager.js:495
+#: extension/lib/manager.js:498
 msgid "Trophée obtenu : {trophy}."
 msgstr ""
 
-#: extension/lib/manager.js:547
+#: extension/lib/manager.js:550
 msgid "{name} a éclos."
 msgstr ""
 
-#: extension/lib/manager.js:548
+#: extension/lib/manager.js:551
 msgid "{name} fête son anniversaire !"
 msgstr ""
 
-#: extension/lib/manager.js:549
+#: extension/lib/manager.js:552
 msgid "{name} devient {stage}."
 msgstr ""
 
-#: extension/lib/manager.js:551
+#: extension/lib/manager.js:554
 msgid "{name} a appris un tour."
 msgstr ""
 
-#: extension/lib/manager.js:798
+#: extension/lib/manager.js:806
 msgid "Cadeau ramassé : +{coins} pièce."
 msgid_plural "Cadeau ramassé : +{coins} pièces."
 msgstr[0] ""
@@ -1237,7 +1237,7 @@ msgstr ""
 msgid "Besoins et croissance"
 msgstr ""
 
-#: extension/prefs.js:171 extension/prefs.js:271
+#: extension/prefs.js:171 extension/prefs.js:280
 msgid "Rythme et capteurs"
 msgstr ""
 
@@ -1349,73 +1349,81 @@ msgid "Des plantes à grignoter sont maintenues sur le bureau."
 msgstr ""
 
 #: extension/prefs.js:256
-msgid "Croissance"
+msgid "Taille des animaux"
 msgstr ""
 
 #: extension/prefs.js:257
+msgid "1 = taille d'origine, 2 = double."
+msgstr ""
+
+#: extension/prefs.js:265
+msgid "Croissance"
+msgstr ""
+
+#: extension/prefs.js:266
 msgid "Un animal neuf naît d'un œuf et grandit ; désactivée, il naît adulte."
 msgstr ""
 
-#: extension/prefs.js:263
+#: extension/prefs.js:272
 msgid "Vitesse de croissance"
 msgstr ""
 
-#: extension/prefs.js:264
+#: extension/prefs.js:273
 msgid "1 = temps réel. Plus haut pour essayer les stades sans attendre."
 msgstr ""
 
-#: extension/prefs.js:272
+#: extension/prefs.js:281
 msgid "Aucun contenu n'est jamais lu : ni notifications, ni touches."
 msgstr ""
 
-#: extension/prefs.js:277
+#: extension/prefs.js:286
 msgid "Cycle jour/nuit"
 msgstr ""
 
-#: extension/prefs.js:278
+#: extension/prefs.js:287
 msgid ""
 "De 23 h à 7 h, les animaux dorment davantage et sont légèrement assombris."
 msgstr ""
 
-#: extension/prefs.js:284
+#: extension/prefs.js:293
 msgid "Dormir en votre absence"
 msgstr ""
 
-#: extension/prefs.js:285
+#: extension/prefs.js:294
 msgid ""
 "Ils s'endorment quand vous êtes inactif, et vous accueillent à votre retour."
 msgstr ""
 
-#: extension/prefs.js:291
+#: extension/prefs.js:300
 msgid "Minutes d'inactivité avant l'absence"
 msgstr ""
 
-#: extension/prefs.js:298
+#: extension/prefs.js:307
 msgid "Rappel de pause"
 msgstr ""
 
-#: extension/prefs.js:299
+#: extension/prefs.js:308
 msgid "Un animal vient vers votre curseur après une longue période d'activité."
 msgstr ""
 
-#: extension/prefs.js:305
+#: extension/prefs.js:314
 msgid "Minutes d'activité avant le rappel"
 msgstr ""
 
-#: extension/prefs.js:312
+#: extension/prefs.js:321
 msgid "Réagir aux notifications"
 msgstr ""
 
-#: extension/prefs.js:313
+#: extension/prefs.js:322
 msgid ""
 "Seul le fait qu'une notification arrive est utilisé, jamais son contenu."
 msgstr ""
 
-#: extension/prefs.js:319
+#: extension/prefs.js:328
 msgid "Réagir à la frappe"
 msgstr ""
 
-#: extension/prefs.js:320
+#: extension/prefs.js:329
 msgid "Compte seulement qu'une touche est pressée, jamais laquelle."
 msgstr ""
 
@@ -1465,55 +1473,60 @@ msgid ""
 "stades sans attendre des jours)."
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:58
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:59
+msgid ""
+"Multiplicateur de la taille d'affichage des animaux (1 = taille d'origine)."
+msgstr ""
+
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:64
 msgid ""
 "La nuit (23 h à 7 h, heure locale), les animaux dorment davantage et sont "
 "légèrement assombris."
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:76
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:82
 msgid "Minutes d'activité avant le rappel de pause"
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:96
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:102
 msgid "Autonomie des animaux"
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:97
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:103
 msgid ""
 "Auto : suit la croissance et les tours appris. Sinon désactivée, partielle "
 "ou totale."
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:107
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:113
 msgid ""
 "Des plantes à grignoter sont maintenues sur le bureau pour les animaux "
 "autonomes."
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:111
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:117
 msgid "Pièces, achats et journal (interne)"
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:112
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:118
 msgid "JSON écrit par l'extension. Ne pas modifier à la main."
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:116
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:122
 msgid "Objets du bureau sauvegardés (interne)"
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:117
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:123
 msgid ""
 "JSON écrit par l'extension : gamelles, lits et nourriture à restaurer. Ne "
 "pas modifier à la main."
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:121
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:127
 msgid "État sauvegardé des animaux (interne)"
 msgstr ""
 
-#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:122
+#: extension/schemas/org.gnome.shell.extensions.gnome-critter.gschema.xml:128
 msgid ""
 "JSON écrit par l'extension : positions à restaurer au prochain démarrage. Ne "
 "pas modifier à la main."

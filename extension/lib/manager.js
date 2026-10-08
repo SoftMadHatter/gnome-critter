@@ -243,6 +243,7 @@ export class Manager {
       critter.setLife(
         Life.create(Math.random, { growth: growthEnabled && !saved[i], hueRange: data.hueRange, scales: data.stages.scales }),
       );
+      critter.setSizeFactor(this.settings.get_double('critter-size'));
       if (saved[i]) critter.restore(saved[i], { elapsedSeconds: saved[i].elapsedSeconds });
       // Name: the saved one, otherwise drawn from the species' own list among the free ones.
       if (!critter.name) {
@@ -270,6 +271,7 @@ export class Manager {
     for (const key of ['vacation-mode', 'growth-enabled', 'growth-speed']) {
       this._settingsIds.push(this.settings.connect(`changed::${key}`, () => this._applyLifeAgeScale()));
     }
+    this._settingsIds.push(this.settings.connect('changed::critter-size', () => this._applySizeFactor()));
     this._settingsIds.push(this.settings.connect('changed::autonomy', () => this._applyAutonomy()));
     this._settingsIds.push(this.settings.connect('changed::vacation-mode', () => this._onVacationChanged()));
     this._settingsIds.push(this.settings.connect('changed::show-indicator', () => this._syncIndicator()));
@@ -631,6 +633,11 @@ export class Manager {
   _applyAutonomy() {
     const mode = this.settings.get_string('autonomy');
     for (const { critter } of this._critters) critter.setAutonomyMode(mode);
+  }
+
+  _applySizeFactor() {
+    const factor = this.settings.get_double('critter-size');
+    for (const { critter } of this._critters) critter.setSizeFactor(factor);
   }
 
   _applyLifeAgeScale() {
@@ -996,7 +1003,7 @@ export class Manager {
     const progress = { now: Date.now() };
     this._critters.forEach(({ critter, actor, pack }, i) => {
       const otherCritters = others.length > 1 ? others.filter((_, j) => j !== i) : undefined;
-      critter.ensureVisible(monitors, pack.spriteSize.height);
+      critter.ensureVisible(monitors, pack.spriteSize.height * critter.life.scale);
       const ambient = this._ambientFor(critter);
       const snapshot = critter.tick(dt, surfaces, {
         worldBounds, monitors, pointer, otherCritters, focusedWindow, items, laser: this._laser, ambient, progress,
